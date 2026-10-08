@@ -569,6 +569,8 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
 .marca b{display:block;font-size:14px;font-weight:600}
 .marca small{display:block;font-size:var(--t-xs);color:var(--tinta-3);margin-top:3px;line-height:1.4}
 
+.tac-col{width:30px;height:30px;border-radius:50%;border:2px solid #0006;cursor:pointer;padding:0}
+.tac-col.on{border:3px solid #111;box-shadow:0 0 0 2px #fff}
 </style>
 </head>
 <body>
@@ -1236,11 +1238,26 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
   <div id="mcLista"></div>
 </section>
 
+<!-- ═════════ PIZARRA TÁCTICA ═════════ -->
+<section id="v-tactica" class="view">
+  <button class="back" onclick="go('mas')">‹ Más</button>
+  <h2 style="font-size:21px">Pizarra táctica</h2>
+  <p class="tiny muted" style="margin:4px 0 12px">Mueve las fichas, dibuja flechas o líneas libres. Se guarda en este móvil.</p>
+  <div id="tacHerr" class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:9px"></div>
+  <div id="tacColores" class="row" style="gap:8px;margin-bottom:10px"></div>
+  <canvas id="tacCanvas" width="680" height="440" style="width:100%;height:auto;border-radius:12px;touch-action:none;display:block"></canvas>
+  <div class="grid2" style="margin-top:13px">
+    <button class="btn" onclick="pdfTactica()">Guardar en PDF</button>
+    <button class="btn danger" onclick="tacBorrar()">Borrar todo</button>
+  </div>
+</section>
+
 <!-- ═════════ PREPARAR PARTIDO ═════════ -->
 <section id="v-preparar" class="view">
   <button class="back" onclick="abrir(sesionActiva)">‹ Volver al partido</button>
   <div class="card card-lead" id="ppCab" style="margin-bottom:13px"></div>
   <div class="strip" id="ppStrip" style="margin-bottom:14px"></div>
+  <div class="card" id="ppCampo" style="margin-bottom:13px"></div>
   <div id="ppAviso"></div>
   <div class="grid2" style="margin-bottom:13px">
     <button class="btn" onclick="proponerTitulares()">Proponer titulares</button>
@@ -1825,7 +1842,7 @@ function statsJugador(id){
   const ip=Math.round(50+50*(0.40*asist+0.60*((medTotal||0)/10)));
   return {
     conv,pres,pctAsist:Math.round(asist*100),
-    medE:medE?medE.toFixed(1):'—', medP:medP?medP.toFixed(1):'—',
+    medE:medE?medE.toFixed(1):'—', medP:medP?medP.toFixed(1):'—', medT:medTotal?medTotal.toFixed(1):'—',
     ip:conv?Math.min(100,ip):50,
     minutos:par.reduce((a,r)=>a+(+r.minutos||0),0),
     goles:par.reduce((a,r)=>a+(+r.goles||0),0),
@@ -1854,7 +1871,7 @@ function go(v,guardar){
     balance:mostrarBalance,micros:mostrarMicros,duomc:mostrarDuoMc,temporada:mostrarTemporada,
     privacidad:()=>{mostrarPrivacidad();mostrarSeguridad();},
     balance:mostrarBalance,micros:mostrarMicros,duomc:mostrarDuoMc,temporada:mostrarTemporada,
-    minutos:mostrarMinutos,alta:()=>{}}[v]||(()=>{}))();
+    minutos:mostrarMinutos,tactica:mostrarTactica,alta:()=>{}}[v]||(()=>{}))();
 }
 
 /* ══════════════ HOY ══════════════ */
@@ -2717,6 +2734,7 @@ function mostrarMas(){
   const items=[
     ['blue','lista','Planificación','44 microciclos',"go('plan',false)"],
     ['amber','tarea','Modelo de juego','Principios',"go('modelo',false)"],
+    ['green','tarea','Pizarra táctica','Dibujar jugadas',"go('tactica',false)"],
     ['naranja','lapiz','Diario','5 líneas',"go('diario',false)"],
     ['garnet','euro','Gastos','Notas y km',"go('gastos',false)"],
     ['green','nube','Sincronizar','Móvil y PC',"go('nube',false)"],
@@ -5052,6 +5070,9 @@ function mostrarPreparar(){
     'Necesitas '+c.campo+' de campo y 1 portero como titulares. '+
     'Ahora tienes '+titC+' y '+titP+'.</div>';
 
+  document.getElementById('ppCampo').innerHTML=campoSVG(planActual)+
+    '<p class="mini muted" style="text-align:center;margin:10px 0 0">Banquillo: '+
+    (planActual.filter(x=>(x.r.estado||"titular")==="suplente").map(x=>esc(x.j.nombre)).join(' · ')||'—')+'</p>';
   document.getElementById('ppLista').innerHTML=planActual.map(x=>{
     const est=x.r.estado||'titular';
     const sem=x.sem;
@@ -5067,7 +5088,8 @@ function mostrarPreparar(){
         '<span class="row" style="gap:5px;margin-top:3px">'+
         '<span class="chip '+etiq[1]+'">'+etiq[0]+'</span>'+
         '<span class="chip">IP '+x.st.ip+'</span>'+
-        (sem.media!=null?'<span class="chip amber">'+sem.media.toFixed(1)+'</span>':'')+
+        '<span class="chip amber" title="Nota media de esta semana">Semana '+(sem.media!=null?sem.media.toFixed(1):'—')+'</span>'+
+        '<span class="chip" title="Nota media total">Total '+x.st.medT+'</span>'+
         '</span></span></button>'+
       '<div class="status">'+TXT[est]+'</div></div>'+
       (est!=='no'?'<div class="pl-acta" style="padding-left:57px">'+
@@ -5134,6 +5156,7 @@ function pdfAlineacion(){
     '<td><b>Convocados</b>'+planActual.filter(x=>(x.r.estado||'titular')!=='no').length+'</td>'+
     '<td><b>Minutos a repartir</b>'+c.totalCampo+"' de campo</td>"+
     '<td><b>Condición</b>'+(s.local==='visitante'?'Visitante':'Local')+'</td></tr></table>';
+  h+='<div style="margin:6px 0">'+campoSVG(planActual)+'</div>';
   [['titular','Titulares'],['suplente','Suplentes'],['no','No convocados']].forEach(([k,t])=>{
     const g=planActual.filter(x=>(x.r.estado||'titular')===k);
     if(!g.length) return;
@@ -5160,6 +5183,169 @@ function pdfAlineacion(){
 /* ══════════════════════════════════════════════════════
    PIZARRA DE CAMBIOS · quién está dentro, quién fuera
    ══════════════════════════════════════════════════════ */
+
+/* ─── Campo dibujado: titulares en 1-x-x-x, portero abajo ─── */
+function jugSVG(x,cx,cy,fill,ink){
+  const dor=(x.j.dorsal!=null&&x.j.dorsal!=='')?String(x.j.dorsal):'';
+  const nom=esc(((x.j.nombre||'').split(' ')[0]).slice(0,10));
+  return '<g><circle cx="'+cx+'" cy="'+cy+'" r="20" fill="'+fill+'" stroke="#111" stroke-width="2"/>'+
+    '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="15" font-weight="700" fill="'+ink+'">'+esc(dor)+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+36)+'" text-anchor="middle" font-size="13" font-weight="600" fill="#fff" stroke="#000a" stroke-width="3" paint-order="stroke">'+nom+'</text></g>';
+}
+function campoSVG(lista){
+  const tit=lista.filter(x=>(x.r.estado||'titular')==='titular');
+  const cam=tit.filter(x=>!x.es), por=tit.filter(x=>x.es);
+  const n=cam.length, a=Math.round(n*0.28), c=Math.round(n*0.28), b=n-a-c;
+  const filas=[c,b,a].filter(k=>k>0);
+  const R=filas.length, W=340, H=480;
+  let s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:340px;display:block;margin:0 auto" role="img" aria-label="Alineación">'+
+    '<rect x="10" y="10" width="320" height="460" rx="12" fill="#2e7d4f"/>'+
+    '<g stroke="rgba(255,255,255,.7)" stroke-width="2" fill="none">'+
+    '<rect x="10" y="10" width="320" height="460" rx="12"/><line x1="10" y1="240" x2="330" y2="240"/>'+
+    '<circle cx="170" cy="240" r="46"/><rect x="95" y="10" width="150" height="70"/><rect x="95" y="400" width="150" height="70"/></g>';
+  let idx=0;
+  filas.forEach((k,i)=>{
+    const y=R===1?220:110+i*(220/(R-1));
+    for(let j=0;j<k;j++){ s+=jugSVG(cam[idx++],W*(j+1)/(k+1),y,'#ffffff','#111'); }
+  });
+  if(por[0]) s+=jugSVG(por[0],170,425,'#f5c542','#111');
+  return s+'</svg>';
+}
+
+/* ─── Pizarra táctica ─── */
+const TAC_COLORES=['#ffffff','#f5c542','#e74c3c','#3498db'];
+let tacHerr='mover', tacColor=0, tacHist=[], tacArr=null, tacListo=false;
+function tacEstado(){
+  if(!D.tactica) D.tactica={fichas:[],trazos:[]};
+  return D.tactica;
+}
+function mostrarTactica(){
+  tacSetup();
+  const herr=[['mover','Mover'],['ficha','Ficha'],['flecha','Flecha'],['libre','Libre'],['deshacer','Deshacer'],['borrar','Borrar']];
+  document.getElementById('tacHerr').innerHTML=herr.map(([k,t])=>
+    '<button class="btn xs '+(tacHerr===k?'primary':'')+'" onclick="tacSet(\''+k+'\')">'+t+'</button>').join('');
+  document.getElementById('tacColores').innerHTML=TAC_COLORES.map((c,i)=>
+    '<button class="tac-col '+(tacColor===i?'on':'')+'" style="background:'+c+'" onclick="tacColorSet('+i+')" aria-label="Color"></button>').join('');
+  tacDibujar();
+}
+function tacSetup(){
+  if(tacListo) return; tacListo=true;
+  const cv=document.getElementById('tacCanvas');
+  cv.addEventListener('pointerdown',tacDown);
+  cv.addEventListener('pointermove',tacMove);
+  cv.addEventListener('pointerup',tacUp);
+  cv.addEventListener('pointercancel',tacUp);
+}
+function tacSet(k){
+  if(k==='borrar'){ tacBorrar(); return; }
+  if(k==='deshacer'){ tacDeshacer(); return; }
+  tacHerr=k; mostrarTactica();
+}
+function tacColorSet(i){ tacColor=i; mostrarTactica(); }
+function tacPos(ev){
+  const r=document.getElementById('tacCanvas').getBoundingClientRect();
+  return [Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),
+          Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))];
+}
+function tacHit(p){
+  const cv=document.getElementById('tacCanvas'), e=tacEstado();
+  for(let i=e.fichas.length-1;i>=0;i--){
+    const f=e.fichas[i];
+    if(Math.hypot((f.x-p[0])*cv.width,(f.y-p[1])*cv.height)<26) return i;
+  }
+  return -1;
+}
+function tacDown(ev){
+  const p=tacPos(ev), e=tacEstado();
+  if(tacHerr==='ficha'){
+    const n=prompt('Número o inicial de la ficha','');
+    if(n===null) return;
+    tacHist.push(JSON.stringify(e));
+    e.fichas.push({x:p[0],y:p[1],c:TAC_COLORES[tacColor],n:n.trim().slice(0,3)});
+    salvar(); tacDibujar(); return;
+  }
+  ev.currentTarget.setPointerCapture(ev.pointerId);
+  if(tacHerr==='mover'){
+    const i=tacHit(p); if(i<0) return;
+    tacHist.push(JSON.stringify(e));
+    tacArr={modo:'mover',i};
+    return;
+  }
+  tacHist.push(JSON.stringify(e));
+  tacArr=(tacHerr==='libre')
+    ? {modo:'libre',trazo:{tipo:'libre',c:TAC_COLORES[tacColor],p:[p]}}
+    : {modo:'flecha',trazo:{tipo:'flecha',c:TAC_COLORES[tacColor],a:p,b:p}};
+}
+function tacMove(ev){
+  if(!tacArr) return;
+  const p=tacPos(ev), e=tacEstado();
+  if(tacArr.modo==='mover'){ const f=e.fichas[tacArr.i]; if(f){ f.x=p[0]; f.y=p[1]; } }
+  else if(tacArr.modo==='flecha'){ tacArr.trazo.b=p; }
+  else { tacArr.trazo.p.push(p); }
+  tacDibujar();
+}
+function tacUp(){
+  if(!tacArr) return;
+  const e=tacEstado();
+  if(tacArr.trazo){
+    const t=tacArr.trazo;
+    const largo = t.tipo==='libre' ? t.p.length>1 : Math.hypot(t.b[0]-t.a[0],t.b[1]-t.a[1])>0.02;
+    if(largo) e.trazos.push(t); else tacHist.pop();
+  }
+  tacArr=null; salvar(); tacDibujar();
+}
+function tacDeshacer(){
+  if(!tacHist.length) return;
+  D.tactica=JSON.parse(tacHist.pop()); salvar(); tacDibujar();
+}
+function tacBorrar(){
+  if(!confirm('¿Borrar todas las fichas y dibujos?')) return;
+  tacHist.push(JSON.stringify(tacEstado()));
+  D.tactica={fichas:[],trazos:[]}; salvar(); tacDibujar();
+}
+function tacDibujar(){
+  const cv=document.getElementById('tacCanvas'); if(!cv) return;
+  const W=cv.width, H=cv.height, ctx=cv.getContext('2d'), e=tacEstado();
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#2e7d4f'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(255,255,255,.75)'; ctx.lineWidth=3;
+  ctx.strokeRect(12,12,W-24,H-24);
+  ctx.beginPath(); ctx.moveTo(12,H/2); ctx.lineTo(W-12,H/2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(W/2,H/2,H*0.12,0,Math.PI*2); ctx.stroke();
+  ctx.strokeRect(W/2-W*0.2,12,W*0.4,H*0.16); ctx.strokeRect(W/2-W*0.2,H-12-H*0.16,W*0.4,H*0.16);
+  e.trazos.forEach(t=>tacTrazo(ctx,t,W,H));
+  if(tacArr&&tacArr.trazo) tacTrazo(ctx,tacArr.trazo,W,H);
+  e.fichas.forEach(f=>{
+    const x=f.x*W, y=f.y*H;
+    ctx.beginPath(); ctx.arc(x,y,20,0,Math.PI*2);
+    ctx.fillStyle=f.c; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#111'; ctx.stroke();
+    ctx.fillStyle=(f.c==='#e74c3c'||f.c==='#3498db')?'#fff':'#111';
+    ctx.font='bold 16px system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(f.n||'',x,y+1);
+  });
+}
+function tacTrazo(ctx,t,W,H){
+  ctx.strokeStyle=t.c; ctx.fillStyle=t.c; ctx.lineWidth=4; ctx.lineCap='round'; ctx.lineJoin='round';
+  if(t.tipo==='libre'){
+    ctx.beginPath();
+    t.p.forEach((q,i)=>{ const x=q[0]*W,y=q[1]*H; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.stroke(); return;
+  }
+  const x1=t.a[0]*W,y1=t.a[1]*H,x2=t.b[0]*W,y2=t.b[1]*H;
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  const ang=Math.atan2(y2-y1,x2-x1), L=18;
+  ctx.beginPath(); ctx.moveTo(x2,y2);
+  ctx.lineTo(x2-L*Math.cos(ang-0.4),y2-L*Math.sin(ang-0.4));
+  ctx.lineTo(x2-L*Math.cos(ang+0.4),y2-L*Math.sin(ang+0.4));
+  ctx.closePath(); ctx.fill();
+}
+function pdfTactica(){
+  const cv=document.getElementById('tacCanvas');
+  let h=docCab('Pizarra táctica',fechaLarga(hoyISO()));
+  h+='<img src="'+cv.toDataURL('image/png')+'" style="width:100%;border-radius:8px;margin:8px 0">';
+  h+=docPie();
+  imprimir(h,'Pizarra táctica '+hoyISO());
+}
 
 let reloj=null;
 
