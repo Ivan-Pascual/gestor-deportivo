@@ -116,6 +116,42 @@ const ok = (nombre, cond, extra = '') => {
   });
   ok('El PDF a página completa tiene dibujo y orientación horizontal', a4.img && a4.horizontal, JSON.stringify(a4));
 
+  // 9) Sugerencia de partido por posiciones: cada titular ocupa un hueco de su puesto
+  const posiciones = await page.evaluate(() => {
+    const J = (id, nombre, puesto, tipo) => ({ id, nombre, dorsal: '', puesto, tipo: tipo || 'campo', pierna: 'Derecha', categoria: 'Alevín 1º' });
+    D.jugadores.push(
+      J('pc1', 'Alba Central', 'Central'), J('pc2', 'Bruno Central', 'Central'),
+      J('pm1', 'Carla Medio', 'Medio'), J('pm2', 'Dani Medio', 'Medio'),
+      J('pm3', 'Eva Medio', 'Medio'), J('pm4', 'Fede Medio', 'Medio'),
+      J('pe1', 'Gonzalo Extremo', 'Extremo'), J('pp1', 'Hugo Punta', 'Punta'),
+      J('pg1', 'Ivan Portero', 'Portero', 'portero'));
+    D.sesiones.push(
+      { id: 'sp0', fecha: '2026-09-28', tipo: 'entreno', mc: 1, objetivo: 'Prueba', tareas: [] },
+      { id: 'sp1', fecha: '2026-10-01', tipo: 'entreno', mc: 1, objetivo: 'Prueba', tareas: [] },
+      { id: 'sp', fecha: '2026-10-10', tipo: 'partido', mc: 1, objetivo: 'Prueba', tareas: [], formacion: '2-3-2' });
+    // Alba y Bruno han ido a todo y con nota alta: serían los primeros de la lista sin tener en cuenta la posición
+    ['sp0', 'sp1'].forEach(sid => ['pc1', 'pc2'].forEach(jid =>
+      D.registros.push({ id: 'r' + sid + jid, sesionId: sid, jugadorId: jid, asistio: true, nota: 10 })));
+    ['pc1', 'pc2', 'pm1', 'pm2', 'pm3', 'pm4', 'pe1', 'pp1', 'pg1'].forEach(jid =>
+      D.registros.push({ id: 'rp' + jid, sesionId: 'sp', jugadorId: jid, asistio: true }));
+    sesionActiva = 'sp'; planActual = null;
+    sugerirGlobal();
+    const s = D.sesiones.find(x => x.id === 'sp');
+    const slots = slotsDe(formacionDe(s));
+    const tit = D.registros.filter(r => r.sesionId === 'sp' && r.estado === 'titular');
+    const campo = tit.filter(r => r.slot !== 'P');
+    const gk = tit.some(r => r.slot === 'P' && D.jugadores.find(j => j.id === r.jugadorId).tipo === 'portero');
+    const encaja = { central: ['central'], medio: ['medio'], extremo: ['extremo', 'punta'] };
+    const bien = campo.filter(r => {
+      const p = (D.jugadores.find(j => j.id === r.jugadorId).puesto || '').toLowerCase();
+      return (encaja[slots[r.slot].role] || []).includes(p);
+    }).length;
+    return { campo: campo.length, bien, gk };
+  });
+  ok('La sugerencia pone a cada jugador en su posición (2-3-2)',
+    posiciones.campo === 7 && posiciones.bien === 7 && posiciones.gk,
+    JSON.stringify(posiciones));
+
   ok('Sin errores de página', errores.length === 0, errores.length ? errores.join(' | ') : '');
   await navegador.close();
   console.log(fallos ? '\n' + fallos + ' prueba(s) fallada(s)' : '\nTodas las pruebas pasan');
