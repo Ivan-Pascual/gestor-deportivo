@@ -108,6 +108,14 @@ const ok = (nombre, cond, extra = '') => {
   });
   ok('El aviso de copia sale a los 30 días y no antes', aviso.a20 === true && aviso.b31 === true, JSON.stringify(aviso));
 
+  // 8) PDF a página completa: dibujo y orientación horizontal
+  const a4 = await page.evaluate(() => {
+    pdfTacticaA4();
+    const h = document.getElementById('impresion').innerHTML;
+    return { img: /<img[^>]+data:image\/png/.test(h), horizontal: h.includes('A4 landscape') };
+  });
+  ok('El PDF a página completa tiene dibujo y orientación horizontal', a4.img && a4.horizontal, JSON.stringify(a4));
+
   ok('Sin errores de página', errores.length === 0, errores.length ? errores.join(' | ') : '');
   await navegador.close();
   console.log(fallos ? '\n' + fallos + ' prueba(s) fallada(s)' : '\nTodas las pruebas pasan');

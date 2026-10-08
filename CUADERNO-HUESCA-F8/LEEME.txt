@@ -739,6 +739,11 @@ Q · NOVEDADES DE ESTA VERSIÓN
     descargar (antes era a las dos semanas).
   · Restaurar una copia vuelve a cargar la app y recalcula
     tareas y dibujos.
+  · PDF a página completa (en la pizarra): dibujo en
+    horizontal, a la izquierda, con los datos de la tarea
+    a la derecha.
+  · La clave de sincronización ya no está en el código:
+    se escribe en Más → Sincronizar.
 
 ═════════════════════════════════════════
 R · PRUEBAS (para comprobar la app antes de subir cambios)

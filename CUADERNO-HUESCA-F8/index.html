@@ -1255,6 +1255,7 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
   <div id="tacFicha" style="margin-top:12px"></div>
   <div class="grid2" style="margin-top:13px">
     <button class="btn" onclick="pdfTactica()">Guardar en PDF</button>
+    <button class="btn" onclick="pdfTacticaA4()">PDF a página completa</button>
     <button class="btn danger" onclick="tacBorrar()">Borrar todo</button>
   </div>
 </section>
@@ -5662,11 +5663,13 @@ function tacTrazo(ctx,t,P){
   ctx.lineTo(b[0]-L*Math.cos(ang+0.4),b[1]-L*Math.sin(ang+0.4));
   ctx.closePath(); ctx.fill();
 }
-function tacRender(cv,t,sel){
+function tacRender(cv,t,sel,ancho){
   const v=TAC_VISTAS[t.vista]||TAC_VISTAS.entero;
   const W=440, H=Math.round(v[3]*105*W/68);
-  cv.width=W; cv.height=H;
+  const k=(ancho||W)/W;
+  cv.width=Math.round(W*k); cv.height=Math.round(H*k);
   const ctx=cv.getContext('2d');
+  ctx.setTransform(k,0,0,k,0,0);
   const P=(x,y)=>[(x-v[0])/v[2]*W,(y-v[1])/v[3]*H];
   tacCampo(ctx,P,W,H);
   (t.trazos||[]).forEach(tr=>tacTrazo(ctx,tr,P));
@@ -5792,6 +5795,26 @@ function tacRenderFicha(){
     '<button class="btn" onclick="tacSalir()">Volver a la tarea</button></div>';
 }
 
+function pdfTacticaA4(){
+  tacSel=-1;
+  const t=tacEstado();
+  const cv=document.createElement('canvas');
+  tacRender(cv,t,-1,1000);
+  const img=cv.toDataURL('image/png');
+  const tar=(tacObj&&tareaId)?D.tareas.find(x=>x.id===tareaId):null;
+  const titulo=tar?((tar.codigo?tar.codigo+' · ':'')+(tar.nombre||'Tarea')):'Pizarra táctica';
+  const campos=tar?[['Espacio',tar.espacio],['Jugadores',tar.jugadores],
+    ['Duración',tar.duracion?tar.duracion+' min':''],['Contenido',tar.contenido],['Objetivo',tar.objetivo],
+    ['Material',tar.material],['Normas',tar.normas],['Variantes',tar.variantes],['Correcciones',tar.correcciones]]:[];
+  const info=campos.filter(([,v])=>v).map(([k,v])=>'<p style="margin:0 0 7px"><b>'+k+':</b> '+esc(String(v))+'</p>').join('');
+  let h='<style>@page{size:A4 landscape;margin:10mm}</style>';
+  h+=docCab(titulo,tar?'Dibujo de la tarea':'Pizarra táctica · '+fechaLarga(hoyISO()));
+  h+='<div style="display:flex;gap:8mm;align-items:flex-start;margin-top:4mm">'+
+    '<img src="'+img+'" alt="" style="height:150mm;width:auto;border-radius:6px;border:1px solid #ccc;flex:none">'+
+    '<div style="flex:1;font-size:12px;line-height:1.45">'+info+'</div></div>';
+  h+=docPie();
+  imprimir(h,'Dibujo '+(tar?(tar.codigo||'tarea'):'pizarra')+' '+hoyISO());
+}
 function pdfTactica(){
   tacSel=-1; tacDibujar();
   const cv=document.getElementById('tacCanvas');
