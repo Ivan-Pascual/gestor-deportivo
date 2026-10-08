@@ -1740,7 +1740,7 @@ function cargar(){
   } else if(!D.bibliotecaV) D.bibliotecaV=BIBLIOTECA_V;
   estabilizarTareas();
   /* dibujos orientativos del banco: se regeneran los automáticos una vez */
-  if((D.dibujosV||0)<3){ D.tareas.forEach(t=>{ if(!t.dibujo||t.dibujo.auto) t.dibujo=dibujoBase(t); }); D.dibujosV=3; }
+  if((D.dibujosV||0)<4){ D.tareas.forEach(t=>{ if(!t.dibujo||t.dibujo.auto) t.dibujo=dibujoBase(t); }); D.dibujosV=4; }
   if(!D.plan.length) D.plan=MICROCICLOS.map(m=>({
     mc:m[0],dominante:m[1],notas:m[2],portero:m[3],hecho:false
   }));
@@ -5409,7 +5409,9 @@ function tacEstado(){
   if(t.fichas){ t.fichas.forEach(f=>t.objetos.push({tipo:'ficha',x:f.x,y:f.y,c:f.c,n:f.n,rot:0})); delete t.fichas; }
   return t;
 }
-function tacMarco(){ return TAC_VISTAS[tacEstado().vista]||TAC_VISTAS.entero; }
+/* marco de la vista: una de las fijas (entero, sup, inf) o un recorte [x, y, ancho, alto] */
+function tacVistaDe(t){ return Array.isArray(t.vista)?t.vista:(TAC_VISTAS[t.vista]||TAC_VISTAS.entero); }
+function tacMarco(){ return tacVistaDe(tacEstado()); }
 function tacPx(ev){
   const cv=document.getElementById('tacCanvas'), r=cv.getBoundingClientRect();
   return [(ev.clientX-r.left)*cv.width/r.width,(ev.clientY-r.top)*cv.height/r.height];
@@ -5438,7 +5440,7 @@ function tacSetup(){
 function mostrarTactica(){
   tacSetup();
   const t=tacEstado();
-  const vs=document.getElementById('tacVista'); if(vs) vs.value=t.vista;
+  const vs=document.getElementById('tacVista'); if(vs && !Array.isArray(t.vista)) vs.value=t.vista;
   const tit=document.getElementById('tacTitulo'); if(tit) tit.textContent=tacObj?'Dibujo de la tarea':'Pizarra táctica';
   const bk=document.getElementById('tacBack'); if(bk) bk.textContent=tacObj?'‹ Tarea':'‹ Más';
   document.getElementById('tacTipos').innerHTML=TAC_TIPOS.map(([k,n])=>
@@ -5555,7 +5557,8 @@ function tacCampo(ctx,P,W,H){
   ctx.strokeRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
   const m=P(0.03,0.5), n=P(0.97,0.5);
   ctx.beginPath(); ctx.moveTo(m[0],m[1]); ctx.lineTo(n[0],n[1]); ctx.stroke();
-  const c=P(0.5,0.5); ctx.beginPath(); ctx.arc(c[0],c[1],W*0.13,0,Math.PI*2); ctx.stroke();
+  const c=P(0.5,0.5), rad=Math.abs(P(0.5+0.1346,0.5)[0]-c[0]);
+  ctx.beginPath(); ctx.arc(c[0],c[1],rad,0,Math.PI*2); ctx.stroke();
   [[0.2,0.02,0.8,0.18],[0.2,0.82,0.8,0.98]].forEach(([x1,y1,x2,y2])=>{
     const p=P(x1,y1), q=P(x2,y2); ctx.strokeRect(p[0],p[1],q[0]-p[0],q[1]-p[1]);
   });
@@ -5687,8 +5690,8 @@ function tacTrazo(ctx,t,P){
   ctx.closePath(); ctx.fill();
 }
 function tacRender(cv,t,sel,ancho){
-  const v=TAC_VISTAS[t.vista]||TAC_VISTAS.entero;
-  const W=440, H=Math.round(v[3]*105*W/68);
+  const v=tacVistaDe(t);
+  const W=440, H=Math.round(v[3]*105*W/(v[2]*68));
   const k=(ancho||W)/W;
   cv.width=Math.round(W*k); cv.height=Math.round(H*k);
   const ctx=cv.getContext('2d');
@@ -5752,6 +5755,47 @@ const DIB_BANCO={
 'T-POR-019':()=>[po(34,103,0),pe(34,99,AM),co(24,86),co(34,80),co(44,86),ba(34,92),fl(34,92,34,84,AM)],
 'T-POR-020':()=>[po(34,103,0),pe(34,98,AM),pe(18,88,AZ),pe(28,88,AZ),pe(40,88,AZ),pe(50,88,AZ),pe(26,72,AZ),pe(42,72,AZ),pe(34,80,RO),pe(22,66,RO),pe(46,66,RO),ba(34,95)]
 };
+/* Tareas que ya se usan en sesiones: dibujos pensados para verse bien en móvil
+   (pocas piezas, grandes, con el recorte automático de dibujoBase). */
+const cuad=(x,y)=>[...rc(x,y,x+10,y+10),fi(x,y+5,AZ),fi(x+5,y,AZ),fi(x+10,y+5,AZ),fi(x+5,y+5,RO,'D'),ba(x+3,y+8)];
+Object.assign(DIB_BANCO,{
+'T-IND-001':()=>[...rc(30,47,38,55),fi(34,47,AZ,'1'),fi(38,51,AZ,'2'),fi(34,55,AZ,'3'),fi(30,51,AZ,'4'),fi(34,51,RO,'D'),ba(32,53)],
+'T-IND-002':()=>[...rc(30,47,38,55),fi(34,47,AZ,'1'),fi(38,51,AZ,'2'),fi(34,55,AZ,'3'),fi(30,51,AZ,'4'),fi(32,50,RO,'D'),fi(37,54,RO,'D'),ba(32,53)],
+'T-IND-003':()=>[co(20,40),co(20,45),co(20,50),co(20,55),co(20,60),co(48,40),co(48,45),co(48,50),co(48,55),co(48,60),fi(20,36,AZ,'1'),fi(48,36,AZ,'2'),ba(22,36),fl(20,38,20,60,AM),fl(48,38,48,60,AM)],
+'T-IND-005':()=>[fi(18,44,AZ,'1'),fi(18,58,AZ,'2'),ba(18,51),fi(34,44,AZ,'3'),fi(34,58,AZ,'4'),ba(34,51),fi(50,44,AZ,'5'),fi(50,58,AZ,'6'),ba(50,51)],
+'T-IND-007':()=>[...rc(10,46,20,56),...rc(29,46,39,56),...rc(48,46,58,56),fi(15,46,AZ,'1'),fi(20,51,AZ,'2'),fi(15,56,AZ,'3'),fi(29,51,AZ,'4'),fi(58,51,AZ,'5'),fi(34,51,RO,'D'),fi(53,51,RO,'D'),ba(15,51),fl(20,51,28,51,AM),fl(39,51,47,51,AM)],
+'T-IND-008':()=>[...rc(14,80,54,103),pe(20,86,AZ),pe(34,84,AZ),pe(48,86,AZ),pe(24,96,AZ),pe(44,96,AZ),pe(34,92,RO),ba(26,90),ba(42,95)],
+'T-OF-026':()=>[po(34,6,0),fi(28,46,AZ,'A'),fi(40,46,AZ,'B'),fi(34,34,RO,'D'),pe(34,70,AZ),ba(34,66),fl(34,64,34,52,AM)],
+'T-OF-027':()=>[fi(34,64,AZ,'1'),fi(26,54,AZ,'4'),fi(34,54,AZ,'3'),fi(42,54,AZ,'5'),fi(34,44,AZ,'2'),fi(58,40,AZ,'6'),ba(34,62),fl(34,62,34,48,AM),fl(34,54,56,42,AM)],
+'T-OF-028':()=>[po(34,4,0),po(34,101,0),fi(20,40,AZ,'1'),fi(34,36,AZ,'2'),fi(48,40,AZ,'3'),fi(34,46,AZ,'4'),fi(20,62,RO),fi(34,58,RO),fi(48,62,RO),fi(34,68,RO),ba(30,50)],
+'T-OF-029':()=>[po(34,8,0),fi(34,64,AZ,'1'),fi(26,54,AZ,'4'),fi(34,54,AZ,'3'),fi(42,54,AZ,'5'),fi(34,44,AZ,'2'),ba(34,62),fl(34,62,34,48,AM),fl(34,42,34,20,RO)],
+'T-OF-030':()=>[po(34,4,0),fi(6,54,AZ,'1'),fi(6,66,AZ,'2'),fi(14,60,RO,'D'),ba(6,64),fi(30,22,AZ,'3'),fi(38,24,AZ,'4'),fi(34,16,RO,'D'),ba(31,27),fl(10,58,24,30,AM)],
+'T-OF-031':()=>[po(34,4,0),fi(12,20,AZ,'1'),fi(22,28,AZ,'2'),fi(16,40,AZ,'3'),fi(30,36,AZ,'4'),fi(24,22,AZ,'5'),fi(40,18,RO),fi(52,28,RO),fi(56,40,RO),fi(44,46,RO),fi(36,30,RO),pe(34,52,AM),ba(34,40)],
+'T-OF-032':()=>[...rc(4,30,32,75),...rc(36,30,64,75),co(34,30),co(34,52),co(34,75),fi(12,44,AZ,'1'),fi(22,52,AZ,'2'),fi(14,62,AZ,'3'),fi(46,44,RO,'4'),fi(56,52,RO,'5'),fi(44,62,RO,'6'),pe(8,36,AM),pe(60,36,AM),ba(22,56)],
+'T-OF-034':()=>[...rc(24,46,44,62),fi(28,50,AZ,'1'),fi(40,50,AZ,'2'),fi(34,58,AM),fi(32,54,RO,'D'),fi(38,56,RO,'D'),fi(10,52,AZ,'3'),fi(58,52,AZ,'4'),fi(34,26,AZ,'5'),ba(28,53)],
+'T-OF-035':()=>[...[0,1,2,3,4].map(i=>{const a=-Math.PI/2+i*2*Math.PI/5;return fi(34+16*Math.cos(a),52+16*Math.sin(a),AZ,String(i+1));}),...rc(26,44,42,60),fi(31,52,RO,'D'),fi(37,52,RO,'D'),ba(34,47)],
+'T-OF-036':()=>[po(34,4,0),fi(22,62,AZ,'1'),fi(34,66,AZ,'2'),fi(46,62,AZ,'3'),fi(34,74,AZ,'4'),fi(22,40,RO),fi(34,36,RO),fi(46,40,RO),fi(34,28,RO),pe(12,52,AM),pe(56,52,AM),pe(34,52,AM),ba(34,58)],
+'T-OF-038':()=>[po(34,4,0),fi(6,76,AZ,'1'),fi(12,70,AZ,'2'),fi(18,80,AZ,'3'),fi(20,64,AZ,'4'),fi(22,56,RO),fi(30,70,RO),fi(40,56,RO),pe(60,66,AM),ba(8,74),fl(12,80,60,66,AZ)],
+'T-OF-039':()=>[fi(34,86,AZ,'C'),fi(34,60,RO,'M'),fi(60,44,RO,'B'),fi(34,28,AZ,'D'),fl(34,82,34,64,AM),fl(34,58,58,46,AM),fl(58,42,36,30,AM),fl(32,32,32,82,AM)],
+'T-OF-040':()=>[...rc(6,30,16,40),...rc(52,30,62,40),...rc(6,62,16,72),...rc(52,62,62,72),fi(10,35,AZ),fi(10,68,AZ),fi(14,52,AZ),fi(58,35,RO),fi(58,68,RO),fi(56,52,RO),ba(34,52),fl(16,52,28,52,AM)],
+'T-OF-041':()=>[co(4,35),co(34,35),co(64,35),co(4,70),co(34,70),co(64,70),fi(12,44,AZ,'1'),fi(22,50,AZ,'2'),fi(18,60,AZ,'3'),fi(10,60,AZ,'4'),fi(24,44,AZ,'5'),fi(20,68,AZ,'6'),fi(56,44,RO,'1'),fi(46,50,RO,'2'),fi(50,60,RO,'3'),fi(58,60,RO,'4'),fi(44,44,RO,'5'),fi(48,68,RO,'6'),pe(34,52,AM),ba(30,52)],
+'T-OF-042':()=>[po(34,4,0),fi(24,58,AZ,'1'),fi(34,66,AZ,'2'),fi(44,58,AZ,'3'),fi(28,74,AZ,'4'),fi(40,74,AZ,'5'),fi(24,44,RO),fi(34,36,RO),fi(44,44,RO),fi(28,24,RO),fi(40,24,RO),pe(4,50,AM),pe(64,50,AM),pe(34,84,AM),ba(34,62),fl(34,62,6,50,AM)],
+'T-OF-043':()=>[fi(6,66,AZ,'1'),fi(10,74,AZ,'2'),fi(16,70,AZ,'3'),fi(14,60,AZ,'4'),fi(24,62,RO),fi(30,72,RO),fi(38,66,RO),ba(8,70),fl(14,70,60,64,AM)],
+'T-OF-044':()=>[po(34,4,0),fi(20,64,AZ,'1'),fi(34,68,AZ,'2'),fi(48,64,AZ,'3'),fi(26,78,AZ,'4'),fi(42,78,AZ,'5'),fi(20,44,RO),fi(34,40,RO),fi(48,44,RO),fi(26,30,RO),fi(42,30,RO),pe(4,52,AM),pe(64,52,AM),pe(34,86,AM),ba(34,58),fl(4,50,22,36,AM)],
+'T-OF-045':()=>[...rc(4,30,32,78),...rc(36,30,64,78),fi(12,40,AZ,'1'),fi(22,46,AZ,'2'),fi(12,56,AZ,'3'),fi(24,62,AZ,'4'),fi(14,70,AZ,'5'),fi(20,36,AZ,'6'),fi(46,40,RO,'7'),fi(56,46,RO,'8'),fi(46,56,RO,'9'),fi(44,62,RO,'10'),fi(54,70,RO,'11'),fi(48,36,RO,'12'),pe(34,54,AM),ba(22,52)],
+'T-OF-046':()=>[...rc(6,40,32,64),...rc(36,40,62,64),po(19,40,0),po(49,40,0),fi(10,50,AZ,'1'),fi(22,54,AZ,'2'),fi(16,60,AZ,'3'),fi(26,46,AZ,'4'),fi(42,50,RO,'5'),fi(56,54,RO,'6'),fi(48,60,RO,'7'),fi(58,46,RO,'8'),pe(10,80,AM),pe(20,90,AM),pe(34,94,AM),pe(48,90,AM),pe(58,80,AM),ba(34,52)],
+'T-OF-047':()=>[po(34,8,0),co(8,34),co(8,74),co(60,34),co(60,74),pe(34,72,AZ),fi(34,56,AZ,'A'),fi(29,57,RO,'D'),ba(34,70),fl(34,70,34,60,AZ)],
+'T-TR-005':()=>[po(34,4,0),fi(24,62,AZ,'1'),fi(34,66,AZ,'2'),fi(44,62,AZ,'3'),fi(24,44,RO),fi(34,40,RO),fi(44,44,RO),ba(34,70),fl(34,66,34,50,AM)],
+'T-TR-006':()=>[po(34,2,0),po(34,103,0),co(10,46),co(10,54),co(58,46),co(58,54),fi(26,44,AZ,'1'),fi(34,48,AZ,'2'),fi(42,60,RO,'3'),fi(34,58,RO,'4'),ba(34,53)],
+'T-TR-007':()=>[po(34,103,0),...rc(14,82,54,103),pe(34,99,AM),fi(6,86,AZ,'1'),fi(62,86,AZ,'2'),fi(28,88,AZ,'3'),fi(40,88,AZ,'4'),fi(34,76,AZ,'5'),fi(20,70,RO),fi(34,66,RO),fi(48,70,RO),fi(34,56,RO),ba(34,96)],
+'T-TR-008':()=>[...rc(6,40,30,60),...rc(38,40,62,60),po(18,40,0),po(50,40,0),fi(12,48,AZ,'1'),fi(22,54,AZ,'2'),fi(14,56,AZ,'3'),fi(26,46,AZ,'4'),fi(44,50,RO,'5'),fi(56,56,RO,'6'),fi(46,56,RO,'7'),fi(58,46,RO,'8'),ba(34,50),fl(22,54,34,50,AM)],
+'T-TR-009':()=>[po(34,4,0),po(34,101,0),fi(24,30,AZ,'1'),fi(44,30,AZ,'2'),fi(34,40,AZ,'3'),fi(20,46,AZ,'4'),fi(24,76,RO,'5'),fi(44,76,RO,'6'),fi(34,66,RO,'7'),fi(48,60,RO,'8'),pe(12,60,AM),pe(56,60,AM),ba(34,52)],
+'T-TR-010':()=>[...rc(4,6,64,48),...rc(4,57,64,99),fi(16,22,AZ,'1'),fi(34,18,AZ,'2'),fi(52,22,AZ,'3'),fi(34,34,AZ,'4'),fi(16,82,RO,'5'),fi(34,86,RO,'6'),fi(52,82,RO,'7'),fi(34,70,RO,'8'),pe(34,52,AM),ba(34,40)],
+'T-DF-006':()=>[...cuad(14,30),...cuad(44,30),...cuad(14,60),...cuad(44,60)],
+'T-DF-007':()=>[...rc(22,40,34,52),fi(28,40,AZ,'1'),fi(34,46,AZ,'2'),fi(28,52,AZ,'3'),fi(22,46,AZ,'4'),fi(29,45,RO,'D'),fi(32,49,RO,'D'),ba(30,47)],
+'T-DF-008':()=>[po(34,6,0),...rc(18,46,50,60),fi(26,80,AZ),fi(42,82,AZ),pe(34,90,AM),fi(30,62,RO,'D'),fi(40,62,RO,'D'),ba(34,78),fl(34,78,34,64,AM)],
+'T-BP-001':()=>[po(34,2,0),...rc(14,2,54,20),fi(20,14,AZ,'1'),fi(30,12,AZ,'2'),fi(38,12,AZ,'3'),fi(46,14,AZ,'4'),fi(34,20,AZ,'5'),fi(26,6,AZ,'6'),fi(22,8,RO),fi(30,16,RO),fi(40,16,RO),fi(48,8,RO),fi(34,8,RO),fi(44,22,RO),ba(66,4),fl(66,4,40,14,AM)]
+});
 /* Tareas propias: se dibuja según lo que pone la tarea (rondo, duelos XvY) */
 function dibujoPorTexto(t){
   const txt=[t.nombre,t.espacio,t.jugadores,t.material,t.normas,t.contenido].map(x=>String(x||'')).join(' ').toLowerCase();
@@ -5772,9 +5816,20 @@ function dibujoPorTexto(t){
   }
   return dibujoGenerico(t).objetos;
 }
+/* recorte automático: enmarca lo dibujado con un margen de 6 m (mínimo 30 m) para que se vea grande en el móvil */
+function vistaAuto(arr){
+  const pts=[];
+  arr.forEach(o=>{ if(o._t) pts.push([o.a[0]*68,o.a[1]*105],[o.b[0]*68,o.b[1]*105]); else pts.push([o.x*68,o.y*105]); });
+  if(!pts.length) return TAC_VISTAS.entero;
+  const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+  const x1=Math.min(...xs), x2=Math.max(...xs), y1=Math.min(...ys), y2=Math.max(...ys);
+  const w=Math.min(68,Math.max(30,x2-x1+12)), h=Math.min(105,Math.max(30,y2-y1+12));
+  const X=Math.min(Math.max(0,(x1+x2)/2-w/2),68-w), Y=Math.min(Math.max(0,(y1+y2)/2-h/2),105-h);
+  return [X/68,Y/105,w/68,h/105];
+}
 function dibujoBase(t){
   const arr=(DIB_BANCO[t.codigo]?DIB_BANCO[t.codigo]():dibujoPorTexto(t));
-  return {vista:'entero',objetos:arr.filter(x=>!x._t).map(({_t,...r})=>r),
+  return {vista:vistaAuto(arr),objetos:arr.filter(x=>!x._t).map(({_t,...r})=>r),
     trazos:arr.filter(x=>x._t).map(({_t,...r})=>r),auto:true};
 }
 function dibujoGenerico(t){

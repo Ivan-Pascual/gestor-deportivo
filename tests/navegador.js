@@ -38,6 +38,14 @@ const ok = (nombre, cond, extra = '') => {
   }));
   ok('Todas las tareas tienen dibujo', migracion.conDibujo === migracion.total, JSON.stringify(migracion));
 
+  // 10) Dibujos de todas las tareas con recorte para móvil y al menos dos piezas
+  const recorte = await page.evaluate(() => {
+    const ts = D.tareas;
+    const conRecorte = ts.filter(t => Array.isArray(t.dibujo.vista) && t.dibujo.objetos.length >= 2).length;
+    return { total: ts.length, conRecorte };
+  });
+  ok('Todas las tareas tienen recorte para móvil y al menos dos piezas', recorte.total > 0 && recorte.conRecorte === recorte.total, JSON.stringify(recorte));
+
   // 2) Plantilla y "Poner todas"
   await page.evaluate(() => {
     if (!D.jugadores.length) D.jugadores.push({ id: 'j1', nombre: 'Hugo Pérez', dorsal: '7' }, { id: 'j2', nombre: 'Lucas Gil', dorsal: '1' });
