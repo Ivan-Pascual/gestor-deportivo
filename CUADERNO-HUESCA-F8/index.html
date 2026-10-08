@@ -3021,7 +3021,8 @@ function setPerfil(campo,valor){
   salvar();
 }
 function exportar(){
-  const b=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
+  const copia=Object.assign({},D); delete copia.nubeClave;   /* la clave nunca va a la copia */
+  const b=new Blob([JSON.stringify(copia,null,2)],{type:'application/json'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(b); a.download='huesca-f8-'+hoyISO()+'.json'; a.click();
   setTimeout(()=>URL.revokeObjectURL(a.href),1000);
@@ -3048,9 +3049,10 @@ function importar(e){
     const d=JSON.parse(r.result);
     if(!d.jugadores) throw 0;
     if(!confirm('Esto reemplaza todos los datos actuales. ¿Seguir?')) return;
-    const _u=D.nubeUrl;
+    const _u=D.nubeUrl, _c=D.nubeClave;
     D=Object.assign({jugadores:[],sesiones:[],registros:[],tareas:[],plan:[],diario:[],gastos:[],mc:1,v:2},d);
     D.nubeUrl=D.nubeUrl||_u;
+    D.nubeClave=_c||D.nubeClave;   /* la clave del dispositivo se conserva */
     salvar(); cargar(); aviso('Copia restaurada'); go('hoy');
   }catch(x){ aviso('El archivo no es válido','warn'); } };
   r.readAsText(f); e.target.value='';
