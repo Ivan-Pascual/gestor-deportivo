@@ -3055,7 +3055,7 @@ function importar(e){
     const _u=D.nubeUrl;
     D=Object.assign({jugadores:[],sesiones:[],registros:[],tareas:[],plan:[],diario:[],gastos:[],mc:1,v:2},d);
     D.nubeUrl=D.nubeUrl||_u;
-    salvar(); aviso('Copia restaurada'); go('hoy');
+    salvar(); cargar(); aviso('Copia restaurada'); go('hoy');
   }catch(x){ aviso('El archivo no es válido','warn'); } };
   r.readAsText(f); e.target.value='';
 }
@@ -5612,6 +5612,9 @@ function tacObjeto(ctx,o,px,py,sel){
     ctx.restore();
     tacRR(ctx,-23,-4,46,8,3); ctx.lineWidth=1; ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.stroke();
   } else if(o.tipo==='camiseta'){
+    const jug=o.jid?D.jugadores.find(x=>x.id===o.jid):null;
+    const num=jug?String(jug.dorsal??''):(o.n||'');
+    const nom=jug?(jug.nombre||'').split(' ')[0]:(o.nom||'');
     tacSombra(ctx,1.5,18,13,3);
     const shirt=new Path2D(TAC_SHIRT);
     const g=ctx.createLinearGradient(-15,0,15,0);
@@ -5624,8 +5627,8 @@ function tacObjeto(ctx,o,px,py,sel){
     ctx.lineWidth=1.6; ctx.strokeStyle='rgba(0,0,0,.4)'; ctx.stroke();
     ctx.fillStyle='#fff'; ctx.strokeStyle='rgba(0,0,0,.85)'; ctx.lineWidth=2.5; ctx.lineJoin='round';
     ctx.font='900 12px system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.strokeText(o.n||'',0,1); ctx.fillText(o.n||'',0,1);
-    if(o.nom){ ctx.font='700 10px system-ui,sans-serif'; ctx.lineWidth=3; ctx.strokeText(o.nom,0,25); ctx.fillText(o.nom,0,25); }
+    ctx.strokeText(num,0,1); ctx.fillText(num,0,1);
+    if(nom){ ctx.font='700 10px system-ui,sans-serif'; ctx.lineWidth=3; ctx.strokeText(nom,0,25); ctx.fillText(nom,0,25); }
   } else if(o.tipo==='balon'){
     tacSombra(ctx,1.5,2.5,10.5,10.5);
     const g=ctx.createRadialGradient(-3,-3,1,0,0,11);
