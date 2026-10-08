@@ -1,0 +1,664 @@
+CUADERNO DEL ENTRENADOR — SD HUESCA ALEVÍN F8
+=============================================
+
+Viene cargada con los 44 microciclos, 16 tareas
+y el modelo de juego completo.
+
+
+═════════════════════════════════════════
+A · PROBARLA AHORA
+═════════════════════════════════════════
+Doble clic en "index.html". Se abre y funciona.
+
+
+═════════════════════════════════════════
+B · PONERLA EN EL MÓVIL — GRATIS
+═════════════════════════════════════════
+1. Entra en   https://app.netlify.com/drop
+2. Arrastra la CARPETA entera al recuadro
+3. Te da una dirección en 10 segundos
+4. Ábrela en el móvil
+5. iPhone:  Compartir → "Añadir a pantalla de inicio"
+   Android: menú ⋮   → "Añadir a pantalla principal"
+
+Guarda esa dirección: la necesitas también en el ordenador.
+
+
+═════════════════════════════════════════
+C · SINCRONIZAR MÓVIL Y ORDENADOR
+═════════════════════════════════════════
+Opcional, pero recomendable. Es gratis y se hace una vez.
+
+PASO 1 — Crear la hoja
+  Entra en  https://sheets.new
+  Ponle nombre: "Cuaderno Huesca F8"
+
+PASO 2 — Abrir el editor de scripts
+  Menú  Extensiones → Apps Script
+
+PASO 3 — Pegar el código
+  Borra todo lo que haya en el editor.
+  Abre el archivo "google-script.gs" de esta carpeta,
+  copia TODO y pégalo ahí.
+  Guarda con el icono del disquete.
+
+PASO 4 — Publicarlo
+  Botón azul "Implementar" (arriba a la derecha)
+    → Nueva implementación
+    → El engranaje ⚙ → Aplicación web
+    → Ejecutar como:        Yo
+    → Quién tiene acceso:   Cualquier usuario
+    → Implementar
+
+  Te pedirá permisos la primera vez:
+    "Revisar permisos" → tu cuenta → "Configuración avanzada"
+    → "Ir a Cuaderno Huesca F8 (no seguro)" → Permitir
+  Es tu propio script, por eso avisa.
+
+PASO 5 — Copiar el enlace
+  Te da una dirección que acaba en  /exec
+  Cópiala entera.
+
+PASO 6 — Pegarla en la app
+  En la app:  Ajustes ⚙ → "Enlace de tu hoja de Google"
+  Pega la dirección. Hazlo en el móvil Y en el ordenador.
+
+CÓMO SE USA
+  Terminas de trabajar en el móvil  →  "Subir a la nube"
+  Te sientas en el ordenador        →  "Traer de la nube"
+
+  Sube desde donde acabas de trabajar.
+  Trae desde el otro dispositivo, antes de tocar nada.
+
+  Además, en la hoja se crea sola una pestaña "registros"
+  con todos los datos en tabla, lista para Excel.
+
+
+═════════════════════════════════════════
+D · LOS PDFs
+═════════════════════════════════════════
+Siete documentos. Todos se generan desde la app:
+
+  FICHA DE SESIÓN      En la sesión → "Ficha en PDF"
+                       Objetivo, tareas con sus normas y
+                       correcciones, y lista de asistencia.
+                       Para imprimir y llevar al campo.
+
+  ACTA DE PARTIDO      En el partido → "Acta en PDF"
+                       Titulares, suplentes, minutos, goles
+                       y notas, con totales.
+
+  GUION DE PARTIDO     En el partido → "Guion de partido"
+                       Qué miras en los primeros diez minutos,
+                       ajustes preparados y mensajes del descanso.
+
+  INFORME INDIVIDUAL   En la ficha del jugador
+                       Estadísticas, últimas sesiones, índice
+                       de participación y observaciones.
+
+  INFORME DE EQUIPO    En Plantilla
+                       Toda la plantilla ordenada por índice
+                       de participación, más las tareas más usadas.
+
+  PLANIFICACIÓN        En Más → Planificación
+                       Los 44 microciclos por bloques.
+
+  MODELO DE JUEGO      En Más → Modelo de juego
+                       El documento marco, adaptado a F8:
+                       los tres pilares, la salida 1-3-3-1
+                       que pasa a 1-2-4-1, el bloque 30x30,
+                       la zona mixta y el vocabulario.
+                       Se puede EDITAR entero desde la app.
+
+  NOTA DE GASTOS       En Más → Gastos
+                       Con el formato que pide la Fundación.
+
+Todos llevan escudo y tu firma.
+La planificación y el modelo de juego son editables:
+toca un microciclo para cambiar su contenido, o el
+botón "Editar" en el modelo.
+
+Al pulsar se abre la ventana de impresión.
+  iPhone:      elige "Guardar en Archivos" o comparte
+  Android:     elige "Guardar como PDF"
+  Ordenador:   Destino → "Guardar como PDF"
+
+
+═════════════════════════════════════════
+E · CÓMO ESTÁ ORGANIZADA
+═════════════════════════════════════════
+HOY es un panel de acción, no de lectura.
+Seis botones grandes para registrar en un toque:
+
+   Entreno · Porteros · Partido
+   Tarea   · Jugador  · Diario
+
+Arriba, la cinta del microciclo actual. Abajo, una
+tira con los cuatro números de la semana y el aviso
+de quien baja del 70% de asistencia.
+
+Los datos completos están dentro de cada sección:
+
+  MÁS        Seis viñetas: Planificación, Modelo de
+             juego, Diario, Gastos, Sincronizar y
+             Copias. Cada una es su propia sección.
+             Ajustes solo tiene ajustes.
+
+  PLANTILLA  Resumen del equipo arriba y luego cada
+             ficha con asistencia, notas e índice.
+             Dentro de la ficha, el detalle entero.
+
+  SESIONES   Anillo de asistencia de la temporada,
+             totales, filtros por tipo y todo el
+             histórico agrupado por mes.
+
+  TAREAS     Cuántas tienes, usos totales, cuántas
+             no has usado nunca y filtros por contenido.
+
+
+═════════════════════════════════════════
+F · PASAR LISTA — 30 SEGUNDOS
+═════════════════════════════════════════
+1. HOY → Entreno / Porteros / Partido
+2. El objetivo se rellena solo con el del microciclo
+3. TODOS SALEN PRESENTES.
+   Toca el nombre SOLO de quien no ha venido.
+4. Toca un número del 1 al 5 para la nota (opcional)
+5. Hecho
+
+En partido, tocar el nombre cambia entre
+Titular → Suplente → No convocado.
+
+
+═════════════════════════════════════════
+G · NOTAS Y MÍNIMOS
+═════════════════════════════════════════
+Las notas van del 0 al 10, en entrenos y partidos.
+
+Mínimos que avisa la app:
+   Entrenamiento   5 jugadores
+   Sesión porteros 1 portero
+   Partido         8 convocados
+                   (1 portero y 7 de campo)
+
+Si no llegas, sale un aviso ámbar. Puedes
+guardar igual, pero te lo advierte.
+
+
+═════════════════════════════════════════
+H · NOTA DE GASTOS DEL CLUB
+═════════════════════════════════════════
+Sale con el formato exacto que pide la Fundación:
+tus datos, DNI, la tabla FECHA / MOTIVO / MEDIO /
+KM-EUROS, el total y tu firma.
+
+  Más → Gastos → pestaña "Kilometraje"
+  Trayecto:  HUESCA-SARIÑENA-HUESCA
+  Km:        102
+  → calcula solo 102 × 0,26 € = 26,52 €
+
+  Botón "Nota de gastos de este mes" para juntar
+  todos los pendientes en un solo documento.
+
+Antes de usarla, rellena una vez:
+  Más → Ajustes → nombre, DNI, ciudad, entidad
+  y el precio por kilómetro.
+
+
+═════════════════════════════════════════
+I · ÍNDICE DE PARTICIPACIÓN
+═════════════════════════════════════════
+   50 garantizado + 50 repartido entre
+   asistencia (40%) y rendimiento (60%)
+
+Es el número que enseñas cuando una familia
+pregunta por los minutos de su hijo.
+
+
+═════════════════════════════════════════
+K · PRUEBAS Y SEGMENTACIÓN
+═════════════════════════════════════════
+Más → Pruebas
+
+BAJAS Y DISPONIBILIDAD
+  En la ficha del jugador: Situación (lesionado,
+  enfermo, sancionado, motivos personales) y la fecha
+  de vuelta.
+
+  · No aparece en las convocatorias mientras esté de baja
+  · Vuelve solo cuando pasa la fecha
+  · Las bajas NO le penalizan la asistencia
+  · Salen avisadas en HOY
+
+  En una sesión, el botón "Baja" marca al vuelo a quien
+  se lesiona ese día.
+
+
+CERRAR EL ACTA
+  Botón en el partido. Cuando está cerrada no se puede
+  tocar nada por accidente. Se reabre con el mismo botón.
+
+
+GOLES AUTOMÁTICOS
+  Al apuntar los goles de cada jugador, la app te propone
+  el resultado. Un toque y lo pone.
+
+
+TAREAS NUMERADAS
+  Dentro de la sesión salen como 1, 2, 3 con sus minutos,
+  se pueden reordenar con las flechas y la app suma el
+  tiempo total, avisando si te pasas de 75.
+
+
+DUPLICAR TAREA Y BUSCADOR
+  En el banco: buscador por nombre, código, objetivo,
+  normas, material, contenido o nivel. Y botón
+  "Duplicar" para hacer variantes sin escribirlo todo.
+
+
+COMPARAR MICROCICLOS
+  Más → Microciclos → "Comparar dos microciclos".
+  Te dice cuál rindió mejor y en cuánto.
+
+
+TEMPORADA Y MEMORIA
+  Más → Temporada.
+  · Memoria de temporada en PDF: modelo de juego,
+    plantilla completa, microciclos, tareas más usadas,
+    todos los partidos y los aprendizajes del diario.
+    Es tu carta de presentación.
+  · "Cerrar y empezar de nuevo": guarda un archivo de
+    la temporada y arranca la siguiente con la plantilla
+    que elijas. Descarga una copia antes.
+
+
+PANTALLA ENCENDIDA
+  En la pizarra de cambios, el móvil no se bloquea.
+
+
+PIZARRA DE CAMBIOS
+  En el acta → "Pizarra de cambios".
+
+  Dos listas: EN EL CAMPO y BANQUILLO.
+  Tocas al que sale y al que entra. El reloj cuenta solo.
+  Un jugador puede salir y volver a entrar las veces que
+  quieras: los minutos se suman bien.
+
+  · Contador de cuántos hay en el campo. Si no son 7+1,
+    sale un aviso ámbar.
+  · Botón de pausa para el descanso y "siguiente parte".
+  · Cada jugador muestra sus minutos y, en color, si va
+    por encima o por debajo de lo previsto.
+  · "Volcar al acta" pasa los minutos reales al acta.
+    Después puedes corregirlos a mano si algo se te fue.
+
+
+COMPARAR DOS JUGADORES
+  Botón "Comparar" en la ficha del jugador.
+  Los pone lado a lado: asistencia, notas, minutos,
+  goles, índice de participación, valoración de pruebas
+  y la evolución de los dos. Marca en dorado al que va
+  mejor en cada fila.
+
+
+BALANCE DE LA SEMANA
+  Más → Balance.
+  De lunes a jueves te enseña cómo va la semana en curso.
+  De viernes a domingo, el balance de la semana cerrada.
+  Compara con la semana anterior y avisa de quién va
+  corto de minutos.
+
+
+RENDIMIENTO POR MICROCICLO
+  Más → Microciclos.
+  La nota media del equipo en cada microciclo trabajado,
+  con un gráfico. Sirve para ver si el contenido cala.
+
+
+PREPARAR EL PARTIDO
+  Dentro del acta → "Preparar alineación y minutos".
+
+  · "Proponer titulares" elige los 7 de campo y el
+    portero según asistencia a los entrenos de esa
+    semana, índice de participación y nota media.
+
+  · "Recalcular minutos" reparte los 420 minutos de
+    campo (2 partes de 30 x 7 jugadores):
+       la mitad garantizada a partes iguales
+       la otra mitad según:
+          índice de participación   50%
+          asistencia de la semana   30%
+          nota media de los entrenos 20%
+
+  · Cada jugador muestra sus entrenos de la semana
+    en verde (vino a todos), ámbar o rojo.
+    Es un AVISO, no un bloqueo: decides tú.
+
+  · Los minutos son una propuesta. Puedes cambiarlos
+    a mano y la app te dice si cuadran con el total.
+
+  · Sale en PDF con la alineación, los minutos y los
+    entrenos de cada uno.
+
+  El formato se cambia en Ajustes: partes, minutos
+  por parte y jugadores de campo.
+
+
+SESION DE PORTEROS · 60 MINUTOS CON HECTOR
+  Al crear una sesion de porteros, la app rellena sola
+  la estructura y sale impresa en la ficha:
+
+    0-8'    JUNTOS. Activacion con balon, competitiva
+    8-32'   DOS GRUPOS. Alevines con Ivan,
+            benjamines con Hector. MISMO ejercicio
+    32-50'  ROTAN. Mismo contenido, cambia entrenador
+    50-60'  JUNTOS. Situacion real o competicion
+
+  Y los recordatorios: todo por parejas, nunca mas de
+  diez paradas seguidas, minimo diez minutos de pies,
+  el vocabulario y el fortalecimiento del final.
+
+BIBLIOTECA DE PORTEROS
+  20 tareas en el banco, casi todas por parejas:
+    5 de blocaje
+    4 de caida y desplazamiento
+    3 de colocacion y bisectriz
+    4 de juego de pies
+    4 de las que ya habia
+
+  Si ya tenias la app instalada, las nuevas aparecen
+  solas al abrirla y te avisa de cuantas se han anadido.
+  Las que hayas borrado no vuelven.
+
+
+LA HOJA Y LA CLAVE VIENEN PUESTAS
+  Abre index.html con cualquier editor de texto. En la
+  LINEA 19, arriba del todo, hay esto:
+
+     const HOJA_EQUIPO  = 'https://script.google.com/...';
+     const CLAVE_EQUIPO = '';
+
+  Escribe tu clave entre las comillas de CLAVE_EQUIPO:
+
+     const CLAVE_EQUIPO = 'huesca-2016-Kx7mQ2';
+
+  Guarda y despliega. A partir de ahi, la app queda lista
+  al abrirse: ni tu ni Hector teneis que configurar nada.
+  Los dos trabajais sobre la misma hoja.
+
+  Si no encuentras la linea, busca CLAVE_EQUIPO.
+
+  AVISO IMPORTANTE
+  Con la clave dentro del archivo, cualquiera que tenga la
+  direccion de la web puede leer la hoja. Ahora mismo solo
+  hay nombres y puestos, asi que el riesgo es bajo.
+
+  Si algun dia anades FOTOS, LESIONES, MES DE NACIMIENTO o
+  NOTAS DE LAS FAMILIAS, vuelve a dejar CLAVE_EQUIPO vacia
+  y escribe la clave a mano en Mas -> Sincronizar.
+
+
+NO CAMBIAR DE DIRECCION EN CADA DESPLIEGUE
+NO CAMBIAR DE DIRECCION EN CADA DESPLIEGUE
+  Si arrastras la carpeta a app.netlify.com/drop, cada vez
+  te da una direccion NUEVA y hay que reconfigurar todo.
+
+  Para evitarlo: crea una cuenta gratis en Netlify y
+  reclama el sitio. Despues, desde el panel del sitio,
+  en "Deploys", arrastras la carpeta nueva y se actualiza
+  EL MISMO sitio: misma direccion, mismos datos, nada que
+  volver a configurar.
+
+
+JUGADORES DEL PREFERENTE
+  En la ficha del jugador hay una casilla:
+  "Juega tambien en el Preferente".
+
+  A los marcados les sale un boton "Pref." en la lista
+  de cada sesion, al lado de "Baja".
+
+  Cuando les toque estar arriba, tocas "Pref." ese dia:
+  - NO cuenta como falta
+  - NO le baja el porcentaje de asistencia
+  - NO le penaliza el Indice de Participacion
+  - NO entra en el reparto de minutos de ese dia
+
+  Si vuelve a venir, lo desmarcas y su nota reaparece.
+
+  En las listas se ve una etiqueta azul "pref" para
+  reconocerlos de un vistazo.
+
+
+TRABAJAR ENTRE DOS
+  La primera vez que abras la app te pregunta tu nombre.
+  Queda guardado en ESE movil.
+
+  A partir de ahi, todo lo que escribas queda firmado:
+  las sesiones, las notas, las valoraciones y el diario
+  llevan quien las hizo.
+
+SINCRONIZAR SIN PISARSE
+  El boton "Sincronizar" hace tres cosas seguidas:
+    1. trae lo que hay en la hoja
+    2. lo junta con lo tuyo
+    3. lo devuelve ya unido
+
+  De cada dato se queda el MAS RECIENTE. Si tu evaluas
+  a cinco jugadores y Hector a otros cinco, quedan los
+  diez. Si los dos tocais al mismo, gana el ultimo que
+  lo cambio.
+
+  Los borrados tambien se respetan: si borras un jugador,
+  no reaparece porque el otro aun lo tuviera.
+
+  Los dos teneis que usar la MISMA hoja y la MISMA clave.
+
+  Debajo quedan "Solo subir" y "Solo traer" por si algun
+  dia necesitas forzar una direccion. En el dia a dia usa
+  Sincronizar.
+
+  Con dos personas, NO actives el guardado automatico en
+  los dos moviles a la vez. O lo pones en uno, o
+  sincronizais a mano al terminar cada sesion.
+
+
+PRIVACIDAD Y SEGURIDAD
+  Mas -> Privacidad y seguridad.
+
+BLOQUEO CON PIN
+  Activa un PIN de 4 a 8 numeros. A partir de ahi los
+  datos se guardan CIFRADOS en el movil y la app pide
+  el PIN al abrirse.
+
+  APUNTA EL PIN. Si lo olvidas, los datos NO se pueden
+  recuperar. Ni tu ni nadie.
+
+  El PIN no se guarda en ninguna parte: de el se deriva
+  la clave de cifrado. Comprobado: con el PIN activo, ni
+  los nombres ni las observaciones aparecen en el
+  almacenamiento del navegador.
+
+CLAVE EN LA SINCRONIZACION
+  El script de Google ahora pide una clave.
+  1. Abrelo y cambia la linea
+       var CLAVE = 'CAMBIA-ESTA-CLAVE-POR-UNA-TUYA';
+     por una tuya, larga, por ejemplo
+       var CLAVE = 'huesca-2016-jK9mQ2xR7pL4';
+  2. Vuelve a implementar la aplicacion web
+  3. Pon la MISMA clave en Mas -> Sincronizar
+
+  Sin esto, cualquiera con la direccion del script podria
+  descargarse todos los datos de los ninos.
+
+DERECHOS DE LAS FAMILIAS
+  En la ficha de cada jugador:
+  - "Descargar sus datos": todo lo que hay de el, para
+    entregarlo si lo piden.
+  - "Borrar todo": ficha, foto, notas, valoracion,
+    contexto familiar, actas y hasta las menciones en el
+    diario. Sin rastro.
+
+QUE COMPROBAR CON EL CLUB
+  - Consentimiento firmado de los padres, sobre todo
+    para las fotos
+  - Quien es el responsable del tratamiento
+  - Cuanto tiempo se conservan los datos
+  - Que hacer si una familia pide ver o borrar
+
+
+SIN COBERTURA
+  La app se guarda en el móvil la primera vez que la
+  abres. Después funciona aunque no tengas datos:
+  en el campo, en un pueblo o con el móvil en avión.
+  Todo lo que registres se sincroniza al volver.
+
+GUARDADO AUTOMÁTICO EN LA NUBE
+  Más → Sincronizar → "Activar" el guardado automático.
+  Sube solo a los 25 segundos de cada cambio.
+
+  IMPORTANTE: actívalo SOLO en el dispositivo principal
+  (el móvil). Si lo activas en los dos, el último en
+  guardar pisa al otro.
+  En el ordenador usa "Traer de la nube" a mano.
+
+AVISO DE COPIA
+  Si llevas dos semanas sin descargar una copia, sale
+  un aviso en HOY con el botón para hacerla.
+
+BUSCADOR
+  En Plantilla y en Pruebas. Busca por nombre, dorsal
+  o puesto.
+
+DUPLICAR SESIÓN
+  Dentro de una sesión o partido. Copia el objetivo y
+  las tareas con la fecha de hoy.
+
+FECHA EDITABLE
+  Si el sábado no apuntaste el partido, lo creas el
+  lunes y le cambias la fecha.
+
+DESHACER
+  Al borrar algo sale un aviso con "Deshacer" durante
+  nueve segundos.
+
+LA NOTA NO SE PIERDE
+  Si marcas ausente a alguien que ya tenía nota, la
+  nota se guarda. Si vuelves a marcarlo presente,
+  reaparece.
+
+
+ALTA RÁPIDA
+  Pruebas → Alta rápida. Pegas la lista de nombres,
+  uno por línea, y los crea todos de golpe.
+  Admite: "Nombre" · "7 Nombre" · "7, Nombre, Puesto"
+
+EVALUAR SIN SALIR DEL ACTA
+  En un partido de prueba, el botón Evaluar despliega
+  al jugador ahí mismo: casillas, los 12 ítems del 0
+  al 10, valoración y frase. Sin cambiar de pantalla.
+
+COMPARADOR
+  Pruebas → Comparador. Te enseña dos jugadores y
+  eliges cuál ves más para el B. Repite unas treinta
+  veces y sale un orden por duelos ganados.
+  Es más fiable que puntuar del 0 al 10 a treinta y dos.
+
+FOTOS
+  Toca el avatar en la ficha del jugador. La foto se
+  recorta y comprime sola: unos 15 KB cada una.
+
+MINUTOS
+  Más → Minutos. El reparto de la temporada, con los
+  que van por debajo de la media marcados en rojo.
+
+EVOLUCIÓN
+  En la ficha del jugador, un gráfico de su nota a lo
+  largo del tiempo y si va al alza, estable o a la baja.
+
+
+EQUIPOS
+  Cada jugador pertenece a un equipo: Alevín B,
+  Alevín C o Candidato (mientras dura la prueba).
+
+  · PLANTILLA muestra solo el Alevín B
+  · PRUEBAS muestra a todos
+  · Una convocatoria normal solo abre a los del B
+  · Un PARTIDO DE PRUEBA abre a todos los candidatos
+
+PARTIDO DE PRUEBA
+  Botón ámbar en HOY. Convoca a todos de golpe,
+  con botones "Todos" y "Ninguno" para no ir
+  uno a uno. Desde el acta puedes ir directo a
+  evaluar a cada jugador.
+
+  IMPORTANTE: los partidos de prueba NO cuentan
+  en las estadísticas de temporada. Los goles y
+  minutos de una prueba no ensucian la ficha.
+
+
+CINCO PESTAÑAS POR JUGADOR
+
+ CAMPO     Las 5 casillas, la frase del día, la
+           valoración de 1 a 5 y las opiniones del
+           cuerpo técnico (con sus iniciales).
+           Es lo único que rellenas durante el partido.
+
+ ÍTEMS     12 ítems del 0 al 10, DISTINTOS SEGÚN EL
+           PUESTO y escritos con tu modelo de juego.
+           Al medio le evalúas "da soporte por detrás
+           del balón"; al extremo, "busca la línea de
+           fondo antes que el remate".
+
+ PERFIL    Rasgos, puesto probado, "me recuerda a" y
+           el porqué.
+
+ CONTEXTO  Mes de nacimiento, madurez y el contexto
+           familiar. Nada de esto puntúa.
+
+ INFORME   Se redacta solo con todo lo anterior.
+
+
+"ME RECUERDA A" — CÓMO FUNCIONA
+  El NOMBRE que escribas es privado: no sale nunca
+  en el informe ni en el PDF.
+  Lo que sí sale es el "¿por qué?": las características
+  que has descrito, sin mencionar a nadie.
+
+
+LA NOTA
+  Técnico 30% · Táctico 30% · Aprendizaje 20% · Actitud 20%
+  Contexto y familia: 0%. Solo sirven para interpretar.
+
+  Si falta algún bloque, recalcula con lo que haya.
+
+
+VALORACIÓN DE 1 A 5
+  5 Claramente B    4 Más B que C    3 Duda real
+  2 Más C que B     1 Claramente C
+
+
+AVISOS DE MADURACIÓN
+  El ranking en PDF marca dos perfiles:
+  · Técnica alta y físico retrasado → revisar antes
+    de descartar. Suelen estar infravalorados.
+  · Técnica baja y físico adelantado → revisar antes
+    de seleccionar. Se igualan con los años.
+
+
+═════════════════════════════════════════
+L · SEGURIDAD DE LOS DATOS
+═════════════════════════════════════════
+Aunque uses la nube, una vez al mes:
+   Ajustes ⚙ → "Descargar copia" → guárdala en Drive
+
+También puedes sacarlo todo a CSV.
+
+
+ARCHIVOS DE ESTA CARPETA
+  index.html         La aplicación (escudo incluido dentro)
+  sw.js              Para que funcione sin cobertura
+  google-script.gs   El código para la hoja de Google
+  manifest.json      Para instalarla como app
+  icono.png          El icono con el escudo
+  escudo.png         El escudo suelto, por si lo necesitas
+  LEEME.txt          Esto

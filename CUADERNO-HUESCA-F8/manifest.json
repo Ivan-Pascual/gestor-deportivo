@@ -1,0 +1,17 @@
+{
+  "name": "Cuaderno del entrenador · SD Huesca Alevín F8",
+  "short_name": "Cuaderno",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A1628",
+  "theme_color": "#0A1628",
+  "icons": [
+    {
+      "src": "icono.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
