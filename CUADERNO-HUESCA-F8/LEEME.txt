@@ -757,3 +757,18 @@ R · PRUEBAS (para comprobar la app antes de subir cambios)
       node navegador.js
   · Todas las pruebas deben decir OK. Si alguna falla, no
     subas el cambio hasta revisarla.
+
+═════════════════════════════════════════
+S · DIBUJOS ORIENTATIVOS DE LAS TAREAS
+═════════════════════════════════════════
+  · Las 32 tareas del banco tienen un dibujo pensado para
+    su tarea: rondos, duelos, posesiones, salidas de balón
+    y trabajo de porteros con su portería, conos y balón.
+  · Tus tareas propias se dibujan según lo que pongas en
+    el nombre y los datos: "Rondo 4v1" hace un rondo con
+    4 atacantes y 1 defensor; "3v2" hace un duelo de 3
+    contra 2; si no encaja, se usa el dibujo general.
+  · Los dibujos que no hayas tocado a mano se actualizan
+    una vez al abrir la app. Los que hayas editado no se
+    tocan.
+  · Son orientativos: edítalos en "Dibujo de la tarea".

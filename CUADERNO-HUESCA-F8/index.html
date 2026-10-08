@@ -1739,6 +1739,8 @@ function cargar(){
     if(n) setTimeout(()=>aviso(n+' tareas nuevas en el banco'),900);
   } else if(!D.bibliotecaV) D.bibliotecaV=BIBLIOTECA_V;
   estabilizarTareas();
+  /* dibujos orientativos del banco: se regeneran los automáticos una vez */
+  if((D.dibujosV||0)<3){ D.tareas.forEach(t=>{ if(!t.dibujo||t.dibujo.auto) t.dibujo=dibujoBase(t); }); D.dibujosV=3; }
   if(!D.plan.length) D.plan=MICROCICLOS.map(m=>({
     mc:m[0],dominante:m[1],notas:m[2],portero:m[3],hecho:false
   }));
@@ -5684,7 +5686,79 @@ function tacDibujar(){
 }
 
 /* ─── Dibujo de cada tarea ─── */
+/* ─── Dibujos orientativos de las tareas del banco ───
+   Medidas en metros sobre un campo de 68 x 105 (origen arriba a la izquierda).
+   Los dibujos automáticos se regeneran; los que hayas editado a mano no se tocan. */
+const AZ='#3498db', RO='#e74c3c', AM='#f5c542', NA='#ff8a00', BL='#ffffff';
+const DM=(x,y)=>[x/68,y/105];
+const co=(x,y)=>{const p=DM(x,y);return {tipo:'cono',x:p[0],y:p[1],c:NA,rot:0};};
+const pe=(x,y,c)=>{const p=DM(x,y);return {tipo:'peto',x:p[0],y:p[1],c:c||AZ,rot:0};};
+const fi=(x,y,c,n)=>{const p=DM(x,y);return {tipo:'ficha',x:p[0],y:p[1],c:c||AZ,n:n||'',rot:0};};
+const po=(x,y,r)=>{const p=DM(x,y);return {tipo:'porteria',x:p[0],y:p[1],c:BL,rot:r||0};};
+const ba=(x,y)=>{const p=DM(x,y);return {tipo:'balon',x:p[0],y:p[1],c:BL,rot:0};};
+const va=(x,y,r)=>{const p=DM(x,y);return {tipo:'valla',x:p[0],y:p[1],c:BL,rot:r||0};};
+const fl=(x1,y1,x2,y2,c)=>({_t:true,tipo:'flecha',a:DM(x1,y1),b:DM(x2,y2),c:c||AM});
+const rc=(x1,y1,x2,y2)=>[co(x1,y1),co(x2,y1),co(x1,y2),co(x2,y2)];
+const DIB_BANCO={
+'T-OF-001':()=>[...rc(28,46.5,40,58.5),pe(34,46.5,AZ),pe(40,49.5,AZ),pe(40,55.5,AZ),pe(34,58.5,AZ),pe(28,52.5,AZ),pe(32,51,RO),pe(36,54,RO),ba(34,55)],
+'T-OF-002':()=>[...rc(24,42.5,44,62.5),co(34,42.5),co(34,62.5),co(24,52.5),co(44,52.5),fi(27,47),fi(31,49),fi(37,47),fi(41,49),fi(27,57),fi(31,59),fi(37,57),fi(41,59),ba(31,52.5)],
+'T-OF-003':()=>[...rc(26.5,46,41.5,58),po(26.5,52,Math.PI/2),po(41.5,52,Math.PI/2),fi(31,52,AZ,'1'),fi(37,52,RO,'2'),ba(34,52)],
+'T-OF-007':()=>[...rc(19,80,49,103),po(34,103,0),pe(27,96,AZ),pe(41,96,AZ),pe(30,89,AZ),pe(38,89,AZ),pe(34,82,RO),pe(34,86,RO),ba(34,99),fl(34,99,30,91,AZ)],
+'T-OF-012':()=>[...rc(19,40,49,65),co(30,49),co(30,56),co(38,49),co(38,56),pe(21,44,AZ),pe(21,49,AZ),pe(21,55,AZ),pe(21,60,AZ),pe(25,52,AZ),pe(47,44,RO),pe(47,49,RO),pe(47,55,RO),pe(47,60,RO),pe(43,52,RO),ba(34,52.5)],
+'T-OF-015':()=>[po(34,1,0),co(5,0),co(5,13),co(5,26),co(5,39),co(5,52),co(63,0),co(63,13),co(63,26),co(63,39),co(63,52),co(10,10),co(58,10),pe(14,30,AZ),pe(16,38,AZ),pe(22,26,AZ),pe(28,40,AZ),pe(34,33,AZ),pe(40,30,RO),pe(52,38,RO),pe(46,26,RO),pe(34,44,RO),pe(56,30,RO),ba(30,33),fl(8,36,8,8,AZ)],
+'T-OF-020':()=>[...rc(4,4,64,101),co(24.7,23),co(24.7,42),co(24.7,61),co(24.7,80),co(43.3,23),co(43.3,42),co(43.3,61),co(43.3,80),po(34,2,0),po(34,103,0),pe(14,30,AZ),pe(14,70,AZ),pe(34,30,AZ),pe(34,70,AZ),pe(54,30,AZ),pe(54,70,AZ),pe(14,50,RO),pe(34,50,RO),pe(54,50,RO),pe(34,85,RO),pe(20,85,RO),pe(50,85,RO),ba(34,62)],
+'T-OF-025':()=>[...rc(4,4,64,101),po(34,2,0),po(34,103,0),pe(10,80,AZ),pe(24,84,AZ),pe(34,80,AZ),pe(44,84,AZ),pe(58,80,AZ),pe(24,70,AZ),pe(44,70,AZ),pe(10,25,RO),pe(24,21,RO),pe(34,25,RO),pe(44,21,RO),pe(58,25,RO),pe(24,35,RO),pe(44,35,RO),ba(34,52.5)],
+'T-DF-001':()=>[...rc(26.5,46,41.5,58),co(41.5,49),co(41.5,55),fi(30,52,RO,'A'),fi(36,52,AZ,'D'),ba(29,52)],
+'T-DF-005':()=>[po(34,103,0),pe(22,95,RO),pe(30,92,RO),pe(38,92,RO),pe(46,95,RO),pe(26,85,RO),pe(42,85,RO),pe(16,70,AZ),pe(26,68,AZ),pe(34,66,AZ),pe(42,68,AZ),pe(52,70,AZ),pe(34,58,AZ),ba(34,99)],
+'T-TR-001':()=>[...rc(21.5,40,46.5,65),pe(26,46,AZ),pe(34,44,AZ),pe(42,46,AZ),pe(42,58,AZ),pe(34,60,AZ),pe(26,58,AZ),pe(30,50,RO),pe(38,50,RO),pe(30,56,RO),pe(38,56,RO),pe(34,53,RO),pe(34,58,RO),ba(34,52.5)],
+'T-TR-004':()=>[...rc(4,4,64,101),po(34,2,0),po(34,103,0),co(4,35),co(64,35),co(4,70),co(64,70),pe(20,70,AZ),pe(34,75,AZ),pe(48,70,AZ),pe(26,82,AZ),pe(42,82,AZ),pe(34,60,AZ),pe(20,88,AZ),pe(20,35,RO),pe(34,30,RO),pe(48,35,RO),pe(26,22,RO),pe(42,22,RO),pe(34,45,RO),pe(20,15,RO),ba(34,52.5),fl(34,52,34,20,AZ)],
+'T-POR-001':()=>[po(34,103,0),co(18,84),co(50,84),co(18,103),co(50,103),pe(34,96,AM),pe(24,92,AZ),pe(44,92,AZ),pe(34,86,RO),ba(34,99),fl(34,98,44,92,AM)],
+'T-POR-002':()=>[po(34,3,0),pe(34,9,AM),fi(22,30,RO,'1'),fi(46,30,RO,'2'),fi(34,38,RO,'3'),ba(24,30),co(28,6),co(40,6)],
+'T-POR-003':()=>[po(34,103,0),pe(34,96,AM),fi(34,70,RO,'D'),ba(34,69),co(20,70),co(48,70),co(20,58),co(48,58)],
+'T-POR-004':()=>[po(34,103,0),pe(34,97,AM),fi(20,70,RO,'1'),fi(34,66,RO,'2'),fi(48,70,RO,'3'),ba(20,68),ba(34,64),ba(48,68),co(26,88),co(42,88),fl(34,97,34,70,AM)],
+'T-POR-005':()=>[pe(18,40,AM),fi(18,48,RO,'T'),ba(18,44),pe(50,40,AM),fi(50,48,RO,'T'),ba(50,44),...rc(14,36,22,52),...rc(46,36,54,52)],
+'T-POR-006':()=>[...rc(29,48,39,56),po(34,46,0),pe(34,50,AM),fi(34,55,RO,'T'),ba(34,54),fl(34,54,31,53,RO)],
+'T-POR-007':()=>[...rc(30,48.5,38,56.5),pe(34,50.5,AM),fi(34,55.5,RO,'T'),ba(34,54.5)],
+'T-POR-008':()=>[...rc(28,47.5,40,57.5),pe(32,52,AM),pe(36,52,RO),ba(34,46),fl(34,52,34,46,BL)],
+'T-POR-009':()=>[po(34,103,0),pe(34,98,AM),co(27,96),co(41,96),fi(34,80,RO,'T'),ba(34,79),fl(34,79,34,98,RO)],
+'T-POR-010':()=>[...rc(31,49.5,37,55.5),pe(34,52.5,AM),fi(34,46,RO,'T'),ba(34,47),fl(34,52.5,29,57,AM)],
+'T-POR-011':()=>[po(34,103,0),pe(34,98,AM),co(29,100),co(39,100),fi(28,85,RO,'T'),ba(28,84),fl(34,98,24,98,AM)],
+'T-POR-012':()=>[po(34,3,0),pe(34,9,AM),fi(26,30,RO,'1'),fi(42,30,RO,'2'),ba(26,28),ba(42,28),fl(26,28,30,6,RO),fl(42,28,38,6,RO)],
+'T-POR-013':()=>[po(34,103,0),pe(34,98,AM),va(34,88,0),fi(34,76,RO,'T'),ba(34,75)],
+'T-POR-014':()=>[...rc(24,46.5,44,58.5),po(24,52.5,Math.PI/2),po(44,52.5,Math.PI/2),pe(34,52.5,AM),fi(30,48,RO,'1'),fi(38,57,RO,'2'),pe(27,56,AZ),pe(41,48,AZ),ba(30,47),ba(38,58)],
+'T-POR-015':()=>[po(34,103,0),pe(34,101,AM),co(26.5,100.3),co(28.9,96.9),co(34,95),co(39.1,96.9),co(41.5,100.3),fi(34,72,RO,'T'),ba(34,80),fl(34,80,34,100,RO)],
+'T-POR-016':()=>[po(34,103,0),pe(34,96,AM),fl(34,96,34,80,AM),co(26,88),co(42,88),fi(34,64,RO,'T'),ba(34,63),fl(34,63,34,86,RO)],
+'T-POR-017':()=>[po(34,103,0),pe(34,97,AM),co(26,83),co(42,83),fi(34,91,RO,'P'),ba(34,100),fl(34,100,26,83,AM)],
+'T-POR-018':()=>[po(34,103,0),pe(34,99,AM),ba(34,95),co(4,60),co(4,75),fi(8,62,AZ,'R'),fi(30,78,RO,'P'),fl(34,95,8,62,AM)],
+'T-POR-019':()=>[po(34,103,0),pe(34,99,AM),co(24,86),co(34,80),co(44,86),ba(34,92),fl(34,92,34,84,AM)],
+'T-POR-020':()=>[po(34,103,0),pe(34,98,AM),pe(18,88,AZ),pe(28,88,AZ),pe(40,88,AZ),pe(50,88,AZ),pe(26,72,AZ),pe(42,72,AZ),pe(34,80,RO),pe(22,66,RO),pe(46,66,RO),ba(34,95)]
+};
+/* Tareas propias: se dibuja según lo que pone la tarea (rondo, duelos XvY) */
+function dibujoPorTexto(t){
+  const txt=[t.nombre,t.espacio,t.jugadores,t.material,t.normas,t.contenido].map(x=>String(x||'')).join(' ').toLowerCase();
+  const m=txt.match(/(\d)\s*v\s*(\d)/);
+  if(/rondo/.test(txt)){
+    const a=m?+m[1]:5, d=m?+m[2]:2, o=[];
+    for(let i=0;i<a;i++){ const an=-Math.PI/2+i*2*Math.PI/a; o.push(pe(34+8*Math.cos(an),52.5+8*Math.sin(an),AZ)); }
+    for(let i=0;i<d;i++){ const an=i*2*Math.PI/d+0.4; o.push(pe(34+2.5*Math.cos(an),52.5+2.5*Math.sin(an),RO)); }
+    o.push(ba(34,52.5));
+    return o;
+  }
+  if(m){
+    const a=+m[1], d=+m[2], o=rc(24,40,44,65);
+    for(let i=0;i<a;i++) o.push(pe(26,44+i*(18/Math.max(1,a-1)),AZ));
+    for(let i=0;i<d;i++) o.push(pe(42,44+i*(18/Math.max(1,d-1)),RO));
+    o.push(ba(34,52.5));
+    return o;
+  }
+  return dibujoGenerico(t).objetos;
+}
 function dibujoBase(t){
+  const arr=(DIB_BANCO[t.codigo]?DIB_BANCO[t.codigo]():dibujoPorTexto(t));
+  return {vista:'entero',objetos:arr.filter(x=>!x._t).map(({_t,...r})=>r),
+    trazos:arr.filter(x=>x._t).map(({_t,...r})=>r),auto:true};
+}
+function dibujoGenerico(t){
   const txt=[t.espacio,t.material,t.nombre,t.normas].map(x=>String(x||'')).join(' ').toLowerCase();
   const nums=(String(t.espacio||'').match(/\d+(?:[.,]\d+)?/g)||[]).map(x=>+x.replace(',','.'));
   let fw=0.9, fh=0.9;
