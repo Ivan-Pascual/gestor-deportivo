@@ -1254,8 +1254,10 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
   </div>
   <div id="tacHerr" class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:9px"></div>
   <div id="tacColores" class="row" style="gap:8px;margin-bottom:9px"></div>
+  <div id="tacPlantilla" class="row" style="gap:8px;overflow-x:auto;padding:2px 0 8px;margin-bottom:6px"></div>
   <div id="tacSelBar" class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:9px"></div>
   <canvas id="tacCanvas" width="440" height="680" style="width:100%;height:auto;border-radius:12px;touch-action:none;display:block"></canvas>
+  <div id="tacFicha" style="margin-top:12px"></div>
   <div class="grid2" style="margin-top:13px">
     <button class="btn" onclick="pdfTactica()">Guardar en PDF</button>
     <button class="btn danger" onclick="tacBorrar()">Borrar todo</button>
@@ -5374,7 +5376,8 @@ function campoSVG(lista){
 const TAC_COLORES=['#ffffff','#f5c542','#e74c3c','#3498db','#2ecc71','#ff8a00','#111111'];
 const TAC_VISTAS={entero:[0,0,1,1],sup:[0,0,1,0.5],inf:[0,0.5,1,0.5]};
 const TAC_TIPOS=[['ficha','Jugador'],['peto','Peto'],['cono','Cono'],['porteria','Portería'],['valla','Valla'],['balon','Balón']];
-let tacHerr='poner', tacPoner='ficha', tacColor=0, tacHist=[], tacArr=null, tacListo=false, tacSel=-1;
+let tacHerr='poner', tacPoner='ficha', tacColor=0, tacHist=[], tacArr=null, tacListo=false, tacSel=-1, tacJug=null;
+const TAC_SHIRT='M-10,-14 L-5,-14 Q0,-9 5,-14 L10,-14 L15,-9 L12,-3 L9,-5 L9,14 L-9,14 L-9,-5 L-12,-3 L-15,-9 Z';
 
 let tacObj=null;
 function tacEstado(){
@@ -5429,13 +5432,17 @@ function mostrarTactica(){
     '<button class="tac-col '+(tacColor===i?'on':'')+'" style="background:'+c+'" onclick="tacColorSet('+i+')" aria-label="Color"></button>').join('');
   tacSelBarra();
   tacDibujar();
+  const tc=document.getElementById('tacColores');
+  if(tc&&!tc.querySelector('.tac-lbl')) tc.insertAdjacentHTML('afterbegin','<span class="tac-lbl mini muted" style="align-self:center">Color</span>');
+  tacRenderPlantilla();
+  tacRenderFicha();
 }
 function tacSelBarra(){
   const el=document.getElementById('tacSelBar'); if(!el) return;
   const t=tacEstado();
   if(tacSel<0||!t.objetos[tacSel]){ el.innerHTML='<span class="mini muted">Toca un elemento para editarlo.</span>'; return; }
   const o=t.objetos[tacSel];
-  el.innerHTML='<span class="chip">'+esc(TAC_TIPOS.find(x=>x[0]===o.tipo)[1])+'</span>'+
+  el.innerHTML='<span class="chip">'+esc((TAC_TIPOS.find(x=>x[0]===o.tipo)||['','Jugador'])[1])+'</span>'+
     ((o.tipo==='ficha'||o.tipo==='peto')?'<button class="btn xs" onclick="tacNumeroSel()">Número</button>':'')+
     '<button class="btn xs" onclick="tacGirarSel()">Girar</button>'+
     '<button class="btn xs danger" onclick="tacEliminarSel()">Eliminar</button>'+
@@ -5456,11 +5463,13 @@ function tacVistaSet(v){
 function tacDown(ev){
   const px=tacPx(ev), p=tacNorm(px), t=tacEstado();
   if(tacHerr==='poner'){
+    if(tacPoner==='camiseta'&&!D.jugadores.find(x=>x.id===tacJug)){ aviso('Elige un jugador de la plantilla','warn'); return; }
     let n='';
     if(tacPoner==='ficha'){ const r=prompt('Número o inicial del jugador',''); if(r===null) return; n=r.trim().slice(0,3); }
     tacHist.push(JSON.stringify(t));
     const o={tipo:tacPoner,x:p[0],y:p[1],c:TAC_COLORES[tacColor],rot:0};
     if(tacPoner==='ficha') o.n=n;
+    if(tacPoner==='camiseta'){ const j=D.jugadores.find(x=>x.id===tacJug); o.n=String(j.dorsal??''); o.nom=(j.nombre||'').split(' ')[0]; o.jid=j.id; }
     t.objetos.push(o); tacSel=t.objetos.length-1;
     salvar(); mostrarTactica(); return;
   }
@@ -5558,6 +5567,16 @@ function tacObjeto(ctx,o,px,py,sel){
   } else if(o.tipo==='valla'){
     for(let i=0;i<6;i++){ ctx.fillStyle=i%2?'#e74c3c':'#ffffff'; ctx.fillRect(-23+i*8,-4,8,8); }
     ctx.lineWidth=1; ctx.strokeStyle='#111'; ctx.strokeRect(-23,-4,46,8);
+  } else if(o.tipo==='camiseta'){
+    const shirt=new Path2D(TAC_SHIRT);
+    ctx.fillStyle='#1f4e9c'; ctx.fill(shirt);
+    ctx.save(); ctx.clip(shirt); ctx.fillStyle='#c0392b';
+    ctx.fillRect(-9,-16,6,32); ctx.fillRect(3,-16,6,32); ctx.restore();
+    ctx.lineWidth=1.5; ctx.strokeStyle='#111'; ctx.stroke(shirt);
+    ctx.fillStyle='#fff'; ctx.strokeStyle='#000'; ctx.lineWidth=2.5;
+    ctx.font='bold 11px system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.strokeText(o.n||'',0,1); ctx.fillText(o.n||'',0,1);
+    if(o.nom){ ctx.font='600 10px system-ui,sans-serif'; ctx.strokeText(o.nom,0,25); ctx.fillText(o.nom,0,25); }
   } else if(o.tipo==='balon'){
     ctx.beginPath(); ctx.arc(0,0,9,0,Math.PI*2); ctx.fillStyle='#ffffff'; ctx.fill();
     ctx.lineWidth=1.5; ctx.strokeStyle='#111'; ctx.stroke();
@@ -5645,6 +5664,43 @@ function tacSalir(){
   tacObj=null; tacSel=-1; tacArr=null; tacHist=[];
   salvar(); go('tarea',false);
 }
+const TAC_DORSAL=d=>String(d??'');
+function camisetaMini(d){
+  const id='cp'+Math.random().toString(36).slice(2,8);
+  return '<svg width="34" height="32" viewBox="-17 -16 34 32" aria-hidden="true">'+
+    '<defs><clipPath id="'+id+'"><path d="'+TAC_SHIRT+'"/></clipPath></defs>'+
+    '<g clip-path="url(#'+id+')"><rect x="-17" y="-16" width="34" height="32" fill="#1f4e9c"/>'+
+    '<rect x="-9" y="-16" width="6" height="32" fill="#c0392b"/><rect x="3" y="-16" width="6" height="32" fill="#c0392b"/></g>'+
+    '<path d="'+TAC_SHIRT+'" fill="none" stroke="#111" stroke-width=".8"/>'+
+    '<text y="3" text-anchor="middle" font-size="10" font-weight="900" fill="#fff" stroke="#000" stroke-width=".6" paint-order="stroke">'+esc(TAC_DORSAL(d))+'</text></svg>';
+}
+function tacPickJugador(jid){ tacHerr='poner'; tacPoner='camiseta'; tacJug=jid; tacSel=-1; mostrarTactica(); }
+function tacRenderPlantilla(){
+  const el=document.getElementById('tacPlantilla'); if(!el) return;
+  const lista=[...D.jugadores].sort((a,b)=>(+a.dorsal||99)-(+b.dorsal||99));
+  if(!lista.length){ el.innerHTML='<span class="mini muted">Añade jugadores en Plantilla para usar sus camisetas.</span>'; return; }
+  el.innerHTML=lista.map(j=>{
+    const sel=tacHerr==='poner'&&tacPoner==='camiseta'&&tacJug===j.id;
+    return '<button onclick="tacPickJugador(\''+j.id+'\')" style="flex:none;width:68px;border:2px solid '+(sel?'#ffd60a':'#2a3344')+
+      ';background:'+(sel?'#1d2430':'transparent')+';border-radius:12px;padding:6px 2px;color:inherit;display:flex;flex-direction:column;align-items:center;gap:3px">'+
+      camisetaMini(j.dorsal)+
+      '<span style="font-size:10px;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((j.nombre||'').split(' ')[0])+'</span></button>';
+  }).join('');
+}
+function tacRenderFicha(){
+  const el=document.getElementById('tacFicha'); if(!el) return;
+  const t=(tacObj&&tareaId)?D.tareas.find(x=>x.id===tareaId):null;
+  if(!t){ el.innerHTML=''; return; }
+  el.innerHTML='<div class="card"><p class="eyebrow gente" style="margin:0 0 6px">'+esc(t.codigo||'')+'</p>'+
+    '<b style="font-size:16px">'+esc(t.nombre||'')+'</b>'+
+    '<div class="row" style="gap:6px;flex-wrap:wrap;margin:8px 0">'+
+    '<span class="chip">'+esc(t.espacio||'Espacio sin definir')+'</span>'+
+    '<span class="chip">'+esc(t.jugadores||'Jugadores sin definir')+'</span>'+
+    '<span class="chip">'+esc(t.duracion||'—')+' min</span></div>'+
+    '<p class="mini muted" style="margin:0 0 10px">'+esc(t.objetivo||'')+'</p>'+
+    '<button class="btn" onclick="tacSalir()">Volver a la tarea</button></div>';
+}
+
 function pdfTactica(){
   tacSel=-1; tacDibujar();
   const cv=document.getElementById('tacCanvas');

@@ -723,3 +723,18 @@ O · DIBUJO DE CADA TAREA
     los jugadores o el material de la tarea.
   · La ficha de sesión en PDF muestra el dibujo junto a
     cada tarea.
+
+═════════════════════════════════════════
+P · TABLERO DE TAREA (ESTILO BCOACH)
+═════════════════════════════════════════
+  · Al abrir "Dibujo de la tarea" aparece arriba la
+    plantilla: una camiseta por jugador con su dorsal.
+    Toca una camiseta y luego toca el campo para colocarla.
+  · Las camisetas azules con franjas rojas llevan el
+    dorsal y el nombre; se pueden girar, mover o eliminar
+    como el resto de elementos.
+  · Debajo del campo aparece la ficha de la tarea: código,
+    espacio, jugadores, duración, objetivo y el botón
+    "Volver a la tarea" (guarda el dibujo).
+  · Si no hay jugadores en la plantilla, la tira avisa de
+    que hay que añadirlos antes.
