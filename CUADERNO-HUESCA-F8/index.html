@@ -1971,7 +1971,7 @@ function mostrarHoy(){
   const cb=document.getElementById('hoyCopia');
   const dias = D.ultimaCopia ? Math.floor((Date.now()-D.ultimaCopia)/864e5) : null;
   const hayDatos = D.sesiones.length>0 || D.jugadores.length>0;
-  if(hayDatos && (dias===null || dias>=14)){
+  if(hayDatos && (dias===null || dias>=30)){
     cb.classList.remove('hidden');
     cb.innerHTML='<div class="alerta"><b>Copia de seguridad</b>'+
       (dias===null?'Todavía no has descargado ninguna copia.':'Hace '+dias+' días de la última.')+
@@ -5745,13 +5745,43 @@ function tacRenderPlantilla(){
   const el=document.getElementById('tacPlantilla'); if(!el) return;
   const lista=[...D.jugadores].sort((a,b)=>(+a.dorsal||99)-(+b.dorsal||99));
   if(!lista.length){ el.innerHTML='<span class="mini muted">Añade jugadores en Plantilla para usar sus camisetas.</span>'; return; }
-  el.innerHTML=lista.map(j=>{
+  const enCampo=new Set(tacEstado().objetos.filter(o=>o.tipo==='camiseta'&&o.jid).map(o=>o.jid));
+  el.innerHTML='<button class="btn xs" style="flex:none;align-self:center" onclick="tacPonerPlantilla()">Poner todas</button>'+
+  lista.map(j=>{
     const sel=tacHerr==='poner'&&tacPoner==='camiseta'&&tacJug===j.id;
+    const ya=enCampo.has(j.id);
     return '<button onclick="tacPickJugador(\''+j.id+'\')" style="flex:none;width:68px;border:2px solid '+(sel?'#ffd60a':'#2a3344')+
-      ';background:'+(sel?'#1d2430':'transparent')+';border-radius:12px;padding:6px 2px;color:inherit;display:flex;flex-direction:column;align-items:center;gap:3px">'+
+      ';background:'+(sel?'#1d2430':'transparent')+';border-radius:12px;padding:6px 2px;color:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;opacity:'+(ya?'.45':'1')+'">'+
       camisetaMini(j.dorsal)+
-      '<span style="font-size:10px;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((j.nombre||'').split(' ')[0])+'</span></button>';
+      '<span style="font-size:10px;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((j.nombre||'').split(' ')[0])+(ya?' ✓':'')+'</span></button>';
   }).join('');
+}
+function tacPonerPlantilla(){
+  const t=tacEstado();
+  const yaEn=new Set(t.objetos.filter(o=>o.tipo==='camiseta'&&o.jid).map(o=>o.jid));
+  const tarea=(tacObj&&tareaId)?D.tareas.find(x=>x.id===tareaId):null;
+  const lista=[...D.jugadores].filter(j=>!yaEn.has(j.id)).sort((a,b)=>(+a.dorsal||99)-(+b.dorsal||99));
+  if(!lista.length){ aviso('Ya están todas en el campo','warn'); return; }
+  const pedidos=tarea?parseInt(String(tarea.jugadores||'').match(/\d+/)?.[0]||'0',10):0;
+  const n=Math.min(lista.length,pedidos>0?pedidos:lista.length);
+  /* buscar sitios libres: lejos de lo que ya hay en el campo, desde el centro hacia fuera */
+  const sitios=[];
+  for(let yy=0;yy<=12;yy++) for(let xx=0;xx<=8;xx++) sitios.push([0.15+xx*0.0875,0.25+yy*0.0417]);
+  sitios.sort((p,q)=>Math.hypot(p[0]-0.5,p[1]-0.5)-Math.hypot(q[0]-0.5,q[1]-0.5));
+  const ocupados=t.objetos.map(o=>({x:o.x,y:o.y}));
+  const libres=[];
+  for(const [x,y] of sitios){
+    if(libres.length>=n) break;
+    if(ocupados.every(o=>Math.hypot((o.x-x)*68,(o.y-y)*105)>=8)){ libres.push([x,y]); ocupados.push({x,y}); }
+  }
+  if(libres.length<n) aviso('Sin hueco libre para todas: mueve las que sobren','warn');
+  tacHist.push(JSON.stringify(t));
+  lista.slice(0,n).forEach((j,i)=>{
+    const [x,y]=libres[i]||[0.5,0.5];
+    t.objetos.push({tipo:'camiseta',x,y,c:'#1f4e9c',
+      n:String(j.dorsal??''),nom:(j.nombre||'').split(' ')[0],jid:j.id,rot:0});
+  });
+  salvar(); mostrarTactica();
 }
 function tacRenderFicha(){
   const el=document.getElementById('tacFicha'); if(!el) return;
