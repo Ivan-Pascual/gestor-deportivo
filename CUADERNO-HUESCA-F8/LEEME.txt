@@ -717,6 +717,11 @@ O · DIBUJO DE CADA TAREA
     los jugadores o el material de la tarea.
   · La ficha de sesión en PDF muestra el dibujo junto a
     cada tarea.
+  · Las tareas que ya se usan en sesiones tienen dibujo
+    hecho a mano pensando en el móvil: pocas piezas, grandes
+    y con números. Cada dibujo se recorta solo alrededor de
+    la jugada, así que se ve más grande que el campo entero.
+  · Si ya habías cambiado un dibujo a mano, no se toca.
 
 ═════════════════════════════════════════
 P · TABLERO DE TAREA (ESTILO BCOACH)
