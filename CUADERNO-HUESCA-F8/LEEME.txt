@@ -738,3 +738,30 @@ P · TABLERO DE TAREA (ESTILO BCOACH)
     "Volver a la tarea" (guarda el dibujo).
   · Si no hay jugadores en la plantilla, la tira avisa de
     que hay que añadirlos antes.
+
+═════════════════════════════════════════
+Q · NOVEDADES DE ESTA VERSIÓN
+═════════════════════════════════════════
+  · "Poner todas" (en la tira de camisetas del dibujo de
+    la tarea): coloca a los jugadores de la plantilla en
+    sitios libres del campo. Si la tarea indica un número
+    de jugadores ("6 jugadores"), pone solo esos.
+  · Las camisetas que ya están en el campo aparecen
+    atenuadas con un ✓ en la tira.
+  · El aviso de copia de seguridad sale al mes sin
+    descargar (antes era a las dos semanas).
+  · Restaurar una copia vuelve a cargar la app y recalcula
+    tareas y dibujos.
+
+═════════════════════════════════════════
+R · PRUEBAS (para comprobar la app antes de subir cambios)
+═════════════════════════════════════════
+  · Sintaxis (no necesita instalar nada):
+      node tests/sintaxis.js
+  · Navegador (necesita Playwright):
+      cd tests
+      npm install playwright
+      npx playwright install chromium
+      node navegador.js
+  · Todas las pruebas deben decir OK. Si alguna falla, no
+    subas el cambio hasta revisarla.
