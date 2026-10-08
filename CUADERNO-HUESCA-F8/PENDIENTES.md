@@ -8,6 +8,9 @@
 Es la única copia del código. Sin él no hay app.
 
 ### 2. Desplegar la app
+
+> **Aviso:** usa siempre el **mismo** sitio. Si arrastras la carpeta a Netlify Drop otra vez, se crea una dirección nueva y tus datos no aparecen en ella. Antes de cambiar nada, descarga una copia en **Más → Copias de seguridad**.
+
 1. Descomprimir el zip
 2. Entrar en **app.netlify.com/drop**
 3. Arrastrar la **carpeta entera** al recuadro
@@ -89,7 +92,7 @@ Pablo Martínez
 
 ## ⚙️ MANTENIMIENTO
 
-- [ ] Descargar copia una vez al mes (la app avisa a las dos semanas)
+- [ ] Descargar copia una vez al mes (la app avisa al mes)
 - [ ] Guardar la copia en Drive
 
 ---
