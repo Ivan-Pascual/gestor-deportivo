@@ -4,6 +4,9 @@
 
 ## 🔴 ANTES DEL MARTES
 
+### 0. Cambiar la clave de la hoja
+La clave antigua estuvo escrita en el código y el repositorio de GitHub es público. Cámbiala en el script de Google y en cada dispositivo (ver LEEME, sección de sincronización).
+
 ### 1. Guardar el zip en Drive
 Es la única copia del código. Sin él no hay app.
 
@@ -45,6 +48,7 @@ Pablo Martínez
 1. Crear hoja en **sheets.new**
 2. Extensiones → Apps Script
 3. Pegar el contenido de `google-script.gs`
+   Luego, en Configuración del proyecto → Propiedades del script, añade la propiedad **CLAVE** con tu clave nueva (mínimo 8 caracteres).
 4. Implementar → Aplicación web → Cualquier usuario
 5. Copiar el enlace `/exec`
 6. Pegarlo en **Más → Sincronizar**, en el móvil **y** en el ordenador

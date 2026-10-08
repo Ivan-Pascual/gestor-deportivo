@@ -371,31 +371,18 @@ BIBLIOTECA DE PORTEROS
   Las que hayas borrado no vuelven.
 
 
-LA HOJA Y LA CLAVE VIENEN PUESTAS
-  Abre index.html con cualquier editor de texto. En la
-  LINEA 19, arriba del todo, hay esto:
+LA HOJA Y LA CLAVE
+  La dirección de la hoja ya viene puesta en index.html.
+  La clave NO está en el archivo. La escribes una vez en
+  Más → Sincronizar, en cada dispositivo (móvil y ordenador).
 
-     const HOJA_EQUIPO  = 'https://script.google.com/...';
-     const CLAVE_EQUIPO = '';
-
-  Escribe tu clave entre las comillas de CLAVE_EQUIPO:
-
-     const CLAVE_EQUIPO = 'huesca-2016-Kx7mQ2';
-
-  Guarda y despliega. A partir de ahi, la app queda lista
-  al abrirse: ni tu ni Hector teneis que configurar nada.
-  Los dos trabajais sobre la misma hoja.
-
-  Si no encuentras la linea, busca CLAVE_EQUIPO.
+  Si cambias la clave en el script de Google, cámbiala
+  también en Más → Sincronizar de cada dispositivo.
 
   AVISO IMPORTANTE
-  Con la clave dentro del archivo, cualquiera que tenga la
-  direccion de la web puede leer la hoja. Ahora mismo solo
-  hay nombres y puestos, asi que el riesgo es bajo.
-
-  Si algun dia anades FOTOS, LESIONES, MES DE NACIMIENTO o
-  NOTAS DE LAS FAMILIAS, vuelve a dejar CLAVE_EQUIPO vacia
-  y escribe la clave a mano en Mas -> Sincronizar.
+  La clave nunca va dentro del archivo ni en GitHub. Los
+  datos de la hoja incluyen nombres de niños: son datos
+  personales de menores. No los publiques en una web abierta.
 
 
 NO CAMBIAR DE DIRECCION EN CADA DESPLIEGUE

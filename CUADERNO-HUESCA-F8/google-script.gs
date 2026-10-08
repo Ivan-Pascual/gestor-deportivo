@@ -4,11 +4,12 @@
  * Este código va DENTRO de tu hoja de Google
  * (Extensiones → Apps Script), no en la app.
  *
- * La clave ya viene puesta abajo. No hace falta tocar nada.
+ * La clave NO va en este archivo. Ponla en Configuración del proyecto
+ * → Propiedades del script, con el nombre CLAVE.
  */
 
 var HOJA  = 'datos';
-var CLAVE = 'sdhuesca2016benjaminB';
+var CLAVE = PropertiesService.getScriptProperties().getProperty('CLAVE') || '';
 
 
 /* Comprueba la clave. No depende de ningún texto de ejemplo,
