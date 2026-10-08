@@ -709,3 +709,17 @@ ALINEACIÓN
     sustituto sugerido (el mejor del banquillo para ese
     puesto) y la lista del resto.
   · Los muñecos muestran el dorsal y el nombre.
+
+═════════════════════════════════════════
+O · DIBUJO DE CADA TAREA
+═════════════════════════════════════════
+  · Todas las tareas tienen un dibujo en el campo. Las del
+    banco llevan uno generado a partir de su espacio,
+    jugadores y material (conos, petos o fichas, porterías
+    y balón).
+  · Para cambiarlo: abre la tarea → "Dibujo de la tarea".
+    Usa las mismas herramientas de la pizarra.
+  · Si no lo tocas, se regenera solo al cambiar el espacio,
+    los jugadores o el material de la tarea.
+  · La ficha de sesión en PDF muestra el dibujo junto a
+    cada tarea.
