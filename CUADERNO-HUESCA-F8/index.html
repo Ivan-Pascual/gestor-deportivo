@@ -808,6 +808,7 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
   <button class="back" onclick="go('tareas')">‹ Banco de tareas</button>
   <h2 id="txTitulo" style="font-size:21px;margin-bottom:14px"></h2>
   <div id="txUsos" style="margin-bottom:14px"></div>
+  <button class="btn" style="margin-bottom:14px" onclick="tacAbrirTarea()">Dibujo de la tarea</button>
   <div class="card">
     <div class="grid2">
       <label class="field" style="margin:0"><span>Código · se genera solo</span>
@@ -1240,8 +1241,8 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
 
 <!-- ═════════ PIZARRA TÁCTICA ═════════ -->
 <section id="v-tactica" class="view">
-  <button class="back" onclick="go('mas')">‹ Más</button>
-  <h2 style="font-size:21px">Pizarra táctica</h2>
+  <button class="back" id="tacBack" onclick="tacSalir()">‹ Más</button>
+  <h2 id="tacTitulo" style="font-size:21px">Pizarra táctica</h2>
   <div class="grid2" style="margin:10px 0 10px;align-items:end">
     <label class="field" style="margin:0"><span>Vista</span>
       <select id="tacVista" onchange="tacVistaSet(this.value)">
@@ -1666,6 +1667,7 @@ const idTarea=cod=>'tar_'+cod;
 /* Las tareas del banco tenían un identificador distinto en cada
    dispositivo. Esto las iguala y arregla las sesiones que las usaban. */
 function estabilizarTareas(){
+  if(typeof dibujoBase==='function') D.tareas.forEach(t=>{ if(!t.dibujo) t.dibujo=dibujoBase(t); });
   const delBanco=new Set(TAREAS.map(t=>t[0]));
   const mapa={};
   D.tareas.forEach(t=>{
@@ -2726,8 +2728,8 @@ function guardarTarea(){
     correcciones:document.getElementById('txCorrecciones').value
   };
   reservarCodigo(cod);
-  if(tareaId) Object.assign(D.tareas.find(x=>x.id===tareaId),d);
-  else D.tareas.push(Object.assign({id:uid(),valoracion:null},d));
+  if(tareaId){ const tt=D.tareas.find(x=>x.id===tareaId); Object.assign(tt,d); if(tt.dibujo&&tt.dibujo.auto) tt.dibujo=dibujoBase(tt); }
+  else D.tareas.push(Object.assign({id:uid(),valoracion:null},d,{dibujo:dibujoBase(d)}));
   if(typeof marcar==='function') marcar(D.tareas.find(x=>x.codigo===cod)||{});
   salvar(); aviso('Guardada'); go('tareas');
 }
@@ -2751,7 +2753,7 @@ function mostrarMas(){
   const items=[
     ['blue','lista','Planificación','44 microciclos',"go('plan',false)"],
     ['amber','tarea','Modelo de juego','Principios',"go('modelo',false)"],
-    ['green','tarea','Pizarra táctica','Dibujar jugadas',"go('tactica',false)"],
+    ['green','tarea','Pizarra táctica','Dibujar jugadas',"tacAbrirLibre()"],
     ['naranja','lapiz','Diario','5 líneas',"go('diario',false)"],
     ['garnet','euro','Gastos','Notas y km',"go('gastos',false)"],
     ['green','nube','Sincronizar','Móvil y PC',"go('nube',false)"],
@@ -3216,16 +3218,21 @@ function pdfSesion(){
   if(tareas.length){
     h+='<h4 class="doc-h">Tareas</h4>';
     tareas.forEach((t,i)=>{
-      h+='<div class="doc-tarea"><div class="doc-tarea-cab">'+
-        '<span class="doc-n">'+(i+1)+'</span>'+
-        '<b>'+esc(t.nombre)+'</b>'+
-        '<span class="doc-cod">'+esc(t.codigo)+' · '+esc(t.duracion)+' min</span></div>'+
-        '<table class="doc-t"><tr><td><b>Objetivo</b>'+esc(t.objetivo)+'</td>'+
+      const conDib=!!(t.dibujo&&t.dibujo.objetos&&t.dibujo.objetos.length);
+      const tabla='<table class="doc-t"><tr><td><b>Objetivo</b>'+esc(t.objetivo)+'</td>'+
         '<td><b>Espacio</b>'+esc(t.espacio)+'</td><td><b>Jugadores</b>'+esc(t.jugadores)+'</td></tr>'+
         '<tr><td colspan="3"><b>Normas</b>'+esc(t.normas)+'</td></tr>'+
         (t.correcciones?'<tr><td colspan="3"><b>Correcciones clave</b>'+esc(t.correcciones)+'</td></tr>':'')+
         (t.variantes?'<tr><td colspan="3"><b>Variantes</b>'+esc(t.variantes)+'</td></tr>':'')+
-        '</table></div>';
+        '</table>';
+      h+='<div class="doc-tarea"><div class="doc-tarea-cab">'+
+        '<span class="doc-n">'+(i+1)+'</span>'+
+        '<b>'+esc(t.nombre)+'</b>'+
+        '<span class="doc-cod">'+esc(t.codigo)+' · '+esc(t.duracion)+' min</span></div>'+
+        (conDib?'<div style="display:flex;gap:12px;align-items:flex-start;margin-top:6px">'+
+          '<img alt="" src="'+dibujoPNG(t.dibujo)+'" style="width:190px;max-width:45%;flex:none;border-radius:6px">'+
+          '<div style="flex:1;min-width:0">'+tabla+'</div></div>':tabla)+
+        '</div>';
     });
   }
 
@@ -5369,7 +5376,9 @@ const TAC_VISTAS={entero:[0,0,1,1],sup:[0,0,1,0.5],inf:[0,0.5,1,0.5]};
 const TAC_TIPOS=[['ficha','Jugador'],['peto','Peto'],['cono','Cono'],['porteria','Portería'],['valla','Valla'],['balon','Balón']];
 let tacHerr='poner', tacPoner='ficha', tacColor=0, tacHist=[], tacArr=null, tacListo=false, tacSel=-1;
 
+let tacObj=null;
 function tacEstado(){
+  if(tacObj) return tacObj;
   if(!D.tactica) D.tactica={vista:'entero',objetos:[],trazos:[]};
   const t=D.tactica;
   if(!t.objetos) t.objetos=[];
@@ -5408,6 +5417,8 @@ function mostrarTactica(){
   tacSetup();
   const t=tacEstado();
   const vs=document.getElementById('tacVista'); if(vs) vs.value=t.vista;
+  const tit=document.getElementById('tacTitulo'); if(tit) tit.textContent=tacObj?'Dibujo de la tarea':'Pizarra táctica';
+  const bk=document.getElementById('tacBack'); if(bk) bk.textContent=tacObj?'‹ Tarea':'‹ Más';
   document.getElementById('tacTipos').innerHTML=TAC_TIPOS.map(([k,n])=>
     '<button class="btn xs '+(tacHerr==='poner'&&tacPoner===k?'primary':'')+'" onclick="tacTipo(\''+k+'\')">'+n+'</button>').join('');
   document.getElementById('tacHerr').innerHTML=
@@ -5485,12 +5496,14 @@ function tacUp(){
 }
 function tacDeshacer(){
   if(!tacHist.length) return;
-  D.tactica=JSON.parse(tacHist.pop()); tacSel=-1; salvar(); mostrarTactica();
+  const prev=JSON.parse(tacHist.pop()); const t=tacEstado();
+  t.vista=prev.vista; t.objetos=prev.objetos; t.trazos=prev.trazos;
+  tacSel=-1; salvar(); mostrarTactica();
 }
 function tacBorrar(){
   if(!confirm('¿Borrar todos los elementos y dibujos?')) return;
   const t=tacEstado(); tacHist.push(JSON.stringify(t));
-  D.tactica={vista:t.vista,objetos:[],trazos:[]}; tacSel=-1; salvar(); mostrarTactica();
+  t.objetos=[]; t.trazos=[]; tacSel=-1; salvar(); mostrarTactica();
 }
 function tacEliminarSel(){
   const t=tacEstado(); if(tacSel<0) return;
@@ -5572,17 +5585,65 @@ function tacTrazo(ctx,t,P){
   ctx.lineTo(b[0]-L*Math.cos(ang+0.4),b[1]-L*Math.sin(ang+0.4));
   ctx.closePath(); ctx.fill();
 }
-function tacDibujar(){
-  const cv=document.getElementById('tacCanvas'); if(!cv) return;
-  const t=tacEstado(), v=tacMarco();
+function tacRender(cv,t,sel){
+  const v=TAC_VISTAS[t.vista]||TAC_VISTAS.entero;
   const W=440, H=Math.round(v[3]*105*W/68);
   cv.width=W; cv.height=H;
   const ctx=cv.getContext('2d');
   const P=(x,y)=>[(x-v[0])/v[2]*W,(y-v[1])/v[3]*H];
   tacCampo(ctx,P,W,H);
-  t.trazos.forEach(tr=>tacTrazo(ctx,tr,P));
-  if(tacArr&&tacArr.trazo) tacTrazo(ctx,tacArr.trazo,P);
-  t.objetos.forEach((o,i)=>{ const p=P(o.x,o.y); tacObjeto(ctx,o,p[0],p[1],i===tacSel); });
+  (t.trazos||[]).forEach(tr=>tacTrazo(ctx,tr,P));
+  if(cv.id==='tacCanvas'&&tacArr&&tacArr.trazo) tacTrazo(ctx,tacArr.trazo,P);
+  (t.objetos||[]).forEach((o,i)=>{ const p=P(o.x,o.y); tacObjeto(ctx,o,p[0],p[1],i===sel); });
+}
+function tacDibujar(){
+  const cv=document.getElementById('tacCanvas'); if(!cv) return;
+  tacRender(cv,tacEstado(),tacSel);
+}
+
+/* ─── Dibujo de cada tarea ─── */
+function dibujoBase(t){
+  const txt=[t.espacio,t.material,t.nombre,t.normas].map(x=>String(x||'')).join(' ').toLowerCase();
+  const nums=(String(t.espacio||'').match(/\d+(?:[.,]\d+)?/g)||[]).map(x=>+x.replace(',','.'));
+  let fw=0.9, fh=0.9;
+  if(nums.length>=2){ fw=Math.min(0.95,Math.max(0.3,nums[0]/68)); fh=Math.min(0.95,Math.max(0.2,nums[1]/105)); }
+  else if(/medio campo/.test(txt)) fh=0.45;
+  const x1=0.5-fw/2, x2=0.5+fw/2, y1=0.5-fh/2, y2=0.5+fh/2;
+  const o=[];
+  [[x1,y1],[x2,y1],[x1,y2],[x2,y2]].forEach(([x,y])=>o.push({tipo:'cono',x,y,c:'#ff8a00',rot:0}));
+  let n=parseInt(String(t.jugadores||'').match(/\d+/)?.[0]||'6',10);
+  n=Math.min(12,Math.max(2,isNaN(n)?6:n));
+  const a=Math.ceil(n/2), b=n-a;
+  const equipo=(cant,x,color,tipo)=>{
+    for(let i=0;i<cant;i++){
+      const y=y1+(y2-y1)*(i+0.5)/cant;
+      o.push({tipo,x,y,c:color,n:tipo==='ficha'?String(i+1):'',rot:0});
+    }
+  };
+  if(/peto/.test(txt)){ equipo(a,x1+fw*0.25,'#e74c3c','peto'); equipo(b,x2-fw*0.25,'#f5c542','peto'); }
+  else { equipo(a,x1+fw*0.25,'#3498db','ficha'); equipo(b,x2-fw*0.25,'#ffffff','ficha'); }
+  if(/porter/.test(txt)){ o.push({tipo:'porteria',x:0.5,y:y1,c:'#ffffff',rot:0}); o.push({tipo:'porteria',x:0.5,y:y2,c:'#ffffff',rot:0}); }
+  if(/bal[oó]n/.test(txt)) o.push({tipo:'balon',x:0.5,y:0.5,c:'#ffffff',rot:0});
+  return {vista:'entero',objetos:o,trazos:[],auto:true};
+}
+function dibujoPNG(d){
+  const cv=document.createElement('canvas');
+  tacRender(cv,d,-1);
+  return cv.toDataURL('image/png');
+}
+function tacAbrirLibre(){ tacObj=null; tacSel=-1; tacArr=null; tacHist=[]; go('tactica',false); }
+function tacAbrirTarea(){
+  const t=tareaId?D.tareas.find(x=>x.id===tareaId):null;
+  if(!t){ aviso('Guarda la tarea primero','warn'); return; }
+  if(!t.dibujo) t.dibujo=dibujoBase(t);
+  tacObj=t.dibujo; tacSel=-1; tacArr=null; tacHist=[];
+  go('tactica',false);
+}
+function tacSalir(){
+  if(!tacObj){ go('mas'); return; }
+  if(tacHist.length) tacObj.auto=false;
+  tacObj=null; tacSel=-1; tacArr=null; tacHist=[];
+  salvar(); go('tarea',false);
 }
 function pdfTactica(){
   tacSel=-1; tacDibujar();
