@@ -692,9 +692,16 @@ ALINEACIÓN
   · Sugerencia global: reparte los 7 de campo y el portero
     según asistencia y notas de los 8 últimos entrenos
     antes del partido.
+  · Por posiciones: primero cada hueco (central, medio,
+    extremo) recibe a un jugador de ese puesto; después,
+    a alguien que pueda jugar ahí; y solo al final, el
+    mejor disponible. Así un central no acaba en la punta
+    si hay extremos o puntas libres.
   · Toca un jugador del campo: se abre el cambio con el
     sustituto sugerido (el mejor del banquillo para ese
-    puesto) y la lista del resto.
+    puesto) y la lista del resto. Cada uno sale con una
+    etiqueta: «en su puesto», «puede jugar aquí» u
+    «otra posición».
   · Los muñecos muestran el dorsal y el nombre.
 
 ═════════════════════════════════════════

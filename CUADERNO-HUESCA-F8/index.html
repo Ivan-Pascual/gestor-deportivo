@@ -5230,11 +5230,28 @@ function slotsDe(f){
   });
   return out;
 }
-function encaja(puesto,role){
-  if(role==='portero') return puesto==='portero';
-  if(role==='central') return puesto==='central';
-  if(role==='medio') return puesto==='medio';
-  return puesto==='extremo'||puesto==='punta';
+/* posición del jugador normalizada: acepta "Central", "central", con o sin tildes */
+function puestoDe(j){
+  const raw=String(j.puesto||(j.eval&&j.eval.puesto)||'')
+    .normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+  return PUESTOS.some(p=>p[0]===raw)?raw:'';
+}
+/* 2 = juega en esa posición · 1 = puede jugar ahí · 0 = otra posición o sin dato */
+function afinidad(j,role){
+  const p=puestoDe(j);
+  if(!p) return 0;
+  if(role==='portero') return p==='portero'?2:0;
+  if(role==='central') return p==='central'?2:p==='medio'?1:0;
+  if(role==='medio') return p==='medio'?2:(p==='central'||p==='extremo')?1:0;
+  return (p==='extremo'||p==='punta')?2:p==='medio'?1:0;
+}
+function etiquetaPuesto(j,role){
+  const p=puestoDe(j);
+  if(!p) return ' · sin posición indicada';
+  const af=afinidad(j,role);
+  if(af===2) return ' · en su puesto';
+  if(af===1) return ' · puede jugar aquí';
+  return ' · otra posición ('+(PUESTOS.find(x=>x[0]===p)||['',p])[1].toLowerCase()+')';
 }
 /* asistencia y nota de los últimos entrenos antes del partido */
 function puntuarJugador(j,sesionId){
@@ -5262,14 +5279,16 @@ function sugerirGlobal(){
   const campo=disp.filter(x=>!x.es).map(x=>({x,p:puntuarJugador(x.j,s.id)})).sort((a,b)=>b.p.score-a.p.score);
   const porteros=disp.filter(x=>x.es).map(x=>({x,p:puntuarJugador(x.j,s.id)})).sort((a,b)=>b.p.score-a.p.score);
   disp.forEach(x=>{ x.r.estado='suplente'; delete x.r.slot; x.r.asistio=true; });
-  const restantes=campo.slice(0,slots.length);
-  slots.forEach((sl,i)=>{
-    let k=restantes.findIndex(c=>encaja(c.x.j.puesto,sl.role));
-    if(k<0) k=0;
-    const c=restantes.splice(k,1)[0];
-    if(!c) return;
-    c.x.r.estado='titular'; c.x.r.slot=i; c.x.r.asistio=true;
+  /* por pasadas: primero jugadores de su posición, luego los que pueden jugar ahí, y por último el mejor disponible */
+  const usados=new Set(), asign=slots.map(()=>null);
+  [2,1,0].forEach(min=>{
+    slots.forEach((sl,i)=>{
+      if(asign[i]) return;
+      const c=campo.find(c=>!usados.has(c)&&afinidad(c.x.j,sl.role)>=min);
+      if(c){ asign[i]=c; usados.add(c); }
+    });
   });
+  asign.forEach((c,i)=>{ if(!c) return; c.x.r.estado='titular'; c.x.r.slot=i; c.x.r.asistio=true; });
   if(porteros[0]){ porteros[0].x.r.estado='titular'; porteros[0].x.r.slot='P'; porteros[0].x.r.asistio=true; }
   salvar(); planActual=repartoMinutos(s.id); mostrarPreparar();
   aviso('Sugerencia aplicada · '+f);
@@ -5302,7 +5321,7 @@ function mostrarSlot(){
   const actual=planActual.find(x=>x.r.estado==='titular'&&(esGK?x.es:(!x.es&&x.r.slot===slotActivo)));
   const cand=planActual.filter(x=>(x.r.estado||'titular')!=='titular'&&!x.r.baja&&(esGK?x.es:!x.es))
     .map(x=>({x,p:puntuarJugador(x.j,s.id)}))
-    .sort((a,b)=>(encaja(b.x.j.puesto,sl.role)-encaja(a.x.j.puesto,sl.role))||(b.p.score-a.p.score));
+    .sort((a,b)=>(afinidad(b.x.j,sl.role)-afinidad(a.x.j,sl.role))||(b.p.score-a.p.score));
   const linea=p=>'asistencia '+p.asist+'% · nota '+p.nota+' · '+p.vino+' de '+p.de+' entrenos';
   const sug=cand[0];
   el.innerHTML='<div class="card" style="margin-top:12px">'+
@@ -5310,12 +5329,12 @@ function mostrarSlot(){
     '<p class="mini muted" style="margin:0 0 10px">En el puesto: <b>'+(actual?esc(actual.j.nombre):'—')+'</b></p>'+
     (sug?'<div class="spread" style="gap:8px;align-items:center;margin-bottom:6px">'+
       '<div class="grow"><span class="chip green">Sugerido</span> <b>'+esc(sug.x.j.nombre)+'</b>'+
-      '<div class="mini muted">'+linea(sug.p)+(encaja(sug.x.j.puesto,sl.role)?'':' · otra posición')+'</div></div>'+
+      '<div class="mini muted">'+linea(sug.p)+etiquetaPuesto(sug.x.j,sl.role)+'</div></div>'+
       '<button class="btn xs primary" onclick="slotPoner(\''+sug.x.r.id+'\')">Poner</button></div>'
      :'<p class="mini muted">No hay suplentes disponibles.</p>')+
     cand.slice(1).map(c=>'<div class="spread" style="gap:8px;align-items:center;padding:7px 0;border-top:1px solid #0002">'+
       '<div class="grow"><b>'+esc(c.x.j.nombre)+'</b><div class="mini muted">'+linea(c.p)+
-      (encaja(c.x.j.puesto,sl.role)?'':' · otra posición')+'</div></div>'+
+      etiquetaPuesto(c.x.j,sl.role)+'</div></div>'+
       '<button class="btn xs" onclick="slotPoner(\''+c.x.r.id+'\')">Poner</button></div>').join('')+
     '<button class="btn" style="margin-top:10px" onclick="slotCerrar()">Cerrar</button></div>';
 }
