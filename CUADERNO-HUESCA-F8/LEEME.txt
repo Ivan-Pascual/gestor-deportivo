@@ -662,3 +662,27 @@ ARCHIVOS DE ESTA CARPETA
   icono.png          El icono con el escudo
   escudo.png         El escudo suelto, por si lo necesitas
   LEEME.txt          Esto
+
+═════════════════════════════════════════
+M · NOVEDADES DE ESTA VERSIÓN
+═════════════════════════════════════════
+PIZARRA TÁCTICA
+  Más → Pizarra táctica.
+  · Mover: arrastra las fichas por el campo.
+  · Ficha: toca el campo y pon un número o inicial.
+  · Flecha y Libre: dibuja con el dedo. Cuatro colores.
+  · Deshacer y Borrar todo.
+  · Guardar en PDF: sale el dibujo con escudo y firma.
+  Se guarda en este móvil (no se sincroniza todavía).
+
+PREPARAR PARTIDO
+  · Campo dibujado con la alineación titular (2-3-2
+    y portero) y el banquillo debajo.
+  · Cada jugador muestra su nota media de la semana y
+    su nota media total.
+  · El PDF de alineación también sale con el campo.
+
+NOTA DE GASTOS
+  Sale "D. Nombre, con DNI ..." con los datos que
+  pongas en Ajustes. El DNI no está en el código:
+  rellénalo una vez en Más → Ajustes.
