@@ -1242,10 +1242,19 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
 <section id="v-tactica" class="view">
   <button class="back" onclick="go('mas')">‹ Más</button>
   <h2 style="font-size:21px">Pizarra táctica</h2>
-  <p class="tiny muted" style="margin:4px 0 12px">Mueve las fichas, dibuja flechas o líneas libres. Se guarda en este móvil.</p>
+  <div class="grid2" style="margin:10px 0 10px;align-items:end">
+    <label class="field" style="margin:0"><span>Vista</span>
+      <select id="tacVista" onchange="tacVistaSet(this.value)">
+        <option value="entero">Campo entero</option>
+        <option value="sup">Media cancha superior</option>
+        <option value="inf">Media cancha inferior</option>
+      </select></label>
+    <div id="tacTipos" class="row" style="gap:6px;flex-wrap:wrap"></div>
+  </div>
   <div id="tacHerr" class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:9px"></div>
-  <div id="tacColores" class="row" style="gap:8px;margin-bottom:10px"></div>
-  <canvas id="tacCanvas" width="680" height="440" style="width:100%;height:auto;border-radius:12px;touch-action:none;display:block"></canvas>
+  <div id="tacColores" class="row" style="gap:8px;margin-bottom:9px"></div>
+  <div id="tacSelBar" class="row" style="gap:6px;flex-wrap:wrap;margin-bottom:9px"></div>
+  <canvas id="tacCanvas" width="440" height="680" style="width:100%;height:auto;border-radius:12px;touch-action:none;display:block"></canvas>
   <div class="grid2" style="margin-top:13px">
     <button class="btn" onclick="pdfTactica()">Guardar en PDF</button>
     <button class="btn danger" onclick="tacBorrar()">Borrar todo</button>
@@ -1258,9 +1267,17 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
   <div class="card card-lead" id="ppCab" style="margin-bottom:13px"></div>
   <div class="strip" id="ppStrip" style="margin-bottom:14px"></div>
   <div class="card" id="ppCampo" style="margin-bottom:13px"></div>
+  <div id="ppSlot"></div>
   <div id="ppAviso"></div>
+  <div class="card" style="margin-bottom:13px">
+    <div class="grid2" style="align-items:end">
+      <label class="field" style="margin:0"><span>Formación</span>
+        <select id="ppFormacion" onchange="setFormacion(this.value)"></select></label>
+      <button class="btn primary" onclick="sugerirGlobal()">Sugerencia global</button>
+    </div>
+    <p class="mini muted" style="margin:9px 0 0">Sugerencia según asistencia y notas de los 8 últimos entrenos antes de este partido. Toca un jugador del campo para ver su sustituto sugerido.</p>
+  </div>
   <div class="grid2" style="margin-bottom:13px">
-    <button class="btn" onclick="proponerTitulares()">Proponer titulares</button>
     <button class="btn" onclick="recalcularPlan()">Recalcular minutos</button>
   </div>
   <p class="eyebrow juego">Alineación y minutos</p>
@@ -5048,6 +5065,8 @@ function mostrarPreparar(){
   const c=cfgPartido();
   if(!planActual) planActual=repartoMinutos(s.id);
 
+  const fsel=document.getElementById('ppFormacion');
+  if(fsel) fsel.innerHTML=FORMACIONES.map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+f+'</option>').join('');
   const tit=planActual.filter(x=>(x.r.estado||'titular')==='titular');
   const titC=tit.filter(x=>!x.es).length, titP=tit.filter(x=>x.es).length;
   const okAlineacion = titC===c.campo && titP===1;
@@ -5070,6 +5089,7 @@ function mostrarPreparar(){
     'Necesitas '+c.campo+' de campo y 1 portero como titulares. '+
     'Ahora tienes '+titC+' y '+titP+'.</div>';
 
+  mostrarSlot();
   document.getElementById('ppCampo').innerHTML=campoSVG(planActual)+
     '<p class="mini muted" style="text-align:center;margin:10px 0 0">Banquillo: '+
     (planActual.filter(x=>(x.r.estado||"titular")==="suplente").map(x=>esc(x.j.nombre)).join(' · ')||'—')+'</p>';
@@ -5184,49 +5204,197 @@ function pdfAlineacion(){
    PIZARRA DE CAMBIOS · quién está dentro, quién fuera
    ══════════════════════════════════════════════════════ */
 
-/* ─── Campo dibujado: titulares en 1-x-x-x, portero abajo ─── */
-function jugSVG(x,cx,cy,fill,ink){
+/* ─── Formaciones, sugerencias y campo ─── */
+const FORMACIONES=['2-3-2','3-2-2','2-2-3','1-3-3','1-2-4','1-2-2-2','3-3-1','2-4-1','1-3-2-1'];
+const VENTANA_ENTRENOS=8;
+const ROL_TXT={central:'Central',medio:'Medio',extremo:'Extremo o punta',portero:'Portero'};
+let slotActivo=null;
+
+function formacionDe(s){ return (s&&FORMACIONES.includes(s.formacion))?s.formacion:'2-3-2'; }
+/* filas de defensa a ataque; cada hueco tiene un rol y una posición en el campo */
+function slotsDe(f){
+  const filas=f.split('-').map(Number), R=filas.length, out=[];
+  filas.forEach((k,i)=>{
+    const role = R===1 ? 'medio' : i===0 ? 'central' : i===R-1 ? 'extremo' : 'medio';
+    const y = R===1 ? 220 : 340 - i*(240/(R-1));
+    for(let j=0;j<k;j++) out.push({role, x:340*(j+1)/(k+1), y});
+  });
+  return out;
+}
+function encaja(puesto,role){
+  if(role==='portero') return puesto==='portero';
+  if(role==='central') return puesto==='central';
+  if(role==='medio') return puesto==='medio';
+  return puesto==='extremo'||puesto==='punta';
+}
+/* asistencia y nota de los últimos entrenos antes del partido */
+function puntuarJugador(j,sesionId){
+  const s=D.sesiones.find(x=>x.id===sesionId);
+  const ids=D.sesiones
+    .filter(x=>!esPartido(x.tipo)&&x.fecha<s.fecha&&(j.tipo==='portero'||x.tipo!=='porteros'))
+    .sort((a,b)=>b.fecha.localeCompare(a.fecha)).slice(0,VENTANA_ENTRENOS).map(x=>x.id);
+  const regs=D.registros.filter(r=>r.jugadorId===j.id&&ids.includes(r.sesionId)&&!r.baja&&!r.pref);
+  const de=regs.length, vino=regs.filter(r=>r.asistio).length;
+  const asist= de? vino/de : 0.5;
+  const notas=regs.filter(r=>r.nota!=null).map(r=>+r.nota);
+  const nota= notas.length? notas.reduce((a,b)=>a+b,0)/notas.length : 5;
+  return {score:0.6*asist+0.4*(nota/10), asist:Math.round(asist*100), nota:notas.length?nota.toFixed(1):'—', de, vino};
+}
+function setFormacion(f){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||!FORMACIONES.includes(f)) return;
+  s.formacion=f; salvar(); sugerirGlobal();
+}
+/* sugerencia global: reparte los titulares por puesto y puntuación */
+function sugerirGlobal(){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  if(!planActual) planActual=repartoMinutos(s.id);
+  const f=formacionDe(s), slots=slotsDe(f);
+  const disp=planActual.filter(x=>(x.r.estado||'titular')!=='no'&&!x.r.baja);
+  const campo=disp.filter(x=>!x.es).map(x=>({x,p:puntuarJugador(x.j,s.id)})).sort((a,b)=>b.p.score-a.p.score);
+  const porteros=disp.filter(x=>x.es).map(x=>({x,p:puntuarJugador(x.j,s.id)})).sort((a,b)=>b.p.score-a.p.score);
+  disp.forEach(x=>{ x.r.estado='suplente'; delete x.r.slot; x.r.asistio=true; });
+  const restantes=campo.slice(0,slots.length);
+  slots.forEach((sl,i)=>{
+    let k=restantes.findIndex(c=>encaja(c.x.j.puesto,sl.role));
+    if(k<0) k=0;
+    const c=restantes.splice(k,1)[0];
+    if(!c) return;
+    c.x.r.estado='titular'; c.x.r.slot=i; c.x.r.asistio=true;
+  });
+  if(porteros[0]){ porteros[0].x.r.estado='titular'; porteros[0].x.r.slot='P'; porteros[0].x.r.asistio=true; }
+  salvar(); planActual=repartoMinutos(s.id); mostrarPreparar();
+  aviso('Sugerencia aplicada · '+f);
+}
+/* cambio de jugador en un hueco con sugerencia automática */
+function slotAbrirRid(rid){
+  const x=planActual&&planActual.find(y=>y.r.id===rid); if(!x) return;
+  slotActivo = x.es ? 'P' : (Number.isInteger(x.r.slot)?x.r.slot:null);
+  mostrarSlot();
+}
+function slotAbrirKey(k){ slotActivo = k==='P' ? 'P' : Number(k); mostrarSlot(); }
+function slotCerrar(){ slotActivo=null; mostrarSlot(); }
+function slotPoner(rid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  const nuevo=planActual.find(x=>x.r.id===rid); if(!nuevo) return;
+  const esGK = slotActivo==='P';
+  const actual=planActual.find(x=>x.r.estado==='titular'&&(esGK?x.es:(!x.es&&x.r.slot===slotActivo)));
+  if(actual){ actual.r.estado='suplente'; delete actual.r.slot; }
+  nuevo.r.estado='titular'; nuevo.r.asistio=true; nuevo.r.slot=esGK?'P':slotActivo;
+  salvar(); slotActivo=null; planActual=repartoMinutos(s.id); mostrarPreparar();
+  aviso('Cambio hecho');
+}
+function mostrarSlot(){
+  const el=document.getElementById('ppSlot'); if(!el) return;
+  const s=D.sesiones.find(x=>x.id===sesionActiva);
+  if(slotActivo===null||slotActivo===undefined||!s||!planActual){ el.innerHTML=''; return; }
+  const esGK=slotActivo==='P';
+  const sl=esGK?{role:'portero'}:slotsDe(formacionDe(s))[slotActivo];
+  if(!sl){ el.innerHTML=''; return; }
+  const actual=planActual.find(x=>x.r.estado==='titular'&&(esGK?x.es:(!x.es&&x.r.slot===slotActivo)));
+  const cand=planActual.filter(x=>(x.r.estado||'titular')!=='titular'&&!x.r.baja&&(esGK?x.es:!x.es))
+    .map(x=>({x,p:puntuarJugador(x.j,s.id)}))
+    .sort((a,b)=>(encaja(b.x.j.puesto,sl.role)-encaja(a.x.j.puesto,sl.role))||(b.p.score-a.p.score));
+  const linea=p=>'asistencia '+p.asist+'% · nota '+p.nota+' · '+p.vino+' de '+p.de+' entrenos';
+  const sug=cand[0];
+  el.innerHTML='<div class="card" style="margin-top:12px">'+
+    '<p class="eyebrow juego" style="margin:0 0 6px">Cambiar: '+esc(ROL_TXT[sl.role]||'')+'</p>'+
+    '<p class="mini muted" style="margin:0 0 10px">En el puesto: <b>'+(actual?esc(actual.j.nombre):'—')+'</b></p>'+
+    (sug?'<div class="spread" style="gap:8px;align-items:center;margin-bottom:6px">'+
+      '<div class="grow"><span class="chip green">Sugerido</span> <b>'+esc(sug.x.j.nombre)+'</b>'+
+      '<div class="mini muted">'+linea(sug.p)+(encaja(sug.x.j.puesto,sl.role)?'':' · otra posición')+'</div></div>'+
+      '<button class="btn xs primary" onclick="slotPoner(\''+sug.x.r.id+'\')">Poner</button></div>'
+     :'<p class="mini muted">No hay suplentes disponibles.</p>')+
+    cand.slice(1).map(c=>'<div class="spread" style="gap:8px;align-items:center;padding:7px 0;border-top:1px solid #0002">'+
+      '<div class="grow"><b>'+esc(c.x.j.nombre)+'</b><div class="mini muted">'+linea(c.p)+
+      (encaja(c.x.j.puesto,sl.role)?'':' · otra posición')+'</div></div>'+
+      '<button class="btn xs" onclick="slotPoner(\''+c.x.r.id+'\')">Poner</button></div>').join('')+
+    '<button class="btn" style="margin-top:10px" onclick="slotCerrar()">Cerrar</button></div>';
+}
+
+/* ─── Muñecos del campo ─── */
+function muñecoSVG(cx,cy,x,esGK){
   const dor=(x.j.dorsal!=null&&x.j.dorsal!=='')?String(x.j.dorsal):'';
   const nom=esc(((x.j.nombre||'').split(' ')[0]).slice(0,10));
-  return '<g><circle cx="'+cx+'" cy="'+cy+'" r="20" fill="'+fill+'" stroke="#111" stroke-width="2"/>'+
-    '<text x="'+cx+'" y="'+(cy+5)+'" text-anchor="middle" font-size="15" font-weight="700" fill="'+ink+'">'+esc(dor)+'</text>'+
-    '<text x="'+cx+'" y="'+(cy+36)+'" text-anchor="middle" font-size="13" font-weight="600" fill="#fff" stroke="#000a" stroke-width="3" paint-order="stroke">'+nom+'</text></g>';
+  const camiseta = esGK ? '#f5c542' : 'url(#pvRayas)';
+  const medias = esGK ? '#222' : '#1f4e9c';
+  const piel='#e7b58d';
+  return '<g transform="translate('+cx+','+cy+')" style="cursor:pointer" onclick="slotAbrirRid(\''+x.r.id+'\')">'+
+    '<ellipse cx="0" cy="34" rx="13" ry="3" fill="#0004"/>'+
+    '<circle cx="0" cy="-24" r="7" fill="'+piel+'" stroke="#8a5a3c" stroke-width=".6"/>'+
+    '<path d="M-7.6,-24 A7.6,7.6 0 0 1 7.6,-24 Q0,-29 -7.6,-24 Z" fill="#2b1d12"/>'+
+    '<path d="M-9,-17 L9,-17 L8,6 L-8,6 Z" fill="'+camiseta+'" stroke="#111" stroke-width=".7"/>'+
+    '<path d="M-9,-17 L-17,-12 L-15,0 L-9,-4 Z" fill="'+camiseta+'" stroke="#111" stroke-width=".7"/>'+
+    '<path d="M9,-17 L17,-12 L15,0 L9,-4 Z" fill="'+camiseta+'" stroke="#111" stroke-width=".7"/>'+
+    '<path d="M-15,0 L-16,9 M15,0 L16,9" stroke="'+piel+'" stroke-width="3.6" stroke-linecap="round"/>'+
+    '<path d="M-9,6 L9,6 L10,15 L1,15 L0,10 L-1,15 L-10,15 Z" fill="#fff" stroke="#111" stroke-width=".7"/>'+
+    '<path d="M-7,15 L-2,15 L-2.5,27 L-6.5,27 Z M2,15 L7,15 L6.5,27 L2.5,27 Z" fill="'+piel+'"/>'+
+    '<rect x="-6.8" y="25" width="4.5" height="6" fill="'+medias+'"/><rect x="2.3" y="25" width="4.5" height="6" fill="'+medias+'"/>'+
+    '<ellipse cx="-4.5" cy="32" rx="4.5" ry="2" fill="#111"/><ellipse cx="4.5" cy="32" rx="4.5" ry="2" fill="#111"/>'+
+    '<text x="0" y="-1" text-anchor="middle" font-size="11" font-weight="900" fill="#fff" stroke="#000" stroke-width=".7" paint-order="stroke">'+esc(dor)+'</text>'+
+    '<text x="0" y="47" text-anchor="middle" font-size="9.5" font-weight="700" fill="#fff" stroke="#000a" stroke-width="2.5" paint-order="stroke">'+nom+'</text>'+
+    '</g>';
 }
+function vacioSVG(cx,cy,key){
+  return '<g transform="translate('+cx+','+cy+')" style="cursor:pointer" onclick="slotAbrirKey(\''+key+'\')">'+
+    '<circle r="19" fill="#0002" stroke="#fff" stroke-width="2" stroke-dasharray="4 3"/>'+
+    '<text y="6" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">+</text></g>';
+}
+/* campo con la alineación: cada titular ocupa su hueco (slot) */
 function campoSVG(lista){
+  const s=D.sesiones.find(x=>x.id===sesionActiva);
+  const slots=slotsDe(formacionDe(s));
   const tit=lista.filter(x=>(x.r.estado||'titular')==='titular');
-  const cam=tit.filter(x=>!x.es), por=tit.filter(x=>x.es);
-  const n=cam.length, a=Math.round(n*0.28), c=Math.round(n*0.28), b=n-a-c;
-  const filas=[c,b,a].filter(k=>k>0);
-  const R=filas.length, W=340, H=480;
-  let s='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:340px;display:block;margin:0 auto" role="img" aria-label="Alineación">'+
-    '<rect x="10" y="10" width="320" height="460" rx="12" fill="#2e7d4f"/>'+
-    '<g stroke="rgba(255,255,255,.7)" stroke-width="2" fill="none">'+
-    '<rect x="10" y="10" width="320" height="460" rx="12"/><line x1="10" y1="240" x2="330" y2="240"/>'+
-    '<circle cx="170" cy="240" r="46"/><rect x="95" y="10" width="150" height="70"/><rect x="95" y="400" width="150" height="70"/></g>';
-  let idx=0;
-  filas.forEach((k,i)=>{
-    const y=R===1?220:110+i*(220/(R-1));
-    for(let j=0;j<k;j++){ s+=jugSVG(cam[idx++],W*(j+1)/(k+1),y,'#ffffff','#111'); }
+  const cam=tit.filter(x=>!x.es), gk=tit.find(x=>x.es);
+  const ocupa=slots.map(()=>null), extra=[];
+  cam.forEach(x=>{
+    const k=x.r.slot;
+    if(Number.isInteger(k)&&k<slots.length&&ocupa[k]===null) ocupa[k]=x; else extra.push(x);
   });
-  if(por[0]) s+=jugSVG(por[0],170,425,'#f5c542','#111');
-  return s+'</svg>';
+  extra.forEach(x=>{ const k=ocupa.indexOf(null); if(k>=0) ocupa[k]=x; });
+  let svg='<svg viewBox="0 0 340 500" style="width:100%;max-width:340px;display:block;margin:0 auto" role="img" aria-label="Alineación">'+
+    '<defs><pattern id="pvRayas" width="6" height="10" patternUnits="userSpaceOnUse">'+
+    '<rect width="3" height="10" fill="#1f4e9c"/><rect x="3" width="3" height="10" fill="#c0392b"/></pattern></defs>'+
+    '<rect x="10" y="10" width="320" height="480" rx="12" fill="#2e7d4f"/>'+
+    '<g stroke="rgba(255,255,255,.7)" stroke-width="2" fill="none">'+
+    '<rect x="10" y="10" width="320" height="480" rx="12"/><line x1="10" y1="250" x2="330" y2="250"/>'+
+    '<circle cx="170" cy="250" r="46"/><rect x="95" y="10" width="150" height="75"/><rect x="95" y="415" width="150" height="75"/></g>';
+  slots.forEach((sl,i)=>{ svg+= ocupa[i] ? muñecoSVG(sl.x,sl.y,ocupa[i],false) : vacioSVG(sl.x,sl.y,String(i)); });
+  svg+= gk ? muñecoSVG(170,448,gk,true) : vacioSVG(170,448,'P');
+  return svg+'</svg>';
 }
 
 /* ─── Pizarra táctica ─── */
-const TAC_COLORES=['#ffffff','#f5c542','#e74c3c','#3498db'];
-let tacHerr='mover', tacColor=0, tacHist=[], tacArr=null, tacListo=false;
+const TAC_COLORES=['#ffffff','#f5c542','#e74c3c','#3498db','#2ecc71','#ff8a00','#111111'];
+const TAC_VISTAS={entero:[0,0,1,1],sup:[0,0,1,0.5],inf:[0,0.5,1,0.5]};
+const TAC_TIPOS=[['ficha','Jugador'],['peto','Peto'],['cono','Cono'],['porteria','Portería'],['valla','Valla'],['balon','Balón']];
+let tacHerr='poner', tacPoner='ficha', tacColor=0, tacHist=[], tacArr=null, tacListo=false, tacSel=-1;
+
 function tacEstado(){
-  if(!D.tactica) D.tactica={fichas:[],trazos:[]};
-  return D.tactica;
+  if(!D.tactica) D.tactica={vista:'entero',objetos:[],trazos:[]};
+  const t=D.tactica;
+  if(!t.objetos) t.objetos=[];
+  if(!t.trazos) t.trazos=[];
+  if(!t.vista) t.vista='entero';
+  if(t.fichas){ t.fichas.forEach(f=>t.objetos.push({tipo:'ficha',x:f.x,y:f.y,c:f.c,n:f.n,rot:0})); delete t.fichas; }
+  return t;
 }
-function mostrarTactica(){
-  tacSetup();
-  const herr=[['mover','Mover'],['ficha','Ficha'],['flecha','Flecha'],['libre','Libre'],['deshacer','Deshacer'],['borrar','Borrar']];
-  document.getElementById('tacHerr').innerHTML=herr.map(([k,t])=>
-    '<button class="btn xs '+(tacHerr===k?'primary':'')+'" onclick="tacSet(\''+k+'\')">'+t+'</button>').join('');
-  document.getElementById('tacColores').innerHTML=TAC_COLORES.map((c,i)=>
-    '<button class="tac-col '+(tacColor===i?'on':'')+'" style="background:'+c+'" onclick="tacColorSet('+i+')" aria-label="Color"></button>').join('');
-  tacDibujar();
+function tacMarco(){ return TAC_VISTAS[tacEstado().vista]||TAC_VISTAS.entero; }
+function tacPx(ev){
+  const cv=document.getElementById('tacCanvas'), r=cv.getBoundingClientRect();
+  return [(ev.clientX-r.left)*cv.width/r.width,(ev.clientY-r.top)*cv.height/r.height];
+}
+function tacNorm(px){
+  const cv=document.getElementById('tacCanvas'), v=tacMarco();
+  return [Math.min(1,Math.max(0,v[0]+px[0]/cv.width*v[2])), Math.min(1,Math.max(0,v[1]+px[1]/cv.height*v[3]))];
+}
+function tacHit(px){
+  const cv=document.getElementById('tacCanvas'), v=tacMarco(), t=tacEstado();
+  for(let i=t.objetos.length-1;i>=0;i--){
+    const o=t.objetos[i];
+    const q=[(o.x-v[0])/v[2]*cv.width,(o.y-v[1])/v[3]*cv.height];
+    if(Math.hypot(q[0]-px[0],q[1]-px[1])<26) return i;
+  }
+  return -1;
 }
 function tacSetup(){
   if(tacListo) return; tacListo=true;
@@ -5236,116 +5404,195 @@ function tacSetup(){
   cv.addEventListener('pointerup',tacUp);
   cv.addEventListener('pointercancel',tacUp);
 }
-function tacSet(k){
-  if(k==='borrar'){ tacBorrar(); return; }
-  if(k==='deshacer'){ tacDeshacer(); return; }
-  tacHerr=k; mostrarTactica();
+function mostrarTactica(){
+  tacSetup();
+  const t=tacEstado();
+  const vs=document.getElementById('tacVista'); if(vs) vs.value=t.vista;
+  document.getElementById('tacTipos').innerHTML=TAC_TIPOS.map(([k,n])=>
+    '<button class="btn xs '+(tacHerr==='poner'&&tacPoner===k?'primary':'')+'" onclick="tacTipo(\''+k+'\')">'+n+'</button>').join('');
+  document.getElementById('tacHerr').innerHTML=
+    [['mover','Mover'],['flecha','Flecha'],['libre','Libre']].map(([k,n])=>
+      '<button class="btn xs '+(tacHerr===k?'primary':'')+'" onclick="tacModo(\''+k+'\')">'+n+'</button>').join('')+
+    '<button class="btn xs" onclick="tacDeshacer()">Deshacer</button>';
+  document.getElementById('tacColores').innerHTML=TAC_COLORES.map((c,i)=>
+    '<button class="tac-col '+(tacColor===i?'on':'')+'" style="background:'+c+'" onclick="tacColorSet('+i+')" aria-label="Color"></button>').join('');
+  tacSelBarra();
+  tacDibujar();
 }
-function tacColorSet(i){ tacColor=i; mostrarTactica(); }
-function tacPos(ev){
-  const r=document.getElementById('tacCanvas').getBoundingClientRect();
-  return [Math.min(1,Math.max(0,(ev.clientX-r.left)/r.width)),
-          Math.min(1,Math.max(0,(ev.clientY-r.top)/r.height))];
+function tacSelBarra(){
+  const el=document.getElementById('tacSelBar'); if(!el) return;
+  const t=tacEstado();
+  if(tacSel<0||!t.objetos[tacSel]){ el.innerHTML='<span class="mini muted">Toca un elemento para editarlo.</span>'; return; }
+  const o=t.objetos[tacSel];
+  el.innerHTML='<span class="chip">'+esc(TAC_TIPOS.find(x=>x[0]===o.tipo)[1])+'</span>'+
+    ((o.tipo==='ficha'||o.tipo==='peto')?'<button class="btn xs" onclick="tacNumeroSel()">Número</button>':'')+
+    '<button class="btn xs" onclick="tacGirarSel()">Girar</button>'+
+    '<button class="btn xs danger" onclick="tacEliminarSel()">Eliminar</button>'+
+    '<button class="btn xs" onclick="tacSel=-1;mostrarTactica()">Soltar</button>';
 }
-function tacHit(p){
-  const cv=document.getElementById('tacCanvas'), e=tacEstado();
-  for(let i=e.fichas.length-1;i>=0;i--){
-    const f=e.fichas[i];
-    if(Math.hypot((f.x-p[0])*cv.width,(f.y-p[1])*cv.height)<26) return i;
-  }
-  return -1;
+function tacTipo(k){ tacHerr='poner'; tacPoner=k; tacSel=-1; mostrarTactica(); }
+function tacModo(k){ tacHerr=k; tacSel=-1; mostrarTactica(); }
+function tacColorSet(i){
+  tacColor=i;
+  const t=tacEstado();
+  if(tacSel>=0&&t.objetos[tacSel]){ tacHist.push(JSON.stringify(t)); t.objetos[tacSel].c=TAC_COLORES[i]; salvar(); }
+  mostrarTactica();
+}
+function tacVistaSet(v){
+  const t=tacEstado(); if(!TAC_VISTAS[v]) return;
+  t.vista=v; tacSel=-1; salvar(); mostrarTactica();
 }
 function tacDown(ev){
-  const p=tacPos(ev), e=tacEstado();
-  if(tacHerr==='ficha'){
-    const n=prompt('Número o inicial de la ficha','');
-    if(n===null) return;
-    tacHist.push(JSON.stringify(e));
-    e.fichas.push({x:p[0],y:p[1],c:TAC_COLORES[tacColor],n:n.trim().slice(0,3)});
-    salvar(); tacDibujar(); return;
+  const px=tacPx(ev), p=tacNorm(px), t=tacEstado();
+  if(tacHerr==='poner'){
+    let n='';
+    if(tacPoner==='ficha'){ const r=prompt('Número o inicial del jugador',''); if(r===null) return; n=r.trim().slice(0,3); }
+    tacHist.push(JSON.stringify(t));
+    const o={tipo:tacPoner,x:p[0],y:p[1],c:TAC_COLORES[tacColor],rot:0};
+    if(tacPoner==='ficha') o.n=n;
+    t.objetos.push(o); tacSel=t.objetos.length-1;
+    salvar(); mostrarTactica(); return;
   }
   ev.currentTarget.setPointerCapture(ev.pointerId);
   if(tacHerr==='mover'){
-    const i=tacHit(p); if(i<0) return;
-    tacHist.push(JSON.stringify(e));
-    tacArr={modo:'mover',i};
-    return;
+    const i=tacHit(px);
+    tacSel=i;
+    if(i>=0){ tacHist.push(JSON.stringify(t)); tacArr={modo:'mover',i}; }
+    tacSelBarra(); tacDibujar(); return;
   }
-  tacHist.push(JSON.stringify(e));
-  tacArr=(tacHerr==='libre')
+  tacHist.push(JSON.stringify(t));
+  tacArr = tacHerr==='libre'
     ? {modo:'libre',trazo:{tipo:'libre',c:TAC_COLORES[tacColor],p:[p]}}
     : {modo:'flecha',trazo:{tipo:'flecha',c:TAC_COLORES[tacColor],a:p,b:p}};
 }
 function tacMove(ev){
   if(!tacArr) return;
-  const p=tacPos(ev), e=tacEstado();
-  if(tacArr.modo==='mover'){ const f=e.fichas[tacArr.i]; if(f){ f.x=p[0]; f.y=p[1]; } }
+  const p=tacNorm(tacPx(ev)), t=tacEstado();
+  if(tacArr.modo==='mover'){ const o=t.objetos[tacArr.i]; if(o){ o.x=p[0]; o.y=p[1]; } }
   else if(tacArr.modo==='flecha'){ tacArr.trazo.b=p; }
   else { tacArr.trazo.p.push(p); }
   tacDibujar();
 }
 function tacUp(){
   if(!tacArr) return;
-  const e=tacEstado();
+  const t=tacEstado();
   if(tacArr.trazo){
-    const t=tacArr.trazo;
-    const largo = t.tipo==='libre' ? t.p.length>1 : Math.hypot(t.b[0]-t.a[0],t.b[1]-t.a[1])>0.02;
-    if(largo) e.trazos.push(t); else tacHist.pop();
+    const tr=tacArr.trazo;
+    const largo = tr.tipo==='libre' ? tr.p.length>1 : Math.hypot(tr.b[0]-tr.a[0],tr.b[1]-tr.a[1])>0.02;
+    if(largo) t.trazos.push(tr); else tacHist.pop();
   }
-  tacArr=null; salvar(); tacDibujar();
+  tacArr=null; salvar(); tacSelBarra(); tacDibujar();
 }
 function tacDeshacer(){
   if(!tacHist.length) return;
-  D.tactica=JSON.parse(tacHist.pop()); salvar(); tacDibujar();
+  D.tactica=JSON.parse(tacHist.pop()); tacSel=-1; salvar(); mostrarTactica();
 }
 function tacBorrar(){
-  if(!confirm('¿Borrar todas las fichas y dibujos?')) return;
-  tacHist.push(JSON.stringify(tacEstado()));
-  D.tactica={fichas:[],trazos:[]}; salvar(); tacDibujar();
+  if(!confirm('¿Borrar todos los elementos y dibujos?')) return;
+  const t=tacEstado(); tacHist.push(JSON.stringify(t));
+  D.tactica={vista:t.vista,objetos:[],trazos:[]}; tacSel=-1; salvar(); mostrarTactica();
 }
-function tacDibujar(){
-  const cv=document.getElementById('tacCanvas'); if(!cv) return;
-  const W=cv.width, H=cv.height, ctx=cv.getContext('2d'), e=tacEstado();
-  ctx.clearRect(0,0,W,H);
+function tacEliminarSel(){
+  const t=tacEstado(); if(tacSel<0) return;
+  tacHist.push(JSON.stringify(t)); t.objetos.splice(tacSel,1);
+  tacSel=-1; salvar(); mostrarTactica();
+}
+function tacGirarSel(){
+  const t=tacEstado(); const o=t.objetos[tacSel]; if(!o) return;
+  tacHist.push(JSON.stringify(t)); o.rot=((o.rot||0)+Math.PI/4)%(Math.PI*2);
+  salvar(); tacDibujar();
+}
+function tacNumeroSel(){
+  const t=tacEstado(); const o=t.objetos[tacSel]; if(!o) return;
+  const r=prompt('Número o inicial',o.n||''); if(r===null) return;
+  tacHist.push(JSON.stringify(t)); o.n=r.trim().slice(0,3); salvar(); tacDibujar();
+}
+function tacCampo(ctx,P,W,H){
   ctx.fillStyle='#2e7d4f'; ctx.fillRect(0,0,W,H);
-  ctx.strokeStyle='rgba(255,255,255,.75)'; ctx.lineWidth=3;
-  ctx.strokeRect(12,12,W-24,H-24);
-  ctx.beginPath(); ctx.moveTo(12,H/2); ctx.lineTo(W-12,H/2); ctx.stroke();
-  ctx.beginPath(); ctx.arc(W/2,H/2,H*0.12,0,Math.PI*2); ctx.stroke();
-  ctx.strokeRect(W/2-W*0.2,12,W*0.4,H*0.16); ctx.strokeRect(W/2-W*0.2,H-12-H*0.16,W*0.4,H*0.16);
-  e.trazos.forEach(t=>tacTrazo(ctx,t,W,H));
-  if(tacArr&&tacArr.trazo) tacTrazo(ctx,tacArr.trazo,W,H);
-  e.fichas.forEach(f=>{
-    const x=f.x*W, y=f.y*H;
-    ctx.beginPath(); ctx.arc(x,y,20,0,Math.PI*2);
-    ctx.fillStyle=f.c; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#111'; ctx.stroke();
-    ctx.fillStyle=(f.c==='#e74c3c'||f.c==='#3498db')?'#fff':'#111';
-    ctx.font='bold 16px system-ui,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText(f.n||'',x,y+1);
+  ctx.strokeStyle='rgba(255,255,255,.8)'; ctx.lineWidth=2.5;
+  const a=P(0.03,0.02), b=P(0.97,0.98);
+  ctx.strokeRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);
+  const m=P(0.03,0.5), n=P(0.97,0.5);
+  ctx.beginPath(); ctx.moveTo(m[0],m[1]); ctx.lineTo(n[0],n[1]); ctx.stroke();
+  const c=P(0.5,0.5); ctx.beginPath(); ctx.arc(c[0],c[1],W*0.13,0,Math.PI*2); ctx.stroke();
+  [[0.2,0.02,0.8,0.18],[0.2,0.82,0.8,0.98]].forEach(([x1,y1,x2,y2])=>{
+    const p=P(x1,y1), q=P(x2,y2); ctx.strokeRect(p[0],p[1],q[0]-p[0],q[1]-p[1]);
   });
 }
-function tacTrazo(ctx,t,W,H){
+function tacObjeto(ctx,o,px,py,sel){
+  ctx.save(); ctx.translate(px,py); ctx.rotate(o.rot||0);
+  const col=o.c||'#ffffff';
+  const claro=['#ffffff','#f5c542','#ff8a00','#2ecc71'].includes(col);
+  if(o.tipo==='ficha'){
+    ctx.beginPath(); ctx.arc(0,0,18,0,Math.PI*2); ctx.fillStyle=col; ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle='#111'; ctx.stroke();
+    ctx.fillStyle=claro?'#111':'#fff'; ctx.font='bold 15px system-ui,sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(o.n||'',0,1);
+  } else if(o.tipo==='peto'){
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-12,-14,24,28,4) : ctx.rect(-12,-14,24,28);
+    ctx.fillStyle=col; ctx.fill(); ctx.lineWidth=2; ctx.strokeStyle='#111'; ctx.stroke();
+    if(o.n){ ctx.fillStyle=claro?'#111':'#fff'; ctx.font='bold 12px system-ui,sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(o.n,0,1); }
+  } else if(o.tipo==='cono'){
+    ctx.beginPath(); ctx.moveTo(0,-13); ctx.lineTo(10,10); ctx.lineTo(-10,10); ctx.closePath();
+    ctx.fillStyle=col; ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle='#111'; ctx.stroke();
+    ctx.fillStyle='#111'; ctx.fillRect(-11,10,22,4);
+  } else if(o.tipo==='porteria'){
+    ctx.lineWidth=1; ctx.strokeStyle='rgba(255,255,255,.5)';
+    for(let i=-24;i<=24;i+=8){ ctx.beginPath(); ctx.moveTo(i,-8); ctx.lineTo(i,8); ctx.stroke(); }
+    ctx.lineWidth=3; ctx.strokeStyle=col==='#111111'?'#111':'#ffffff';
+    ctx.strokeRect(-28,-8,56,16);
+  } else if(o.tipo==='valla'){
+    for(let i=0;i<6;i++){ ctx.fillStyle=i%2?'#e74c3c':'#ffffff'; ctx.fillRect(-23+i*8,-4,8,8); }
+    ctx.lineWidth=1; ctx.strokeStyle='#111'; ctx.strokeRect(-23,-4,46,8);
+  } else if(o.tipo==='balon'){
+    ctx.beginPath(); ctx.arc(0,0,9,0,Math.PI*2); ctx.fillStyle='#ffffff'; ctx.fill();
+    ctx.lineWidth=1.5; ctx.strokeStyle='#111'; ctx.stroke();
+    ctx.fillStyle='#111'; ctx.beginPath(); ctx.arc(0,0,3.5,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+  if(sel){
+    ctx.save(); ctx.translate(px,py); ctx.setLineDash([5,4]);
+    ctx.strokeStyle='#ffd60a'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(0,0,28,0,Math.PI*2); ctx.stroke(); ctx.restore();
+  }
+}
+function tacTrazo(ctx,t,P){
   ctx.strokeStyle=t.c; ctx.fillStyle=t.c; ctx.lineWidth=4; ctx.lineCap='round'; ctx.lineJoin='round';
   if(t.tipo==='libre'){
     ctx.beginPath();
-    t.p.forEach((q,i)=>{ const x=q[0]*W,y=q[1]*H; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    t.p.forEach((q,i)=>{ const g=P(q[0],q[1]); i?ctx.lineTo(g[0],g[1]):ctx.moveTo(g[0],g[1]); });
     ctx.stroke(); return;
   }
-  const x1=t.a[0]*W,y1=t.a[1]*H,x2=t.b[0]*W,y2=t.b[1]*H;
-  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
-  const ang=Math.atan2(y2-y1,x2-x1), L=18;
-  ctx.beginPath(); ctx.moveTo(x2,y2);
-  ctx.lineTo(x2-L*Math.cos(ang-0.4),y2-L*Math.sin(ang-0.4));
-  ctx.lineTo(x2-L*Math.cos(ang+0.4),y2-L*Math.sin(ang+0.4));
+  const a=P(t.a[0],t.a[1]), b=P(t.b[0],t.b[1]);
+  ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  const ang=Math.atan2(b[1]-a[1],b[0]-a[0]), L=18;
+  ctx.beginPath(); ctx.moveTo(b[0],b[1]);
+  ctx.lineTo(b[0]-L*Math.cos(ang-0.4),b[1]-L*Math.sin(ang-0.4));
+  ctx.lineTo(b[0]-L*Math.cos(ang+0.4),b[1]-L*Math.sin(ang+0.4));
   ctx.closePath(); ctx.fill();
 }
+function tacDibujar(){
+  const cv=document.getElementById('tacCanvas'); if(!cv) return;
+  const t=tacEstado(), v=tacMarco();
+  const W=440, H=Math.round(v[3]*105*W/68);
+  cv.width=W; cv.height=H;
+  const ctx=cv.getContext('2d');
+  const P=(x,y)=>[(x-v[0])/v[2]*W,(y-v[1])/v[3]*H];
+  tacCampo(ctx,P,W,H);
+  t.trazos.forEach(tr=>tacTrazo(ctx,tr,P));
+  if(tacArr&&tacArr.trazo) tacTrazo(ctx,tacArr.trazo,P);
+  t.objetos.forEach((o,i)=>{ const p=P(o.x,o.y); tacObjeto(ctx,o,p[0],p[1],i===tacSel); });
+}
 function pdfTactica(){
+  tacSel=-1; tacDibujar();
   const cv=document.getElementById('tacCanvas');
   let h=docCab('Pizarra táctica',fechaLarga(hoyISO()));
   h+='<img src="'+cv.toDataURL('image/png')+'" style="width:100%;border-radius:8px;margin:8px 0">';
   h+=docPie();
   imprimir(h,'Pizarra táctica '+hoyISO());
 }
+
 
 let reloj=null;
 

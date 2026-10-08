@@ -686,3 +686,26 @@ NOTA DE GASTOS
   Sale "D. Nombre, con DNI ..." con los datos que
   pongas en Ajustes. El DNI no está en el código:
   rellénalo una vez en Más → Ajustes.
+
+═════════════════════════════════════════
+N · PIZARRA TÁCTICA Y ALINEACIÓN (2.ª versión)
+═════════════════════════════════════════
+PIZARRA
+  · Vista: campo entero, media cancha superior o inferior.
+  · Elementos: Jugador (ficha con número), Peto, Cono,
+    Portería, Valla y Balón. Toca el elemento y luego
+    un color para cambiarlo.
+  · Toca un elemento para seleccionarlo: Girar, Número,
+    Eliminar o Soltar.
+  · Flecha y Libre para dibujar jugadas.
+
+ALINEACIÓN
+  · Formación: elige en el desplegable (9 opciones).
+    Al cambiarla se aplica la sugerencia global.
+  · Sugerencia global: reparte los 7 de campo y el portero
+    según asistencia y notas de los 8 últimos entrenos
+    antes del partido.
+  · Toca un jugador del campo: se abre el cambio con el
+    sustituto sugerido (el mejor del banquillo para ese
+    puesto) y la lista del resto.
+  · Los muñecos muestran el dorsal y el nombre.
