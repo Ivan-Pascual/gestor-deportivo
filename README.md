@@ -31,9 +31,13 @@ La app está pensada para registrar datos de menores de un equipo de fútbol bas
 - Los datos se guardan solo en el dispositivo donde se usa la app. No hay servidor propio ni base de datos central.
 - Se puede activar un PIN que cifra los datos guardados en el navegador. Sin el PIN, los datos no se pueden recuperar.
 - La sincronización con Google Sheets es opcional y usa una clave que se introduce en la propia app, nunca en el código.
-- El repositorio no contiene datos reales de jugadores.
+- El código del repositorio no incluye datos de jugadores. Los datos de ejemplo que usan las pruebas son ficticios.
 
 Esta app no sustituye el consentimiento informado de las familias ni las obligaciones del club en materia de protección de datos.
+
+## Autor
+
+Iván Pascual López · Junior AI & FullStack Developer.
 
 ## Autor
 
