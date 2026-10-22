@@ -48,7 +48,7 @@ const ok = (nombre, cond, extra = '') => {
 
   // 2) Plantilla y "Poner todas"
   await page.evaluate(() => {
-    if (!D.jugadores.length) D.jugadores.push({ id: 'j1', nombre: 'Hugo Pérez', dorsal: '7' }, { id: 'j2', nombre: 'Lucas Gil', dorsal: '1' });
+    if (!D.jugadores.length) D.jugadores.push({ id: 'j1', nombre: 'Jugador 1', dorsal: '7' }, { id: 'j2', nombre: 'Jugador 2', dorsal: '1' });
     const t = D.tareas.find(x => x.codigo === 'T-DF-005') || D.tareas[0];
     verTarea(t.id);
     tacAbrirTarea();
@@ -128,11 +128,11 @@ const ok = (nombre, cond, extra = '') => {
   const posiciones = await page.evaluate(() => {
     const J = (id, nombre, puesto, tipo) => ({ id, nombre, dorsal: '', puesto, tipo: tipo || 'campo', pierna: 'Derecha', categoria: 'Alevín 1º' });
     D.jugadores.push(
-      J('pc1', 'Alba Central', 'Central'), J('pc2', 'Bruno Central', 'Central'),
-      J('pm1', 'Carla Medio', 'Medio'), J('pm2', 'Dani Medio', 'Medio'),
-      J('pm3', 'Eva Medio', 'Medio'), J('pm4', 'Fede Medio', 'Medio'),
-      J('pe1', 'Gonzalo Extremo', 'Extremo'), J('pp1', 'Hugo Punta', 'Punta'),
-      J('pg1', 'Ivan Portero', 'Portero', 'portero'));
+      J('pc1', 'Jugador 1', 'Central'), J('pc2', 'Jugador 2', 'Central'),
+      J('pm1', 'Jugador 3', 'Medio'), J('pm2', 'Jugador 4', 'Medio'),
+      J('pm3', 'Jugador 5', 'Medio'), J('pm4', 'Jugador 6', 'Medio'),
+      J('pe1', 'Jugador 7', 'Extremo'), J('pp1', 'Jugador 8', 'Punta'),
+      J('pg1', 'Jugador 9', 'Portero', 'portero'));
     D.sesiones.push(
       { id: 'sp0', fecha: '2026-09-28', tipo: 'entreno', mc: 1, objetivo: 'Prueba', tareas: [] },
       { id: 'sp1', fecha: '2026-10-01', tipo: 'entreno', mc: 1, objetivo: 'Prueba', tareas: [] },
