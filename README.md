@@ -22,11 +22,18 @@ Aplicación web para gestionar un equipo de fútbol base: asistencia, sesiones d
 
 ## Ejecutar en local
 
-Abre `CUADERNO-HUESCA-F8/index.html` en el navegador. No necesita instalación.
+La versión publicada funciona directamente en la demo. Para probarla en local, sirve la carpeta con un servidor sencillo, por ejemplo `npx serve CUADERNO-HUESCA-F8`, porque el Service Worker y la instalación como app requieren un servidor y no abrir el archivo desde el disco.
 
 ## Privacidad
 
-Los datos de los jugadores no se guardan en este repositorio. Se guardan en el dispositivo donde se usa la app. La sincronización con Google Sheets es opcional y requiere una clave que se introduce en la propia app, no en el código.
+La app está pensada para registrar datos de menores de un equipo de fútbol base. Por eso:
+
+- Los datos se guardan solo en el dispositivo donde se usa la app. No hay servidor propio ni base de datos central.
+- Se puede activar un PIN que cifra los datos guardados en el navegador. Sin el PIN, los datos no se pueden recuperar.
+- La sincronización con Google Sheets es opcional y usa una clave que se introduce en la propia app, nunca en el código.
+- El repositorio no contiene datos reales de jugadores.
+
+Esta app no sustituye el consentimiento informado de las familias ni las obligaciones del club en materia de protección de datos.
 
 ## Autor
 
