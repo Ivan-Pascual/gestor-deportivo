@@ -1,5 +1,5 @@
 # Cuaderno del entrenador
-
+![CI](https://github.com/Ivan-Pascual/gestor-deportivo/actions/workflows/ci.yml/badge.svg)
 Aplicación web para gestionar un equipo de fútbol base: asistencia, sesiones de entrenamiento, partidos, plantilla, pizarra táctica y gastos del entrenador.
 
 **Demo:** https://ivan-pascual.github.io/gestor-deportivo/CUADERNO-HUESCA-F8/
