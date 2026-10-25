@@ -4484,7 +4484,7 @@ function mostrarCampoActa(){
     '</div><span class="chip '+(titC===c.campo&&titP===1?'green':'amber')+'" style="margin-left:8px">'+titC+'+'+titP+'</span></div>'+
     '<div class="grid2" style="align-items:end;margin-bottom:10px">'+
       '<label class="field" style="margin:0"><span>Sistema</span><select onchange="setSistemaActa(this.value)">'+
-        formacionesDe(s).map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+f+'</option>').join('')+
+        formacionesDe(s).map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+nombreSistema(f)+'</option>').join('')+
       '</select></label>'+
       '<button class="btn" onclick="sugerirActa()">Sugerir el '+(c.campo+1)+'</button></div>'+
     dibujo+
@@ -5258,7 +5258,7 @@ function mostrarPreparar(){
   if(!planActual) planActual=repartoMinutos(s.id);
 
   const fsel=document.getElementById('ppFormacion');
-  if(fsel) fsel.innerHTML=formacionesDe(s).map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+f+'</option>').join('');
+  if(fsel) fsel.innerHTML=formacionesDe(s).map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+nombreSistema(f)+'</option>').join('');
   const tit=planActual.filter(x=>(x.r.estado||'titular')==='titular');
   const titC=tit.filter(x=>!x.es).length, titP=tit.filter(x=>x.es).length;
   const okAlineacion = titC===c.campo && titP===1;
@@ -5397,14 +5397,24 @@ function pdfAlineacion(){
    ══════════════════════════════════════════════════════ */
 
 /* ─── Formaciones, sugerencias y campo ─── */
-const FORMACIONES=['2-3-2','3-2-2','2-2-3','1-3-3','1-2-4','1-2-2-2','3-3-1','2-4-1','1-3-2-1'];
+const FORMACIONES=['2-1-3-1','2-3-2','3-2-2','2-2-3','1-3-3','1-2-4','1-2-2-2','3-3-1','2-4-1','1-3-2-1'];
 const VENTANA_ENTRENOS=8;
-const ROL_TXT={central:'Central',medio:'Medio',extremo:'Extremo o punta',portero:'Portero'};
+const ROL_TXT={central:'Central',medio:'Medio',extremo:'Extremo o punta',punta:'Delantero',portero:'Portero'};
+/* sistemas con puestos propios: dos centrales, pivote, mediapunta, dos bandas y delantero */
+const SLOTS_PROPIOS={
+  '2-1-3-1':[
+    {role:'central',nombre:'Central',x:100,y:375},{role:'central',nombre:'Central',x:240,y:375},
+    {role:'medio',nombre:'Pivote',x:170,y:302},
+    {role:'extremo',nombre:'Banda',x:50,y:200},{role:'medio',nombre:'Mediapunta',x:170,y:196},{role:'extremo',nombre:'Banda',x:290,y:200},
+    {role:'punta',nombre:'Delantero',x:170,y:98}]
+};
 let slotActivo=null;
 
 function formacionDe(s){ const L=formacionesDe(s); return (s&&L.includes(s.formacion))?s.formacion:L[0]; }
 /* filas de defensa a ataque; cada hueco tiene un rol y una posición en el campo */
+const nombreSistema=f=>f==='2-1-3-1'?'2-1-3-1 · pivote y MP':f;
 function slotsDe(f){
+  if(SLOTS_PROPIOS[f]) return SLOTS_PROPIOS[f].map(x=>({...x}));
   const filas=f.split('-').map(Number), R=filas.length, out=[];
   filas.forEach((k,i)=>{
     const role = R===1 ? 'medio' : i===0 ? 'central' : i===R-1 ? 'extremo' : 'medio';
@@ -5426,6 +5436,7 @@ function afinidad(j,role){
   if(role==='portero') return p==='portero'?2:0;
   if(role==='central') return p==='central'?2:p==='medio'?1:0;
   if(role==='medio') return p==='medio'?2:(p==='central'||p==='extremo')?1:0;
+  if(role==='punta') return p==='punta'?2:p==='extremo'?1:0;
   return (p==='extremo'||p==='punta')?2:p==='medio'?1:0;
 }
 function etiquetaPuesto(j,role){
@@ -5509,7 +5520,7 @@ function mostrarSlot(){
   const linea=p=>'asistencia '+p.asist+'% · nota '+p.nota+' · '+p.vino+' de '+p.de+' entrenos';
   const sug=cand[0];
   el.innerHTML='<div class="card" style="margin-top:12px">'+
-    '<p class="eyebrow juego" style="margin:0 0 6px">Cambiar: '+esc(ROL_TXT[sl.role]||'')+'</p>'+
+    '<p class="eyebrow juego" style="margin:0 0 6px">Cambiar: '+esc(sl.nombre||ROL_TXT[sl.role]||'')+'</p>'+
     '<p class="mini muted" style="margin:0 0 10px">En el puesto: <b>'+(actual?esc(actual.j.nombre):'—')+'</b>'+
       (actual?' <button class="btn xs" onclick="aBanquillo(\''+actual.r.id+'\')">Al banquillo</button>':'')+'</p>'+
     (sug?'<div class="spread" style="gap:8px;align-items:center;margin-bottom:6px">'+
@@ -5547,10 +5558,11 @@ function muñecoSVG(cx,cy,x,esGK){
     '<text x="0" y="47" text-anchor="middle" font-size="9.5" font-weight="700" fill="#fff" stroke="#000a" stroke-width="2.5" paint-order="stroke">'+nom+'</text>'+
     '</g>';
 }
-function vacioSVG(cx,cy,key){
+function vacioSVG(cx,cy,key,nombre){
   return '<g transform="translate('+cx+','+cy+')" style="cursor:pointer" onclick="slotAbrirKey(\''+key+'\')">'+
     '<circle r="19" fill="#0002" stroke="#fff" stroke-width="2" stroke-dasharray="4 3"/>'+
-    '<text y="6" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">+</text></g>';
+    '<text y="6" text-anchor="middle" font-size="18" font-weight="700" fill="#fff">+</text>'+
+    (nombre?'<text y="34" text-anchor="middle" font-size="9.5" font-weight="700" fill="#fff" stroke="#000a" stroke-width="2.5" paint-order="stroke">'+esc(nombre)+'</text>':'')+'</g>';
 }
 /* campo con la alineación: cada titular ocupa su hueco (slot) */
 function campoSVG(lista){
@@ -5571,7 +5583,7 @@ function campoSVG(lista){
     '<g stroke="rgba(255,255,255,.7)" stroke-width="2" fill="none">'+
     '<rect x="10" y="10" width="320" height="480" rx="12"/><line x1="10" y1="250" x2="330" y2="250"/>'+
     '<circle cx="170" cy="250" r="46"/><rect x="95" y="10" width="150" height="75"/><rect x="95" y="415" width="150" height="75"/></g>';
-  slots.forEach((sl,i)=>{ svg+= ocupa[i] ? muñecoSVG(sl.x,sl.y,ocupa[i],false) : vacioSVG(sl.x,sl.y,String(i)); });
+  slots.forEach((sl,i)=>{ svg+= ocupa[i] ? muñecoSVG(sl.x,sl.y,ocupa[i],false) : vacioSVG(sl.x,sl.y,String(i),sl.nombre); });
   svg+= gk ? muñecoSVG(170,448,gk,true) : vacioSVG(170,448,'P');
   return svg+'</svg>';
 }

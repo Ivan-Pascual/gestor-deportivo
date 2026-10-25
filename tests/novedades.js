@@ -92,6 +92,16 @@ const ok = (nombre, cond, extra = '') => {
   });
   ok('El partido empieza con todos en el banquillo', p8.banquillo === 16 && p8.formato === 'F8', JSON.stringify(p8));
   ok('«Sugerir el 8» pone 7 + portero', p8.tit === 8);
+  const sis = await page.evaluate(() => {
+    const s = D.sesiones.find(x => x.id === sesionActiva);
+    const slots = slotsDe(formacionDe(s));
+    const en = nombre => slots.map((sl, i) => sl.nombre === nombre ? i : -1).filter(i => i >= 0)
+      .map(i => D.registros.find(r => r.sesionId === s.id && r.estado === 'titular' && r.slot === i))
+      .map(r => r && D.jugadores.find(j => j.id === r.jugadorId).puesto);
+    return { f: formacionDe(s), centrales: en('Central'), pivote: en('Pivote'), media: en('Mediapunta'), bandas: en('Banda'), del: en('Delantero') };
+  });
+  ok('Sistema 2-1-3-1 por defecto y cada uno en su puesto', sis.f === '2-1-3-1' && sis.centrales.every(p => p === 'Central') &&
+    sis.pivote[0] === 'Medio' && sis.media[0] === 'Medio' && sis.bandas.every(p => p === 'Extremo') && sis.del[0] === 'Punta', JSON.stringify(sis));
   await page.evaluate(() => window.scrollTo(0, 0));
   await foto('3-acta-f8');
   const tocar = await page.evaluate(() => {
