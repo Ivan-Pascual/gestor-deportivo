@@ -11,6 +11,10 @@ Aplicación web para gestionar un equipo de fútbol base: asistencia, sesiones d
 - Banco de tareas con dibujo sobre el campo
 - Pizarra táctica con herramientas de dibujo y exportación a PDF
 - Preparación de partidos: alineación, cambios y reparto de minutos
+- Alineación sobre el campo en fútbol 8 o fútbol 11: se toca cada hueco para poner al jugador
+- Equipos (petos) para cada tarea de la sesión, igualados por nota y asistencia, y quién gana
+- Liga interna con reglamento editable: suma por competir y por acciones del partido, y resta por conductas
+- Uso de la app: mide qué funciones se usan y permite quitar del menú las que no
 - Notas de gastos con cálculo de kilometraje
 - Exportación a PDF de fichas, actas e informes
 

@@ -566,6 +566,43 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
 
 .tac-col{width:30px;height:30px;border-radius:50%;border:2px solid #0006;cursor:pointer;padding:0}
 .tac-col.on{border:3px solid #111;box-shadow:0 0 0 2px #fff}
+/* ─── equipos por tarea · liga · campo del acta ─── */
+.eq-panel{background:var(--panel2);border:1px solid var(--line);border-radius:var(--r);padding:11px;margin:6px 0 10px}
+.eq-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:10px}
+.eq-col{border:1px solid var(--line);border-radius:10px;padding:8px;background:var(--panel)}
+.eq-col h5{margin:0 0 7px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:6px}
+.eq-col .pt{width:11px;height:11px;border-radius:50%;display:inline-block;flex:none}
+.eq-chips{display:flex;flex-wrap:wrap;gap:5px}
+.eq-chip{border:1px solid var(--line-2);background:var(--panel3);color:inherit;border-radius:99px;padding:5px 9px;font-size:12px;font-weight:600;
+  display:inline-flex;align-items:center;gap:5px;min-height:30px}
+.eq-chip .pt{width:9px;height:9px;border-radius:50%}
+.eq-res{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
+.eq-res .on{outline:2px solid var(--ambar)}
+.eq-mini{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:0 4px 8px 49px;font-size:12px;color:var(--tinta-3)}
+.eq-mini .pt{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:3px}
+.lg-pos{width:30px;text-align:center;font-family:'Archivo Black';font-size:17px;flex:none}
+.lg-barra{height:5px;border-radius:9px;background:var(--panel3);margin-top:6px;overflow:hidden}
+.lg-barra>div{height:100%;background:var(--cesped)}
+.lg-barra>div.neg{background:var(--rojo)}
+.lg-reglas{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:9px;-webkit-overflow-scrolling:touch}
+.lg-reglas .btn{flex:none}
+.lg-jug{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.lg-jug button{border:1px solid var(--line);background:var(--panel2);border-radius:10px;padding:8px 4px;color:inherit;
+  font-size:12px;font-weight:600;min-height:52px;position:relative}
+.lg-jug button b{display:block;font-family:'Archivo Black';font-size:15px}
+.lg-jug button .pts{position:absolute;top:3px;right:5px;font-size:10px;color:var(--ambar)}
+.lg-jug button .pts.neg{color:var(--rojo)}
+.regla{display:flex;align-items:center;gap:9px;padding:10px 0;border-bottom:1px solid var(--line)}
+.regla.off{opacity:.45}
+.regla input[type=number]{width:62px;text-align:center}
+.banco{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.uso-fila{display:flex;align-items:center;gap:10px}
+.micro-ul{margin:0;padding-left:18px;font-size:13px;line-height:1.5}
+.micro-ul li{margin:3px 0}
+.micro-card summary{cursor:pointer;list-style:none}
+.micro-card summary::-webkit-details-marker{display:none}
+.micro-obj{margin-top:11px}
+.micro-card[open] summary .mini{display:none}
 </style>
 </head>
 <body>
@@ -615,6 +652,7 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
 <section id="v-hoy" class="view on">
   <p class="eyebrow" id="hoyFecha"></p>
   <div class="mc-band" id="hoyMC" style="margin-bottom:13px"></div>
+  <div id="hoyMicro" style="margin-bottom:13px"></div>
 
   <div id="hoyCard"></div>
 
@@ -645,11 +683,14 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
       <input id="sObjetivo" placeholder="Ej. Salida desde portero" oninput="campoSesion('objetivo',this.value)"></label>
   </div>
 
+  <div id="sMicro"></div>
   <div id="sAviso"></div>
   <p class="eyebrow"><span>Lista · <b id="sContador" class="num"></b></span>
     <button class="btn xs" onclick="todosPresentes()">Todos presentes</button></p>
   <p class="mini muted" style="margin:-4px 0 10px">Toca el nombre si <b>no</b> ha venido. La nota va del 0 al 10.</p>
   <div class="roster" id="sLista"></div>
+
+  <div id="sLiga"></div>
 
   <p class="eyebrow mt"><span>Tareas de la sesión</span>
     <button class="btn xs primary" onclick="elegirTarea()">+ Añadir</button></p>
@@ -688,11 +729,13 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
     <button class="btn primary" onclick="abrirPizarra()">Pizarra de cambios</button>
   </div>
   <div id="aAviso"></div>
+  <div id="aCampo"></div>
   <p class="eyebrow"><span>Acta · <b id="aContador" class="num"></b></span>
     <span><button class="btn xs" onclick="convocarTodos(1)">Todos</button>
     <button class="btn xs" onclick="convocarTodos(0)">Ninguno</button></span></p>
-  <p class="mini muted" style="margin:-4px 0 10px">Toca el nombre para cambiar entre titular, suplente y no convocado.</p>
+  <p class="mini muted" style="margin:-4px 0 10px" id="aPista">Toca el nombre para cambiar entre titular, suplente y no convocado.</p>
   <div class="roster" id="aLista"></div>
+  <div id="aLiga"></div>
   <div class="sep"></div>
   <label class="field"><span>Notas del partido</span>
     <textarea id="aNotas" placeholder="Qué hicimos bien, qué corregir, nota del rival…" oninput="campoSesion('notas',this.value)"></textarea></label>
@@ -855,6 +898,10 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
       <span class="chip">⚙</span>
       <span class="grow"><b>Ajustes</b><span class="mini muted">Tus datos, microciclo y kilometraje</span></span>
       <span class="arrow">›</span></span></button>
+    <button class="li" id="masUso"><span class="li-main" onclick="go('uso',false)">
+      <span class="chip">◔</span>
+      <span class="grow"><b>Uso de la app</b><span class="mini muted">Qué se usa y qué sobra</span></span>
+      <span class="arrow">›</span></span></button>
   </div>
 </section>
 
@@ -882,6 +929,24 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
     <label class="field" style="margin:0"><span>Contenido de portero</span>
       <input id="mcPortero" placeholder="Qué toca en la sesión de porteros"></label>
   </div>
+  <p class="eyebrow mt"><span>Objetivos de la semana</span>
+    <button class="btn xs" onclick="copiarDaniel()">Copiar para Daniel</button></p>
+  <div class="card">
+    <label class="field"><span>Con balón · uno, individual</span>
+      <input id="mcCb" placeholder="Ej. El que recupera mira antes de controlar"></label>
+    <label class="field" style="margin:0"><span>Sin balón · uno, individual</span>
+      <input id="mcSb" placeholder="Ej. El que presiona cierra el pase y llega antes"></label>
+  </div>
+  <p class="eyebrow mt">Microconceptos · uno por línea</p>
+  <div class="card">
+    <label class="field"><span>Con balón</span>
+      <textarea id="mcMcb" style="min-height:110px" placeholder="Conductas pequeñas que se ven en el campo"></textarea></label>
+    <label class="field"><span>Sin balón</span>
+      <textarea id="mcMsb" style="min-height:110px"></textarea></label>
+    <label class="field" style="margin:0"><span>Portero</span>
+      <textarea id="mcPor" style="min-height:70px"></textarea></label>
+  </div>
+  <button class="btn" style="margin-top:13px" onclick="pdfMicrociclo()">Microciclo en PDF</button>
   <div class="grid2" style="margin-top:13px">
     <button class="btn" id="mcActual" onclick="marcarActual()">Marcar como actual</button>
     <button class="btn primary" onclick="guardarMicrociclo()">Guardar</button>
@@ -913,19 +978,6 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
   </div>
 </section>
 
-<!-- ═════════ DIARIO ═════════ -->
-<section id="v-diario" class="view">
-  <button class="back" onclick="go('mas')">‹ Más</button>
-  <h2 style="font-size:21px;margin-bottom:14px">Diario</h2>
-  <div class="card">
-    <label class="field"><span>¿Qué funcionó?</span><textarea id="dBien" style="min-height:52px"></textarea></label>
-    <label class="field"><span>¿Qué no funcionó?</span><textarea id="dMal" style="min-height:52px"></textarea></label>
-    <label class="field"><span>¿Qué cambiaría?</span><textarea id="dCambio" style="min-height:52px"></textarea></label>
-    <label class="field" style="margin:0"><span>Nota para mí</span><textarea id="dNota" style="min-height:52px"></textarea></label>
-  </div>
-  <button class="btn primary" style="margin:13px 0 20px" onclick="guardarDiario()">Anotar</button>
-  <div id="diLista" class="stack"></div>
-</section>
 
 <!-- ═════════ GASTOS ═════════ -->
 <section id="v-gastos" class="view">
@@ -1290,51 +1342,12 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
   </div>
 </section>
 
-<!-- ═════════ PRUEBAS ═════════ -->
-<section id="v-pruebas" class="view">
-  <button class="back" onclick="go('mas')">‹ Más</button>
-  <h2 style="font-size:21px;margin-bottom:5px">Pruebas</h2>
-  <p class="tiny muted" style="margin:0 0 14px">Segmentación del grupo. No cuenta para las estadísticas de temporada.</p>
-  <input class="buscador" placeholder="Buscar por nombre, dorsal o puesto" oninput="setBusca(this.value)">
-  <div class="strip" id="prResumen" style="margin-bottom:13px"></div>
-  <div class="row" id="prFiltros" style="flex-wrap:wrap;gap:6px;margin-bottom:13px"></div>
-  <div id="prLista" class="stack"></div>
-  <div class="grid2" style="margin-top:14px">
-    <button class="btn" onclick="abrirComparador()">Comparador</button>
-    <button class="btn" onclick="pdfRanking()">Ranking en PDF</button>
-  </div>
-  <div class="grid2" style="margin-top:8px">
-    <button class="btn" onclick="go('alta',false)">Alta rápida</button>
-    <button class="btn primary" onclick="editarJugador(null)">+ Jugador</button>
-  </div>
-</section>
 
-<!-- ═════════ EVALUAR ═════════ -->
-<section id="v-evaluar" class="view">
-  <button class="back" onclick="go('pruebas',false)">‹ Pruebas</button>
-  <div class="spread" style="margin-bottom:6px">
-    <h2 id="evTitulo" style="font-size:20px"></h2>
-  </div>
-  <div class="row" id="evSub" style="gap:6px;margin-bottom:14px"></div>
-  <div class="seg" id="evTabs" style="margin-bottom:14px"></div>
-  <div id="evCuerpo"></div>
-</section>
 
-<!-- ═════════ COMPARAR ═════════ -->
-<section id="v-comparar" class="view">
-  <button class="back" onclick="go('pruebas',false)">‹ Pruebas</button>
-  <h2 style="font-size:21px;margin-bottom:5px">Comparador</h2>
-  <p class="tiny muted" style="margin:0 0 14px">Elegir entre dos es más fiable que puntuar del 0 al 10.</p>
-  <div class="strip" id="cmpResumen" style="margin-bottom:16px"></div>
-  <div id="cmpDuelo" style="margin-bottom:20px"></div>
-  <p class="eyebrow"><span>Orden resultante</span>
-    <button class="btn xs" onclick="reiniciarDuelos()">Reiniciar</button></p>
-  <div id="cmpOrden"></div>
-</section>
 
 <!-- ═════════ ALTA RÁPIDA ═════════ -->
 <section id="v-alta" class="view">
-  <button class="back" onclick="go('pruebas',false)">‹ Pruebas</button>
+  <button class="back" onclick="go('plantilla')">‹ Plantilla</button>
   <h2 style="font-size:21px;margin-bottom:5px">Alta rápida</h2>
   <p class="tiny muted" style="margin:0 0 14px">Pega la lista de nombres, uno por línea.</p>
   <div class="card">
@@ -1380,6 +1393,56 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
 
 <div class="savebar" id="savebar"><button class="btn primary" onclick="cerrar()">Hecho</button></div>
 <div class="toast" id="toast"></div>
+
+<!-- ═════════ LIGA INTERNA ═════════ -->
+<section id="v-liga" class="view">
+  <button class="back" onclick="go('mas')">‹ Más</button>
+  <div class="spread" style="margin-bottom:5px"><h2 style="font-size:21px">Liga interna</h2>
+    <button class="btn xs" onclick="go('reglamento',false)">Reglamento</button></div>
+  <p class="tiny muted" style="margin:0 0 12px" id="lgSub"></p>
+  <div class="seg" id="lgPeriodo" style="margin-bottom:13px"></div>
+  <div class="strip" id="lgResumen" style="margin-bottom:13px"></div>
+  <div id="lgLista" class="stack"></div>
+  <div class="grid2" style="margin-top:14px">
+    <button class="btn" onclick="pdfLiga()">Clasificación en PDF</button>
+    <button class="btn" onclick="go('reglamento',false)">Ver reglamento</button>
+  </div>
+</section>
+
+<!-- ═════════ REGLAMENTO ═════════ -->
+<section id="v-reglamento" class="view">
+  <button class="back" onclick="go('liga',false)">‹ Liga interna</button>
+  <h2 style="font-size:21px;margin-bottom:5px">Reglamento</h2>
+  <p class="tiny muted" style="margin:0 0 12px">Cambia los puntos cuando quieras: la clasificación se recalcula con el reglamento de hoy. En gris, las normas apagadas.</p>
+  <div class="card" style="margin-bottom:13px">
+    <label class="field" style="margin:0"><span>La liga cuenta desde</span>
+      <input id="rgDesde" type="date" onchange="ligaDesde(this.value)"></label>
+  </div>
+  <div id="rgLista"></div>
+  <p class="eyebrow mt">Nueva norma</p>
+  <div class="card">
+    <label class="field"><span>Qué se premia o se castiga</span>
+      <input id="rgNombre" placeholder="Ej. Recoge el material sin que se lo pidan"></label>
+    <div class="grid2">
+      <label class="field" style="margin:0"><span>Puntos (negativo resta)</span>
+        <input id="rgPuntos" type="number" inputmode="numeric" value="1"></label>
+      <label class="field" style="margin:0"><span>Dónde</span>
+        <select id="rgAmbito"><option value="ambos">Entrenos y partidos</option>
+          <option value="entreno">Entrenos</option><option value="partido">Partidos</option></select></label>
+    </div>
+    <button class="btn primary" style="margin-top:12px" onclick="reglaNueva()">Añadir norma</button>
+  </div>
+  <button class="btn" style="margin-top:13px" onclick="pdfReglamento()">Reglamento en PDF para el vestuario</button>
+</section>
+
+<!-- ═════════ USO DE LA APP ═════════ -->
+<section id="v-uso" class="view">
+  <button class="back" onclick="go('mas')">‹ Más</button>
+  <h2 style="font-size:21px;margin-bottom:5px">Uso de la app</h2>
+  <p class="tiny muted" style="margin:0 0 12px" id="usoSub"></p>
+  <div class="strip" id="usoResumen" style="margin-bottom:13px"></div>
+  <div id="usoLista" class="stack"></div>
+</section>
 
 </main>
 
@@ -1707,7 +1770,8 @@ function hayDuplicadas(){
 
 function baseDatos(){
   return {jugadores:[],sesiones:[],registros:[],tareas:[],plan:[],diario:[],gastos:[],
-    modelo:null,perfil:null,mc:1,duelos:{},archivo:[],borrados:{},planMod:0,modeloMod:0,contador:{}};
+    modelo:null,perfil:null,mc:1,duelos:{},archivo:[],borrados:{},planMod:0,modeloMod:0,contador:{},
+    uso:{},ocultos:[],liga:null};
 }
 function cargar(){
   try{
@@ -1744,6 +1808,7 @@ function cargar(){
   if(!D.plan.length) D.plan=MICROCICLOS.map(m=>({
     mc:m[0],dominante:m[1],notas:m[2],portero:m[3],hecho:false
   }));
+  if(typeof completarMicroconceptos==='function') completarMicroconceptos();
   if(!D.modelo) D.modelo=JSON.parse(JSON.stringify(MODELO));
   D.perfil=Object.assign({},PERFIL,D.perfil||{});
   /* la hoja y la clave del equipo, si están puestas arriba del archivo */
@@ -1874,7 +1939,7 @@ const sesTipo=sid=>{const s=D.sesiones.find(x=>x.id===sid);return s?s.tipo:'entr
 /* ══════ NAVEGACIÓN ══════ */
 function go(v,guardar){
   if(guardar!==false && ['hoy','plantilla','sesiones','tareas','mas'].includes(v)) volverA=v;
-  vista=v;
+  vista=v; if(typeof registrarUso==='function') registrarUso(v);
   document.querySelectorAll('.view').forEach(s=>s.classList.remove('on'));
   const el=document.getElementById('v-'+v); if(el) el.classList.add('on');
   document.querySelectorAll('nav button').forEach(b=>b.classList.remove('on'));
@@ -1884,13 +1949,14 @@ function go(v,guardar){
   else { if(typeof soltarLuz==='function') soltarLuz(); }
   window.scrollTo(0,0);
   ({hoy:mostrarHoy,plantilla:mostrarPlantilla,sesiones:mostrarSesiones,tareas:mostrarTareas,
-    mas:mostrarMas,plan:mostrarPlan,diario:mostrarDiario,gastos:mostrarGastos,
+    mas:mostrarMas,plan:mostrarPlan,gastos:mostrarGastos,
     modelo:mostrarModelo,ajustes:mostrarAjustes,nube:mostrarNube,copias:mostrarCopias,
-    pruebas:mostrarPruebas,evaluar:mostrarEvaluar,comparar:mostrarComparador,preparar:mostrarPreparar,pizarra:mostrarPizarra,duo:mostrarDuo,
+    preparar:mostrarPreparar,pizarra:mostrarPizarra,duo:mostrarDuo,
     balance:mostrarBalance,micros:mostrarMicros,duomc:mostrarDuoMc,temporada:mostrarTemporada,
     privacidad:()=>{mostrarPrivacidad();mostrarSeguridad();},
     balance:mostrarBalance,micros:mostrarMicros,duomc:mostrarDuoMc,temporada:mostrarTemporada,
-    minutos:mostrarMinutos,tactica:mostrarTactica,alta:()=>{}}[v]||(()=>{}))();
+    minutos:mostrarMinutos,tactica:mostrarTactica,alta:()=>{},
+    liga:mostrarLiga,reglamento:mostrarReglamento,uso:mostrarUso}[v]||(()=>{}))();
 }
 
 /* ══════════════ HOY ══════════════ */
@@ -1912,6 +1978,7 @@ const tile=(color,icono,titulo,sub,accion)=>
  '<span class="center"><b>'+titulo+'</b><small style="display:block;margin-top:2px">'+sub+'</small></span></button>';
 
 function mostrarHoy(){
+  if(typeof pintarMicroHoy==='function') pintarMicroHoy();
   const b=bloqueDe(D.mc), p=D.plan.find(x=>x.mc===D.mc)||{};
   document.getElementById('hdrSub').textContent='Microciclo '+String(D.mc).padStart(2,'0')+' · '+((D.perfil||PERFIL).equipo||'');
   document.getElementById('hoyFecha').innerHTML='<span>'+fechaLarga(hoyISO())+'</span>';
@@ -1947,9 +2014,9 @@ function mostrarHoy(){
     tile('blue','pesa','Entreno','sesión',"nueva('entreno')")+
     tile('green','porteria','Porteros','sesión',"nueva('porteros')")+
     tile('garnet','balon','Partido','acta',"nueva('partido')")+
-    tile('amber','lista','Prueba','todos',"nueva('prueba')")+
+    tile('amber','lista','Microciclo','objetivos','irAMicrociclo(D.mc)')+
     tile('gris','persona','Jugador','alta','editarJugador(null)')+
-    tile('naranja','lapiz','Diario','5 líneas',"go('diario',false)");
+    tile('naranja','pesa','Liga','clasificación',"go('liga',false)");
 
   /* tira de la semana */
   const l=lunesDe(hoyISO()), dom=sumaDias(l,6);
@@ -2057,8 +2124,11 @@ function nueva(tipo){
   }
   if(typeof marcar==='function') marcar(s);
   D.sesiones.push(s);
+  /* en los partidos todos empiezan convocados en el banquillo y se elige el 8 o el 11 en el campo */
+  const est0=(esPartido(tipo)&&!esPrueba(tipo))?'suplente':'titular';
+  if(esPartido(tipo)&&!esPrueba(tipo)) s.formato=(+((D.perfil||PERFIL).jugadoresCampo)||7)>=10?'F11':'F8';
   lista.forEach(j=>D.registros.push({id:uid(),sesionId:s.id,jugadorId:j.id,
-    asistio:true,nota:null,estado:'titular',minutos:null,goles:null,asistencias:null}));
+    asistio:true,nota:null,estado:est0,minutos:null,goles:null,asistencias:null}));
   salvar(); abrir(s.id);
 }
 
@@ -2075,7 +2145,7 @@ function mostrarSesion(s){
   document.getElementById('sObjetivo').value=s.objetivo||'';
   document.getElementById('sNotas').value=s.notas||'';
   document.getElementById('sFechaEd').value=s.fecha;
-  go('sesion',false); mostrarLista(); mostrarTareasSesion();
+  go('sesion',false); mostrarLista(); mostrarTareasSesion(); refrescarLiga(); pintarMicroSesion(s);
 }
 
 function mostrarLista(){
@@ -2100,6 +2170,7 @@ function mostrarLista(){
   }).join('') : vacio('No hay jugadores en esta categoría.');
   const rs=regs.filter(r=>r.asistio).length;
   document.getElementById('sContador').textContent=rs+' de '+regs.length;
+  if(typeof refrescarLiga==='function') refrescarLiga();
 }
 
 /* ─── acta de partido ─── */
@@ -2110,56 +2181,11 @@ function mostrarActa(s){
   document.getElementById('aResultado').value=s.resultado||'';
   document.getElementById('aNotas').value=s.notas||'';
   document.getElementById('aFechaEd').value=s.fecha;
-  go('acta',false); mostrarListaActa();
+  go('acta',false); planActual=repartoMinutos(s.id); slotActivo=null; mostrarCampoActa(); mostrarListaActa(); refrescarLiga();
 }
 let abierto=null;
 function desplegar(id){ abierto = abierto===id ? null : id; mostrarListaActa(); }
 
-/* panel de evaluación rápida, dentro del acta */
-function panelRapido(j){
-  j.eval=j.eval||{puesto:mapPuesto(j.puesto),items:{},rasgos:[],contexto:{},familiar:{},campo:{},opiniones:[]};
-  const e=j.eval, r=notaEval(j), its=itemsDe(e.puesto);
-  const casillas=CASILLAS.map(x=>
-    '<button class="btn xs '+(e.campo[x[0]]?'green':'')+'" onclick="casillaRapida(\''+j.id+'\',\''+x[0]+'\')">'+
-    (e.campo[x[0]]?'✓ ':'')+x[1]+'</button>').join('');
-  const bloques=BLOQUES_EVAL.map(([clave,nom])=>{
-    const lista=its[clave]||[];
-    return '<p class="eyebrow mt" style="margin-bottom:7px">'+nom+'</p>'+lista.map(i=>{
-      const v=e.items[i[0]];
-      return '<div style="margin-bottom:9px"><span class="mini dim" style="display:block;margin-bottom:5px">'+
-        i[1]+'</span><div class="escala" style="padding:0">'+
-        Array.from({length:11},(_,n)=>'<button class="esc'+(v===n?' set':'')+
-        '" onclick="itemRapido(\''+j.id+'\',\''+i[0]+'\','+n+')">'+n+'</button>').join('')+'</div></div>';
-    }).join('');
-  }).join('');
-  return '<div class="panel-eval">'+
-    '<div class="spread" style="margin-bottom:10px">'+
-      '<select onchange="puestoRapido(\''+j.id+'\',this.value)" style="width:auto;flex:1">'+
-      PUESTOS.map(p=>'<option value="'+p[0]+'"'+(e.puesto===p[0]?' selected':'')+'>'+p[1]+'</option>').join('')+
-      '</select>'+
-      (r?'<span class="chip amber">'+r.nota.toFixed(1)+'</span>':'')+
-    '</div>'+
-    '<div class="row" style="flex-wrap:wrap;gap:5px;margin-bottom:11px">'+casillas+'</div>'+
-    bloques+
-    '<p class="eyebrow valor mt" style="margin-bottom:7px">Valoración</p>'+
-    '<div class="row" style="gap:5px;flex-wrap:wrap">'+VALORACIONES.map(v=>
-      '<button class="btn xs '+(+e.valoracion===v[0]?v[2]==='garnet'?'garnet':'primary':'')+
-      '" onclick="valRapida(\''+j.id+'\','+v[0]+')">'+v[0]+' · '+v[1]+'</button>').join('')+'</div>'+
-    '<textarea placeholder="Frase del día" style="min-height:56px;margin-top:11px" '+
-      'onchange="fraseRapida(\''+j.id+'\',this.value)">'+esc(e.frase||'')+'</textarea>'+
-    '<button class="btn sm" style="width:100%;margin-top:9px" onclick="evaluar(\''+j.id+'\')">Ficha completa</button>'+
-  '</div>';
-}
-function casillaRapida(id,k){ const j=D.jugadores.find(x=>x.id===id);
-  j.eval.campo[k]=!j.eval.campo[k]; salvar(); mostrarListaActa(); }
-function itemRapido(id,it,v){ const j=D.jugadores.find(x=>x.id===id);
-  j.eval.items[it]= j.eval.items[it]===v?null:v; salvar(); mostrarListaActa(); }
-function puestoRapido(id,p){ const j=D.jugadores.find(x=>x.id===id);
-  j.eval.puesto=p; salvar(); mostrarListaActa(); }
-function valRapida(id,v){ const j=D.jugadores.find(x=>x.id===id);
-  j.eval.valoracion= +j.eval.valoracion===v?null:v; salvar(); mostrarListaActa(); }
-function fraseRapida(id,t){ const j=D.jugadores.find(x=>x.id===id);
-  j.eval.frase=t; salvar(); }
 
 const CICLO={titular:'suplente',suplente:'no',no:'titular'};
 const TXT={titular:'Titular',suplente:'Suplente',no:'No conv.'};
@@ -2168,19 +2194,20 @@ function mostrarListaActa(){
   const conv=regs.filter(r=>(r.estado||'titular')!=='no').length;
   const ct=document.getElementById('aContador'); if(ct) ct.textContent=conv+' de '+regs.length;
   sugerirResultado();
-  document.getElementById('aLista').innerHTML= regs.map(r=>{
+  const sAct=D.sesiones.find(x=>x.id===sesionActiva)||{}, conCampo=!esPrueba(sAct.tipo);
+  const pista=document.getElementById('aPista');
+  if(pista) pista.textContent= conCampo ? 'Minutos, goles, asistencias y nota de cada convocado.'
+    : 'Toca el nombre para cambiar entre titular, suplente y no convocado.';
+  document.getElementById('aLista').innerHTML= regs.filter(r=>!conCampo||(r.estado||'titular')!=='no').map(r=>{
     const j=D.jugadores.find(x=>x.id===r.jugadorId); if(!j) return '';
     const est=r.estado||'titular', jugo=est!=='no';
     return '<div class="pl '+(jugo?'in':'out')+'"><div class="pl-top">'+
-      '<button class="pl-tap" onclick="cicloEstado(\''+r.id+'\')">'+
+      '<button class="pl-tap" onclick="'+(conCampo?'':'cicloEstado(\''+r.id+'\')')+'">'+
         '<span class="dorsal num">'+(j.dorsal??'–')+'</span>'+
         '<span class="grow"><span class="pname trunc">'+esc(j.nombre)+'</span>'+
         '<span class="ptag">'+esc(j.puesto||'')+'</span></span></button>'+
       '<div class="status">'+TXT[est]+(r.nota!=null?' · <b class="nota-v num">'+r.nota+'</b>':'')+
-      (esPrueba((D.sesiones.find(x=>x.id===sesionActiva)||{}).tipo)
-        ?'<button class="btn xs'+(abierto===j.id?' primary':'')+
-         '" onclick="desplegar(\''+j.id+'\')">'+(abierto===j.id?'Cerrar':'Evaluar')+'</button>':'')+'</div></div>'+
-      (abierto===j.id?panelRapido(j):'')+
+      '</div></div>'+
       (jugo?'<div class="pl-acta">'+
         campoActa(r.id,'minutos','Min',r.minutos)+
         campoActa(r.id,'goles','Gol',r.goles)+
@@ -2199,7 +2226,7 @@ const campoActa=(id,campo,lbl,val)=>
   'value="'+(val??'')+'" onchange="setActa(\''+id+'\',\''+campo+'\',this.value)"></div>';
 
 function setActa(rid,campo,val){ if(siCerrada()) return; setActa_CHK(rid,campo,val);
-  const r=D.registros.find(x=>x.id===rid); if(r&&typeof marcar==='function'){marcar(r);salvar();} }
+  const r=D.registros.find(x=>x.id===rid); if(r&&typeof marcar==='function'){marcar(r);salvar();} if(typeof refrescarLiga==='function') refrescarLiga(); }
 function setActa_CHK(rid,campo,val){
   const r=D.registros.find(x=>x.id===rid); if(!r) return;
   r[campo]= val===''?null:+val; salvar();
@@ -2287,8 +2314,9 @@ function convocarTodos_CHK(si){
   D.registros.filter(r=>r.sesionId===sesionActiva).forEach(r=>{
     r.estado= si?'titular':'no'; r.asistio=!!si;
     if(!si){r.nota=null;r.minutos=null;r.goles=null;r.asistencias=null;}
+    if(si&&!esPrueba((D.sesiones.find(x=>x.id===sesionActiva)||{}).tipo)) r.estado='suplente'; delete r.slot; marcar(r);
   });
-  salvar(); mostrarListaActa(); revisarMinimos(true);
+  salvar(); planActual=repartoMinutos(sesionActiva); mostrarCampoActa(); mostrarListaActa(); revisarMinimos(true);
   memoria={antes,hasta:Date.now()+9000};
   const e=document.getElementById('toast');
   e.className='toast on deshacer';
@@ -2313,14 +2341,14 @@ function revisarMinimos(silencioso){
   if(esPrueba(s.tipo)){ const a=document.getElementById('aAviso'); if(a) a.innerHTML=''; return true; }
   const regs=D.registros.filter(r=>r.sesionId===sesionActiva);
   const dentro=regs.filter(r=>r.asistio);
-  const min=MIN[s.tipo]||1;
+  const min= esPartido(s.tipo) ? cfgPartido().campo+1 : (MIN[s.tipo]||1);
   let fallo=null;
   if(dentro.length<min) fallo='Faltan jugadores: '+dentro.length+' de '+min+' mínimo';
   if(esPartido(s.tipo)&&!fallo){
     const por=dentro.filter(r=>(D.jugadores.find(j=>j.id===r.jugadorId)||{}).tipo==='portero').length;
     const camp=dentro.length-por;
     if(por<1) fallo='Falta convocar un portero';
-    else if(camp<7) fallo='Faltan jugadores de campo: '+camp+' de 7 mínimo';
+    else if(camp<cfgPartido().campo) fallo='Faltan jugadores de campo: '+camp+' de '+cfgPartido().campo+' mínimo';
   }
   const av=document.getElementById(esPartido(s.tipo)?'aAviso':'sAviso');
   if(av) av.innerHTML= fallo
@@ -2393,7 +2421,10 @@ function mostrarTareasSesion(){
       '<b class="num" style="font-size:15px">'+esc(t.duracion)+"'</b></span>"+
       '<button class="li-del" onclick="moverTarea('+i+',-1)" '+(i===0?'disabled':'')+'>↑</button>'+
       '<button class="li-del" onclick="moverTarea('+i+',1)" '+(i===usadas.length-1?'disabled':'')+'>↓</button>'+
-      '<button class="li-del" onclick="quitarTarea(\''+t.id+'\')">×</button></div>').join('')+'</div>'+
+      '<button class="li-del" title="Equipos" onclick="eqAbrir(\''+t.id+'\')" style="'+(eqDe(s,t.id)?'color:var(--ambar)':'')+'">◑</button>'+
+      '<button class="li-del" onclick="quitarTarea(\''+t.id+'\')">×</button></div>'+
+      (tareaEquipos===t.id?eqPanel(s,t.id):eqResumen(s,t.id))).join('')+'</div>'+
+      '<p class="mini muted" style="margin:6px 0 0">◑ hace los equipos de cada tarea y apunta quién gana (suma en la liga interna).</p>'+
       '<div class="card" style="margin-top:9px"><div class="spread">'+
       '<span class="tiny">Tiempo de tareas</span>'+
       '<b class="num '+(suma>objetivo?'aviso-num':'')+'">'+suma+' min</b></div>'+
@@ -2423,7 +2454,7 @@ function elegirTarea(){
 function anadirTarea(id){
   const s=D.sesiones.find(x=>x.id===sesionActiva);
   s.tareas=s.tareas||[]; if(!s.tareas.includes(id)) s.tareas.push(id);
-  salvar(); document.getElementById('picker').classList.add('hidden'); mostrarTareasSesion();
+  marcar(s); salvar(); document.getElementById('picker').classList.add('hidden'); mostrarTareasSesion();
 }
 function quitarTarea(id){
   const s=D.sesiones.find(x=>x.id===sesionActiva);
@@ -2433,7 +2464,7 @@ function quitarTarea(id){
 /* ══════════════ PLANTILLA ══════════════ */
 function setTab(t){ tab=t; mostrarPlantilla(); }
 function setBusca(v){ busca=(v||'').trim().toLowerCase();
-  ({plantilla:mostrarPlantilla,pruebas:mostrarPruebas}[vista]||(()=>{}))(); }
+  ({plantilla:mostrarPlantilla}[vista]||(()=>{}))(); }
 const coincide=j=> !busca || (j.nombre||'').toLowerCase().includes(busca) ||
   String(j.dorsal??'').includes(busca) || (j.puesto||'').toLowerCase().includes(busca);
 function mostrarPlantilla(){
@@ -2498,8 +2529,7 @@ function editarJugador(id){
       (j.foto?'<button class="btn xs danger" style="margin-left:6px" onclick="quitarFoto(\''+j.id+'\')">Quitar</button>':'')
     : '';
   document.getElementById('fStats').innerHTML=j?
-    ('<button class="btn" style="margin-top:9px" onclick="evaluar(\''+j.id+'\')">Evaluar para las pruebas</button>'+
-     panelJugador(j)+panelEvolucion(j)):'';
+    (panelJugador(j)+panelEvolucion(j)):'';
   go('ficha',false);
 }
 function panelJugador(j){
@@ -2754,7 +2784,6 @@ function mostrarMas(){
     ['blue','lista','Planificación','44 microciclos',"go('plan',false)"],
     ['amber','tarea','Modelo de juego','Principios',"go('modelo',false)"],
     ['green','tarea','Pizarra táctica','Dibujar jugadas',"tacAbrirLibre()"],
-    ['naranja','lapiz','Diario','5 líneas',"go('diario',false)"],
     ['garnet','euro','Gastos','Notas y km',"go('gastos',false)"],
     ['green','nube','Sincronizar','Móvil y PC',"go('nube',false)"],
     ['gris','descarga','Copias','Seguridad',"go('copias',false)"],
@@ -2763,9 +2792,16 @@ function mostrarMas(){
     ['green','pesa','Balance','La semana',"go('balance',false)"],
     ['amber','tarea','Microciclos','Rendimiento',"go('micros',false)"],
     ['garnet','lista','Temporada','Memoria',"go('temporada',false)"],
-    ['garnet','persona','Pruebas','Segmentar',"go('pruebas',false)"]
+    ['amber','pesa','Liga interna','Clasificación',"go('liga',false)"]
   ];
-  document.getElementById('masTiles').innerHTML=items.map(i=>tile(i[0],i[1],i[2],i[3],i[4])).join('');
+  const CLAVE_TILE={'Planificación':'plan','Modelo de juego':'modelo','Pizarra táctica':'tactica','Diario':'diario',
+    'Gastos':'gastos','Minutos':'minutos','Balance':'balance','Microciclos':'micros','Temporada':'temporada',
+    'Pruebas':'pruebas','Liga interna':'liga'};
+  const oc=new Set(D.ocultos||[]);
+  const vis=items.filter(i=>!oc.has(CLAVE_TILE[i[2]]));
+  document.getElementById('masTiles').innerHTML=vis.map(i=>tile(i[0],i[1],i[2],i[3],i[4])).join('');
+  const u=document.getElementById('masUso');
+  if(u) u.querySelector('.mini').textContent= oc.size ? oc.size+' ocultas · qué se usa y qué sobra' : 'Qué se usa y qué sobra';
 }
 
 /* ══════════════ NUBE Y COPIAS ══════════════ */
@@ -2802,7 +2838,8 @@ function mostrarPlan(){
       '<button class="li" onclick="irAMicrociclo('+p.mc+')">'+
       '<span class="chip '+b.color+' num">'+String(p.mc).padStart(2,'0')+'</span>'+
       '<span class="grow"><b class="trunc">'+esc(p.dominante)+'</b>'+
-      (p.notas?'<span class="mini muted trunc">'+esc(p.notas)+'</span>':'')+'</span>'+
+      ((p.micro&&(p.micro.cb||p.micro.sb))?'<span class="mini muted trunc">'+esc([p.micro.cb,p.micro.sb].filter(Boolean).join(' · '))+'</span>'
+        :(p.notas?'<span class="mini muted trunc">'+esc(p.notas)+'</span>':''))+'</span>'+
       (p.mc===D.mc?'<span class="chip amber">Actual</span>':'<span class="arrow">›</span>')+
       '</button>').join('')+'</div>';
   }).join('');
@@ -2817,6 +2854,10 @@ function irAMicrociclo(mc){
   document.getElementById('mcDominante').value=p.dominante||'';
   document.getElementById('mcNotas').value=p.notas||'';
   document.getElementById('mcPortero').value=p.portero||'';
+  const mi=microDe(mc);
+  document.getElementById('mcCb').value=mi.cb||''; document.getElementById('mcSb').value=mi.sb||'';
+  document.getElementById('mcMcb').value=(mi.mcb||[]).join('\n'); document.getElementById('mcMsb').value=(mi.msb||[]).join('\n');
+  document.getElementById('mcPor').value=(mi.por||[]).join('\n');
   document.getElementById('mcActual').textContent= mc===D.mc?'Es el microciclo actual':'Marcar como actual';
   document.getElementById('mcActual').disabled = mc===D.mc;
   go('microciclo',false);
@@ -2826,35 +2867,15 @@ function guardarMicrociclo(){
   p.dominante=document.getElementById('mcDominante').value.trim();
   p.notas=document.getElementById('mcNotas').value.trim();
   p.portero=document.getElementById('mcPortero').value.trim();
-  salvar(); aviso('Guardado'); go('plan',false);
+  const g=id=>document.getElementById(id).value;
+  p.micro={cb:g('mcCb').trim(),sb:g('mcSb').trim(),mcb:lineas(g('mcMcb')),msb:lineas(g('mcMsb')),por:lineas(g('mcPor')),v:MICRO_V,propio:true};
+  D.planMod=Date.now(); salvar(); aviso('Guardado'); go('plan',false);
 }
 function marcarActual(){
   D.mc=mcEdit; salvar(); aviso('Microciclo '+mcEdit); go('hoy');
 }
 
 /* ══════════════ DIARIO ══════════════ */
-function mostrarDiario(){
-  const d=[...D.diario].sort((a,b)=>b.fecha.localeCompare(a.fecha));
-  document.getElementById('diLista').innerHTML= d.length ? d.map(e=>
-    '<div class="card"><div class="spread"><b>'+fechaLarga(e.fecha)+'</b>'+
-    '<button class="btn xs danger" onclick="borrarDiario(\''+e.id+'\')">Borrar</button></div>'+
-    (e.bien?'<p class="tiny" style="margin:11px 0 0"><b style="color:var(--green)">Funcionó · </b>'+esc(e.bien)+'</p>':'')+
-    (e.mal?'<p class="tiny" style="margin:7px 0 0"><b style="color:var(--danger)">No funcionó · </b>'+esc(e.mal)+'</p>':'')+
-    (e.cambio?'<p class="tiny" style="margin:7px 0 0"><b style="color:var(--amber)">Cambiaría · </b>'+esc(e.cambio)+'</p>':'')+
-    (e.nota?'<p class="tiny muted" style="margin:7px 0 0">'+esc(e.nota)+'</p>':'')+
-    '</div>').join('') : '<div class="card">'+vacio('Cinco líneas después de cada sesión. Es lo que más te va a hacer crecer.')+'</div>';
-}
-function guardarDiario(){
-  const g=k=>document.getElementById(k).value.trim();
-  if(!g('dBien')&&!g('dMal')&&!g('dCambio')&&!g('dNota')){ aviso('Escribe algo primero','warn'); return; }
-  D.diario.push({id:uid(),fecha:hoyISO(),bien:g('dBien'),mal:g('dMal'),cambio:g('dCambio'),nota:g('dNota')});
-  ['dBien','dMal','dCambio','dNota'].forEach(k=>document.getElementById(k).value='');
-  salvar(); aviso('Anotado'); mostrarDiario();
-}
-function borrarDiario(id){
-  if(!confirm('¿Borrar esta entrada?')) return;
-  D.diario=D.diario.filter(e=>e.id!==id); salvar(); mostrarDiario();
-}
 
 /* ══════════════ GASTOS ══════════════ */
 let tipoGasto='km';
@@ -3216,6 +3237,13 @@ function pdfSesion(){
 
   h+='<h4 class="doc-h">Zona cero · 15 minutos</h4>'+
      '<p class="doc-p">Check visual · FIFA 11+ Kids · Trabajo individual con dos o tres jugadores</p>';
+  { const m=microDe(s.mc);
+    if(m.cb||m.sb||(m.mcb||[]).length){
+      h+='<h4 class="doc-h">Objetivos de la semana</h4><table class="doc-meta"><tr><td><b>Con balón</b>'+esc(m.cb||'—')+'</td>'+
+        '<td><b>Sin balón</b>'+esc(m.sb||'—')+'</td></tr></table>';
+      const L=(s.tipo==='porteros'?(m.por||[]):(m.mcb||[]).concat(m.msb||[]));
+      if(L.length) h+='<ul class="doc-ul">'+L.map(x=>'<li>'+conceptoHTML(x)+'</li>').join('')+'</ul>';
+    } }
 
   if(tareas.length){
     h+='<h4 class="doc-h">Tareas</h4>';
@@ -3225,7 +3253,7 @@ function pdfSesion(){
         '<td><b>Espacio</b>'+esc(t.espacio)+'</td><td><b>Jugadores</b>'+esc(t.jugadores)+'</td></tr>'+
         '<tr><td colspan="3"><b>Normas</b>'+esc(t.normas)+'</td></tr>'+
         (t.correcciones?'<tr><td colspan="3"><b>Correcciones clave</b>'+esc(t.correcciones)+'</td></tr>':'')+
-        (t.variantes?'<tr><td colspan="3"><b>Variantes</b>'+esc(t.variantes)+'</td></tr>':'')+
+        (t.variantes?'<tr><td colspan="3"><b>Variantes</b>'+esc(t.variantes)+'</td></tr>':'')+equiposFila(s,t.id)+
         '</table>';
       h+='<div class="doc-tarea"><div class="doc-tarea-cab">'+
         '<span class="doc-n">'+(i+1)+'</span>'+
@@ -3855,6 +3883,8 @@ function fusionar(mio,suyo){
   R.mc = mio.mc; R.perfil = mio.perfil; R.temporada = mio.temporada || suyo.temporada;
   R.nubeUrl=mio.nubeUrl; R.nubeClave=mio.nubeClave; R.autoNube=mio.autoNube;
   R.ultimaCopia=mio.ultimaCopia; R.archivo=mio.archivo||suyo.archivo||[];
+  R.uso=fusionarUso(mio.uso,suyo.uso); R.ocultos=mio.ocultos||[]; R.liga=fusionarLiga(mio.liga,suyo.liga);
+  R.dibujosV=mio.dibujosV; R.bibliotecaV=mio.bibliotecaV; R.tactica=mio.tactica||suyo.tactica;
   R.v=2;
   return {datos:R,resumen};
 }
@@ -4369,477 +4399,6 @@ const mayus=t=>t.charAt(0).toUpperCase()+t.slice(1);
    INTERFAZ DE EVALUACIÓN
    ══════════════════════════════════════════════════════ */
 
-let evalId=null, bloqueEval='campo';
-
-function evaluar(id){
-  evalId=id; bloqueEval='campo';
-  const j=D.jugadores.find(x=>x.id===id); if(!j) return;
-  j.eval=j.eval||{puesto:mapPuesto(j.puesto),items:{},rasgos:[],contexto:{},familiar:{},
-    campo:{},opiniones:[]};
-  go('evaluar',false);
-  mostrarEvaluar();
-}
-const mapPuesto=p=>({'Portero':'portero','Central':'central','Medio':'medio',
-  'Extremo':'extremo','Punta':'punta'}[p]||'medio');
-
-function setBloqueEval(b){ bloqueEval=b; mostrarEvaluar(); }
-
-function mostrarEvaluar(){
-  const j=D.jugadores.find(x=>x.id===evalId); if(!j) return;
-  const e=j.eval, r=notaEval(j);
-
-  document.getElementById('evTitulo').textContent=j.nombre;
-  document.getElementById('evSub').innerHTML=
-    '<span class="chip">'+(j.dorsal??'–')+'</span> '+
-    (j.por&&j.por!=='—'?'<span class="chip gris">'+esc(j.por.split(' ')[0])+'</span> ':'')+
-    (r?'<span class="chip amber">'+r.nota.toFixed(1)+'</span>':'<span class="chip">sin nota</span>')+
-    (e.valoracion?' <span class="chip '+(VALORACIONES.find(v=>v[0]===+e.valoracion)||[])[2]+'">'+
-      (VALORACIONES.find(v=>v[0]===+e.valoracion)||[])[1]+'</span>':'');
-
-  const tabs=[['campo','Campo'],['items','Ítems'],['perfil','Perfil'],['contexto','Contexto'],['informe','Informe']];
-  document.getElementById('evTabs').innerHTML=tabs.map(t=>
-    '<button class="'+(bloqueEval===t[0]?'on':'')+'" onclick="setBloqueEval(\''+t[0]+'\')">'+t[1]+'</button>').join('');
-
-  const c=document.getElementById('evCuerpo');
-  c.innerHTML=({campo:vistaCampo,items:vistaItems,perfil:vistaPerfil,
-    contexto:vistaContexto,informe:vistaInforme}[bloqueEval])(j);
-}
-
-/* ── pestaña CAMPO: lo que rellenas en caliente ── */
-const CASILLAS=[
- ['c1','Levanta la cabeza antes de recibir'],
- ['c2','Su primer toque le resuelve'],
- ['c3','Decide rápido'],
- ['c4','Reacciona al perder el balón'],
- ['c5','Cumple lo específico de su puesto']
-];
-function vistaCampo(j){
-  const e=j.eval;
-  return '<p class="mini muted" style="margin:0 0 11px">Esto es lo único que se rellena durante el partido.</p>'+
-  '<div class="list">'+CASILLAS.map(x=>
-    '<button class="li"><span class="li-main" onclick="toggleCasilla(\''+x[0]+'\')">'+
-    '<span class="chip '+(e.campo[x[0]]?'green':'')+'">'+(e.campo[x[0]]?'✓':'·')+'</span>'+
-    '<span class="grow"><b>'+x[1]+'</b></span></span></button>').join('')+'</div>'+
-  '<p class="eyebrow valor mt">Frase del día</p>'+
-  '<textarea id="evFrase" placeholder="Un comportamiento concreto que hayas visto" '+
-  'oninput="setEval(\'frase\',this.value)" style="min-height:70px">'+esc(e.frase||'')+'</textarea>'+
-  '<p class="eyebrow valor mt">Valoración</p>'+ selectorValoracion(e)+
-  '<p class="eyebrow valor mt">Opiniones del cuerpo técnico</p>'+
-  '<div class="card"><div class="grid2" style="gap:8px">'+
-    '<input id="evIni" placeholder="Iniciales" maxlength="4">'+
-    '<button class="btn sm" onclick="addOpinion()">Añadir</button></div>'+
-    '<input id="evOpi" placeholder="Qué te ha dicho" style="margin-top:8px"></div>'+
-  ((e.opiniones||[]).length?'<div class="list" style="margin-top:9px">'+e.opiniones.map((o,i)=>
-    '<div class="li"><span class="li-main"><span class="chip">'+esc(o.ini)+'</span>'+
-    '<span class="grow"><b>'+esc(o.txt)+'</b></span></span>'+
-    '<button class="li-del" onclick="delOpinion('+i+')">×</button></div>').join('')+'</div>':'');
-}
-function selectorValoracion(e){
-  return '<div class="list">'+VALORACIONES.map(v=>
-    '<button class="li"><span class="li-main" onclick="setEval(\'valoracion\','+v[0]+')">'+
-    '<span class="chip '+(+e.valoracion===v[0]?v[2]:'')+'">'+v[0]+'</span>'+
-    '<span class="grow"><b>'+v[1]+'</b></span>'+
-    (+e.valoracion===v[0]?'<span class="chip green">✓</span>':'')+'</span></button>').join('')+'</div>';
-}
-function toggleCasilla(k){
-  const j=D.jugadores.find(x=>x.id===evalId);
-  j.eval.campo[k]=!j.eval.campo[k]; salvar(); mostrarEvaluar();
-}
-function setEval(campo,valor){
-  const j=D.jugadores.find(x=>x.id===evalId);
-  j.eval[campo]=valor; if(typeof marcar==='function') marcar(j); salvar();
-  if(campo==='valoracion') mostrarEvaluar();
-}
-function addOpinion(){
-  let ini=document.getElementById('evIni').value.trim().toUpperCase();
-  if(!ini && typeof iniciales==='function') ini=iniciales(yo());
-  const txt=document.getElementById('evOpi').value.trim();
-  if(!ini||!txt){ aviso('Faltan iniciales o texto','warn'); return; }
-  const j=D.jugadores.find(x=>x.id===evalId);
-  j.eval.opiniones=j.eval.opiniones||[]; j.eval.opiniones.push({ini,txt});
-  salvar(); mostrarEvaluar();
-}
-function delOpinion(i){
-  const j=D.jugadores.find(x=>x.id===evalId);
-  j.eval.opiniones.splice(i,1); salvar(); mostrarEvaluar();
-}
-
-/* ── pestaña ÍTEMS ── */
-function vistaItems(j){
-  const e=j.eval, its=itemsDe(e.puesto);
-  let h='<p class="eyebrow valor">Puesto evaluado</p>'+
-    '<select onchange="cambiarPuestoEval(this.value)" style="margin-bottom:16px">'+
-    PUESTOS.map(p=>'<option value="'+p[0]+'"'+(e.puesto===p[0]?' selected':'')+'>'+p[1]+'</option>').join('')+
-    '</select>';
-  BLOQUES_EVAL.forEach(([clave,nom,peso])=>{
-    const lista=its[clave]||[];
-    h+='<p class="eyebrow mt"><span>'+nom+'</span><span class="muted">'+peso+'%</span></p>';
-    lista.forEach(i=>{
-      const v=e.items[i[0]];
-      h+='<div class="card" style="margin-bottom:8px"><b style="font-size:13.5px;display:block;'+
-        'margin-bottom:9px">'+i[1]+'</b>'+
-        '<div class="escala" style="padding:0">'+
-        Array.from({length:11},(_,n)=>'<button class="esc'+(v===n?' set':'')+
-        '" onclick="setItem(\''+i[0]+'\','+n+')">'+n+'</button>').join('')+
-        '</div></div>';
-    });
-  });
-  return h;
-}
-function setItem(id,v){
-  const j=D.jugadores.find(x=>x.id===evalId);
-  j.eval.items[id]= j.eval.items[id]===v ? null : v;
-  if(typeof marcar==='function') marcar(j);
-  salvar(); mostrarEvaluar();
-}
-function cambiarPuestoEval(p){
-  const j=D.jugadores.find(x=>x.id===evalId);
-  j.eval.puesto=p; salvar(); mostrarEvaluar();
-}
-
-/* ── pestaña PERFIL ── */
-function vistaPerfil(j){
-  const e=j.eval;
-  return '<p class="eyebrow valor">Rasgos</p>'+
-  '<p class="mini muted" style="margin:-4px 0 10px">Alimentan el informe. Toca los que le definan.</p>'+
-  '<div class="row" style="flex-wrap:wrap;gap:6px">'+RASGOS.map(r=>
-    '<button class="btn xs '+((e.rasgos||[]).includes(r[0])?'primary':'')+
-    '" onclick="toggleRasgo(\''+r[0]+'\')">'+r[1]+'</button>').join('')+'</div>'+
-
-  '<p class="eyebrow valor mt">Puesto probado</p>'+
-  '<select onchange="setEval(\'puestoProbado\',this.value)">'+
-    '<option value="">— ninguno —</option>'+
-    PUESTOS.map(p=>'<option value="'+p[0]+'"'+(e.puestoProbado===p[0]?' selected':'')+'>'+p[1]+'</option>').join('')+
-  '</select>'+
-
-  '<p class="eyebrow valor mt">Me recuerda a</p>'+
-  '<div class="alerta"><b>Privado</b>Este nombre no sale nunca en el informe. Es solo para tu memoria.</div>'+
-  '<input placeholder="Nombre que te venga a la cabeza" value="'+esc(e.recuerda||'')+'" '+
-    'oninput="setEval(\'recuerda\',this.value)">'+
-
-  '<p class="eyebrow valor mt">¿Por qué? · esto sí sale, sin nombres</p>'+
-  '<textarea placeholder="Ej. encara siempre por fuera, tarda en volver, zurdo de perfil abierto" '+
-    'oninput="setEval(\'porque\',this.value)">'+esc(e.porque||'')+'</textarea>'+
-
-  '<p class="eyebrow valor mt">Observaciones libres</p>'+
-  '<textarea placeholder="Lo que quieras recordar de él" '+
-    'oninput="setEval(\'notas\',this.value)" style="min-height:110px">'+esc(e.notas||'')+'</textarea>';
-}
-function toggleRasgo(id){
-  const j=D.jugadores.find(x=>x.id===evalId);
-  j.eval.rasgos=j.eval.rasgos||[];
-  const i=j.eval.rasgos.indexOf(id);
-  i>=0 ? j.eval.rasgos.splice(i,1) : j.eval.rasgos.push(id);
-  salvar(); mostrarEvaluar();
-}
-
-/* ── pestaña CONTEXTO ── */
-function vistaContexto(j){
-  const e=j.eval, c=e.contexto||{}, f=e.familiar||{};
-  const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
-    'Septiembre','Octubre','Noviembre','Diciembre'];
-  const sel=(lista,val,fn)=>'<select onchange="'+fn+'(this.value)"><option value="">— —</option>'+
-    lista.map(o=>'<option value="'+o[0]+'"'+(val===o[0]?' selected':'')+'>'+o[1]+'</option>').join('')+'</select>';
-  return '<p class="eyebrow valor">Del jugador</p><div class="card">'+
-    '<label class="field"><span>Mes de nacimiento</span>'+
-    '<select onchange="setCtx(\'mes\',this.value)"><option value="">— —</option>'+
-    MES.map((m,i)=>'<option value="'+(i+1)+'"'+(+c.mes===i+1?' selected':'')+'>'+m+'</option>').join('')+
-    '</select></label>'+
-    '<label class="field"><span>Madurez física</span>'+sel(CTX_MADUREZ,c.madurez,'setCtxMad')+'</label>'+
-    '<label class="field" style="margin:0"><span>Años jugando</span>'+
-    '<input type="number" inputmode="numeric" value="'+(c.anos||'')+'" oninput="setCtx(\'anos\',this.value)"></label>'+
-    '</div>'+
-  '<p class="eyebrow valor mt">Contexto familiar</p>'+
-  '<div class="alerta"><b>No puntúa</b>Solo sirve para interpretar. Anota conductas, no juicios.</div>'+
-  '<div class="card">'+
-    '<label class="field"><span>Comportamiento en la grada</span>'+sel(CTX_GRADA,f.grada,'setFam_grada')+'</label>'+
-    '<label class="field"><span>Efecto en el jugador</span>'+sel(CTX_EFECTO,f.efecto,'setFam_efecto')+'</label>'+
-    '<label class="field"><span>Logística y compromiso</span>'+sel(CTX_LOGIS,f.logistica,'setFam_logistica')+'</label>'+
-    '<label class="field" style="margin:0"><span>Notas</span>'+
-    '<textarea oninput="setFam_notas(this.value)" placeholder="Conductas observables">'+esc(f.notas||'')+'</textarea></label>'+
-  '</div>';
-}
-function setCtx(k,v){ const j=D.jugadores.find(x=>x.id===evalId);
-  j.eval.contexto=j.eval.contexto||{}; j.eval.contexto[k]= k==='mes'?+v||null:v; salvar(); }
-function setCtxMad(v){ setCtx('madurez',v); }
-function setFam(k,v){ const j=D.jugadores.find(x=>x.id===evalId);
-  j.eval.familiar=j.eval.familiar||{}; j.eval.familiar[k]=v; salvar(); }
-function setFam_grada(v){setFam('grada',v)}
-function setFam_efecto(v){setFam('efecto',v)}
-function setFam_logistica(v){setFam('logistica',v)}
-function setFam_notas(v){setFam('notas',v)}
-
-/* ── pestaña INFORME ── */
-function vistaInforme(j){
-  const P=generarInforme(j);
-  return '<p class="mini muted" style="margin:0 0 12px">Generado con lo que has puntuado y escrito. '+
-    'Se actualiza solo.</p>'+
-    P.map(p=>'<div class="card" style="margin-bottom:9px">'+
-      '<b style="font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--tenue);'+
-      'display:block;margin-bottom:7px">'+p[0]+'</b>'+
-      '<p class="tiny dim" style="margin:0;line-height:1.6">'+esc(p[1])+'</p></div>').join('')+
-    '<button class="btn primary" style="margin-top:5px" onclick="pdfEvaluacion()">Informe en PDF</button>';
-}
-
-/* ── listado de evaluaciones ── */
-let filtroEval='todos';
-function setFiltroEval(f){ filtroEval=f; mostrarPruebas(); }
-function mostrarPruebas(){
-  const rk=ranking();
-  const conEval=D.jugadores.filter(j=>j.eval);
-  const val=v=>conEval.filter(j=>+((j.eval||{}).valoracion)===v).length;
-  document.getElementById('prResumen').innerHTML=
-    celda(D.jugadores.length,'jugadores')+celda(conEval.length,'evaluados')+
-    celda(val(5)+val(4),'hacia B')+celda(val(3),'dudas');
-
-  const f=[['todos','Todos'],['sin','Sin evaluar'],['5','B'],['3','Duda'],['1','C']];
-  document.getElementById('prFiltros').innerHTML=f.map(x=>
-    '<button class="btn xs '+(filtroEval===x[0]?'primary':'')+'" onclick="setFiltroEval(\''+x[0]+'\')">'+
-    x[1]+'</button>').join('');
-
-  let lista=D.jugadores.slice();
-  if(filtroEval==='sin') lista=lista.filter(j=>!j.eval||!notaEval(j));
-  else if(filtroEval==='5') lista=lista.filter(j=>j.eval&&+j.eval.valoracion>=4);
-  else if(filtroEval==='3') lista=lista.filter(j=>j.eval&&+j.eval.valoracion===3);
-  else if(filtroEval==='1') lista=lista.filter(j=>j.eval&&+j.eval.valoracion<=2);
-  lista.sort((a,b)=>{const na=notaEval(a),nb=notaEval(b);
-    return (nb?nb.nota:-1)-(na?na.nota:-1);});
-
-  document.getElementById('prLista').innerHTML= lista.length ? lista.map(j=>{
-    const r=notaEval(j), e=j.eval||{};
-    const v=VALORACIONES.find(x=>x[0]===+e.valoracion);
-    const pos=r?rk.findIndex(x=>x.j.id===j.id)+1:null;
-    return '<button class="card tap" onclick="evaluar(\''+j.id+'\')">'+
-      '<div class="row">'+avatar(j,36)+
-      '<span class="grow"><b style="font-size:14.5px">'+esc(j.nombre)+'</b>'+
-      '<span class="mini muted" style="display:block">'+
-      ((PUESTOS.find(p=>p[0]===(e.puesto||mapPuesto(j.puesto)))||['','—'])[1])+
-      (e.contexto&&e.contexto.mes?' · mes '+e.contexto.mes:'')+
-      (pos?' · puesto '+pos+' de '+rk.length:'')+'</span></span>'+
-      (r?'<span class="center" style="flex:none"><div class="big num" style="font-size:19px">'+
-        r.nota.toFixed(1)+'</div><div class="mini muted">nota</div></span>':'')+
-      (v?'<span class="chip '+v[2]+'">'+v[0]+'</span>':'<span class="chip">–</span>')+
-      '</div></button>';
-  }).join('') : '<div class="card">'+vacio('No hay jugadores en este filtro.')+'</div>';
-}
-
-/* ══════════════════════════════════════════════════════
-   INFORMES EN PDF
-   ══════════════════════════════════════════════════════ */
-
-function pdfEvaluacion(){
-  const j=D.jugadores.find(x=>x.id===evalId); if(!j) return;
-  const e=j.eval||{}, r=notaEval(j), its=itemsDe(e.puesto||'medio');
-  const P=generarInforme(j);
-  const puesto=(PUESTOS.find(p=>p[0]===e.puesto)||['','—'])[1];
-
-  let h=docCab('Informe de valoración', j.nombre+' · Dorsal '+(j.dorsal??'—')+' · '+puesto);
-
-  h+='<table class="doc-meta"><tr>'+
-    '<td><b>Puesto evaluado</b>'+esc(puesto)+'</td>'+
-    '<td><b>Nota global</b>'+(r?r.nota.toFixed(1)+' sobre 10':'sin calcular')+'</td>'+
-    '<td><b>Valoración</b>'+(e.valoracion
-      ? (VALORACIONES.find(v=>v[0]===+e.valoracion)||[])[1]+' ('+e.valoracion+'/5)'
-      : '—')+'</td></tr></table>';
-
-  /* informe redactado */
-  P.forEach(p=>{ h+='<h4 class="doc-h">'+esc(p[0])+'</h4><p class="doc-p">'+esc(p[1])+'</p>'; });
-
-  /* detalle por bloques */
-  if(r){
-    h+='<h4 class="doc-h">Detalle de la valoración</h4>';
-    BLOQUES_EVAL.forEach(([clave,nom,peso])=>{
-      const lista=its[clave]||[];
-      const vals=lista.filter(i=>e.items[i[0]]!=null&&e.items[i[0]]!=='');
-      if(!vals.length) return;
-      h+='<table class="doc-lista"><thead><tr>'+
-        '<th>'+nom+' · '+peso+'%</th><th style="width:70px">Nota</th></tr></thead><tbody>';
-      vals.forEach(i=>h+='<tr><td>'+esc(i[1])+'</td><td class="c"><b>'+e.items[i[0]]+'</b></td></tr>');
-      h+='<tr><td style="text-align:right"><b>Media del bloque</b></td>'+
-        '<td class="c"><b>'+r.bloques[clave].toFixed(1)+'</b></td></tr></tbody></table>';
-    });
-  }
-
-  /* contexto */
-  const c=e.contexto||{};
-  if(c.mes||c.madurez||c.anos){
-    const MES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto',
-      'Septiembre','Octubre','Noviembre','Diciembre'];
-    h+='<h4 class="doc-h">Contexto del jugador</h4><table class="doc-lista"><tbody>'+
-      (c.mes?'<tr><td style="width:55%">Mes de nacimiento</td><td class="c"><b>'+MES[c.mes-1]+'</b></td></tr>':'')+
-      (c.madurez?'<tr><td>Madurez física</td><td class="c"><b>'+
-        (CTX_MADUREZ.find(x=>x[0]===c.madurez)||[])[1]+'</b></td></tr>':'')+
-      (c.anos?'<tr><td>Años jugando</td><td class="c"><b>'+c.anos+'</b></td></tr>':'')+
-      '</tbody></table>';
-  }
-
-  h+='<div class="doc-espacio"><b>Decisión y objetivos para el próximo periodo</b></div>';
-  h+=docFirma()+docPie();
-  imprimir(h,'Informe '+j.nombre);
-}
-
-function pdfRanking(){
-  const rk=ranking();
-  if(!rk.length){ aviso('Todavía no hay jugadores evaluados','warn'); return; }
-  let h=docCab('Valoración del grupo', rk.length+' jugadores evaluados · '+fechaLarga(hoyISO()));
-
-  const val=v=>D.jugadores.filter(j=>+((j.eval||{}).valoracion)===v).length;
-  h+='<table class="doc-meta"><tr>'+
-    '<td><b>Hacia el B</b>'+(val(5)+val(4))+'</td>'+
-    '<td><b>Dudas</b>'+val(3)+'</td>'+
-    '<td><b>Hacia el C</b>'+(val(2)+val(1))+'</td></tr></table>';
-
-  h+='<table class="doc-lista"><thead><tr>'+
-    '<th style="width:34px">#</th><th style="width:34px">Nº</th><th>Jugador</th>'+
-    '<th style="width:66px">Puesto</th><th style="width:44px">Téc</th><th style="width:44px">Tác</th>'+
-    '<th style="width:44px">Apr</th><th style="width:44px">Act</th>'+
-    '<th style="width:48px">Nota</th><th style="width:34px">V</th>'+
-    '<th style="width:38px">Mes</th></tr></thead><tbody>';
-  rk.forEach((x,i)=>{
-    const j=x.j, e=j.eval, r=notaEval(j), b=r.bloques;
-    const f=v=>v!=null?v.toFixed(1):'—';
-    h+='<tr><td class="c"><b>'+(i+1)+'</b></td><td class="c">'+(j.dorsal??'')+'</td>'+
-      '<td>'+esc(j.nombre)+'</td>'+
-      '<td>'+((PUESTOS.find(p=>p[0]===e.puesto)||['','—'])[1])+'</td>'+
-      '<td class="c">'+f(b.tecnico)+'</td><td class="c">'+f(b.tactico)+'</td>'+
-      '<td class="c">'+f(b.aprendizaje)+'</td><td class="c">'+f(b.actitud)+'</td>'+
-      '<td class="c"><b>'+r.nota.toFixed(1)+'</b></td>'+
-      '<td class="c">'+(e.valoracion||'—')+'</td>'+
-      '<td class="c">'+((e.contexto||{}).mes||'—')+'</td></tr>';
-  });
-  h+='</tbody></table>';
-
-  /* avisos de sesgo */
-  const rojas=rk.filter(x=>{const b=notaEval(x.j).bloques;
-    return (x.j.eval.contexto||{}).madurez==='adelantado'&&b.tecnico!=null&&b.tecnico<6;});
-  const verdes=rk.filter(x=>{const b=notaEval(x.j).bloques;
-    return (x.j.eval.contexto||{}).madurez==='retrasado'&&b.tecnico!=null&&b.tecnico>=7;});
-  if(rojas.length||verdes.length){
-    h+='<h4 class="doc-h">Avisos de maduración</h4>';
-    if(verdes.length) h+='<p class="doc-p"><b>Revisar antes de descartar:</b> '+
-      verdes.map(x=>esc(x.j.nombre)).join(', ')+
-      '. Técnicamente bien, físicamente por detrás. Suelen estar infravalorados.</p>';
-    if(rojas.length) h+='<p class="doc-p"><b>Revisar antes de seleccionar:</b> '+
-      rojas.map(x=>esc(x.j.nombre)).join(', ')+
-      '. Rendimiento apoyado en la ventaja física, que tenderá a igualarse.</p>';
-  }
-
-  h+='<p class="doc-nota">Ponderación: técnico 30%, táctico 30%, aprendizaje 20%, actitud 20%. '+
-     'El contexto familiar y la madurez no puntúan: solo sirven para interpretar.</p>';
-  h+=docFirma()+docPie();
-  imprimir(h,'Valoracion del grupo');
-}
-
-/* ══════════════════════════════════════════════════════
-   COMPARADOR · elegir entre dos es más fiable que puntuar
-   ══════════════════════════════════════════════════════ */
-
-let compPar=null, compHechas=0;
-
-function abrirComparador(){
-  D.duelos=D.duelos||{};
-  compHechas=Object.keys(D.duelos).length;
-  siguienteDuelo();
-  go('comparar',false);
-}
-
-function candidatosDuelo(){
-  return D.jugadores.filter(j=>j.eval&&(+j.eval.valoracion===3||notaEval(j)));
-}
-
-function siguienteDuelo(){
-  const c=candidatosDuelo();
-  if(c.length<2){ compPar=null; mostrarComparador(); return; }
-  /* prioriza parejas sin resolver y con nota parecida */
-  let mejor=null, mejorD=1e9;
-  for(let i=0;i<c.length;i++) for(let k=i+1;k<c.length;k++){
-    const cl=claveDuelo(c[i].id,c[k].id);
-    if(D.duelos[cl]) continue;
-    const a=notaEval(c[i]), b=notaEval(c[k]);
-    const d=Math.abs((a?a.nota:5)-(b?b.nota:5));
-    if(d<mejorD){ mejorD=d; mejor=[c[i],c[k]]; }
-  }
-  compPar=mejor; mostrarComparador();
-}
-const claveDuelo=(a,b)=> [a,b].sort().join('|');
-
-function elegirDuelo(ganadorId){
-  if(!compPar) return;
-  const [a,b]=compPar;
-  D.duelos=D.duelos||{};
-  D.duelos[claveDuelo(a.id,b.id)]=ganadorId;
-  compHechas++;
-  salvar(); siguienteDuelo();
-}
-function saltarDuelo(){
-  if(!compPar) return;
-  const [a,b]=compPar;
-  D.duelos[claveDuelo(a.id,b.id)]='empate';
-  salvar(); siguienteDuelo();
-}
-function reiniciarDuelos(){
-  if(!confirm('¿Borrar todas las comparaciones y empezar de nuevo?')) return;
-  D.duelos={}; compHechas=0; salvar(); siguienteDuelo();
-}
-
-/* orden resultante: victorias en duelos directos */
-function ordenDuelos(){
-  const v={};
-  Object.entries(D.duelos||{}).forEach(([cl,g])=>{
-    if(g==='empate') return;
-    const [a,b]=cl.split('|');
-    v[a]=v[a]||{g:0,j:0}; v[b]=v[b]||{g:0,j:0};
-    v[a].j++; v[b].j++;
-    v[g].g++;
-  });
-  return Object.entries(v).map(([id,x])=>{
-    const j=D.jugadores.find(y=>y.id===id);
-    return j?{j,ganados:x.g,jugados:x.j,pct:x.j?Math.round(x.g/x.j*100):0}:null;
-  }).filter(Boolean).sort((a,b)=>b.pct-a.pct||b.jugados-a.jugados);
-}
-
-function mostrarComparador(){
-  const c=candidatosDuelo();
-  const total=c.length*(c.length-1)/2;
-  document.getElementById('cmpResumen').innerHTML=
-    celda(c.length,'en juego')+celda(compHechas,'comparadas')+
-    celda(Math.max(0,total-compHechas),'quedan');
-
-  const box=document.getElementById('cmpDuelo');
-  if(!compPar){
-    box.innerHTML='<div class="card">'+vacio(
-      c.length<2 ? 'Necesitas al menos dos jugadores evaluados.'
-      : 'Ya has comparado todas las parejas posibles.')+'</div>';
-  }else{
-    box.innerHTML='<p class="tiny dim center" style="margin:0 0 12px">'+
-      '¿Cuál ves más para el B?</p>'+
-      '<div class="grid2" style="gap:9px">'+compPar.map(j=>{
-        const r=notaEval(j), e=j.eval||{};
-        return '<button class="card tap center" style="padding:18px 12px" onclick="elegirDuelo(\''+j.id+'\')">'+
-          avatar(j,54)+
-          '<b style="display:block;margin-top:10px;font-size:15px">'+esc(j.nombre)+'</b>'+
-          '<span class="mini muted" style="display:block;margin-top:3px">'+
-          ((PUESTOS.find(p=>p[0]===e.puesto)||['','—'])[1])+
-          (r?' · '+r.nota.toFixed(1):'')+'</span></button>';
-      }).join('')+'</div>'+
-      '<button class="btn ghost" style="margin-top:11px" onclick="saltarDuelo()">No lo tengo claro</button>';
-  }
-
-  const ord=ordenDuelos();
-  document.getElementById('cmpOrden').innerHTML= ord.length
-    ? '<div class="list">'+ord.map((x,i)=>
-      '<button class="li"><span class="li-main" onclick="evaluar(\''+x.j.id+'\')">'+
-      '<span class="chip '+(i<ord.length/3?'garnet':i<ord.length*2/3?'amber':'gris')+'">'+(i+1)+'</span>'+
-      '<span class="grow"><b>'+esc(x.j.nombre)+'</b>'+
-      '<span class="mini muted">'+x.ganados+' de '+x.jugados+' duelos ganados</span></span>'+
-      '<b class="num">'+x.pct+'%</b></span></button>').join('')+'</div>'
-    : '<div class="card">'+vacio('Todavía no has comparado a nadie.')+'</div>';
-}
-
-/* ══════════════════════════════════════════════════════
-   FOTOS · se comprimen antes de guardarse
-   ══════════════════════════════════════════════════════ */
-
 function avatar(j,tam){
   const t=tam||34;
   return j.foto
@@ -4853,7 +4412,7 @@ function pedirFoto(id){ fotoDe=id; document.getElementById('fotoInput').click();
 function quitarFoto(id){
   const j=D.jugadores.find(x=>x.id===id); if(!j) return;
   delete j.foto; salvar(); aviso('Foto quitada');
-  if(vista==='ficha') editarJugador(id); else mostrarPruebas();
+  editarJugador(id);
 }
 function procesarFoto(ev){
   const f=ev.target.files[0]; if(!f||!fotoDe) return;
@@ -4870,7 +4429,6 @@ function procesarFoto(ev){
       j.foto=c.toDataURL('image/jpeg',0.68);
       salvar(); aviso('Foto guardada');
       if(vista==='ficha') editarJugador(j.id);
-      else if(vista==='pruebas') mostrarPruebas();
       else mostrarPlantilla();
     };
     img.onerror=()=>aviso('No se pudo leer la imagen','warn');
@@ -4908,7 +4466,7 @@ function altaRapida(){
     n++;
   });
   salvar(); document.getElementById('arTexto').value='';
-  aviso(n+' jugadores dados de alta'); go('pruebas',false);
+  aviso(n+' jugadores dados de alta'); go('plantilla');
 }
 
 /* ══════════════════════════════════════════════════════
@@ -4997,7 +4555,9 @@ function panelEvolucion(j){
 
 function cfgPartido(){
   const p=D.perfil||PERFIL;
-  const partes=+p.partes||2, min=+p.minutosParte||30, campo=+p.jugadoresCampo||7;
+  const sA=(typeof sesionActiva!=='undefined')&&D.sesiones.find(x=>x.id===sesionActiva);
+  const partes=+p.partes||2, min=+p.minutosParte||30;
+  const campo= sA&&sA.formato==='F11' ? 10 : sA&&sA.formato==='F8' ? 7 : (+p.jugadoresCampo||7);
   const dur=partes*min;
   return {partes,min,campo,dur,totalCampo:dur*campo,totalPortero:dur};
 }
@@ -5075,7 +4635,7 @@ function mostrarPreparar(){
   if(!planActual) planActual=repartoMinutos(s.id);
 
   const fsel=document.getElementById('ppFormacion');
-  if(fsel) fsel.innerHTML=FORMACIONES.map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+f+'</option>').join('');
+  if(fsel) fsel.innerHTML=formacionesDe(s).map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+f+'</option>').join('');
   const tit=planActual.filter(x=>(x.r.estado||'titular')==='titular');
   const titC=tit.filter(x=>!x.es).length, titP=tit.filter(x=>x.es).length;
   const okAlineacion = titC===c.campo && titP===1;
@@ -5219,7 +4779,7 @@ const VENTANA_ENTRENOS=8;
 const ROL_TXT={central:'Central',medio:'Medio',extremo:'Extremo o punta',portero:'Portero'};
 let slotActivo=null;
 
-function formacionDe(s){ return (s&&FORMACIONES.includes(s.formacion))?s.formacion:'2-3-2'; }
+function formacionDe(s){ const L=formacionesDe(s); return (s&&L.includes(s.formacion))?s.formacion:L[0]; }
 /* filas de defensa a ataque; cada hueco tiene un rol y una posición en el campo */
 function slotsDe(f){
   const filas=f.split('-').map(Number), R=filas.length, out=[];
@@ -5267,7 +4827,7 @@ function puntuarJugador(j,sesionId){
   return {score:0.6*asist+0.4*(nota/10), asist:Math.round(asist*100), nota:notas.length?nota.toFixed(1):'—', de, vino};
 }
 function setFormacion(f){
-  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||!FORMACIONES.includes(f)) return;
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||!formacionesDe(s).includes(f)) return;
   s.formacion=f; salvar(); sugerirGlobal();
 }
 /* sugerencia global: reparte los titulares por puesto y puntuación */
@@ -5290,7 +4850,7 @@ function sugerirGlobal(){
   });
   asign.forEach((c,i)=>{ if(!c) return; c.x.r.estado='titular'; c.x.r.slot=i; c.x.r.asistio=true; });
   if(porteros[0]){ porteros[0].x.r.estado='titular'; porteros[0].x.r.slot='P'; porteros[0].x.r.asistio=true; }
-  salvar(); planActual=repartoMinutos(s.id); mostrarPreparar();
+  salvar(); planActual=repartoMinutos(s.id); refrescarCampo();
   aviso('Sugerencia aplicada · '+f);
 }
 /* cambio de jugador en un hueco con sugerencia automática */
@@ -5307,12 +4867,13 @@ function slotPoner(rid){
   const esGK = slotActivo==='P';
   const actual=planActual.find(x=>x.r.estado==='titular'&&(esGK?x.es:(!x.es&&x.r.slot===slotActivo)));
   if(actual){ actual.r.estado='suplente'; delete actual.r.slot; }
-  nuevo.r.estado='titular'; nuevo.r.asistio=true; nuevo.r.slot=esGK?'P':slotActivo;
-  salvar(); slotActivo=null; planActual=repartoMinutos(s.id); mostrarPreparar();
+  if(vista==='acta'&&siCerrada()) return;
+  nuevo.r.estado='titular'; nuevo.r.asistio=true; nuevo.r.slot=esGK?'P':slotActivo; marcar(nuevo.r); if(actual) marcar(actual.r);
+  salvar(); slotActivo=null; planActual=repartoMinutos(s.id); refrescarCampo();
   aviso('Cambio hecho');
 }
 function mostrarSlot(){
-  const el=document.getElementById('ppSlot'); if(!el) return;
+  const el=document.getElementById(vista==='acta'?'aSlot':'ppSlot'); if(!el) return;
   const s=D.sesiones.find(x=>x.id===sesionActiva);
   if(slotActivo===null||slotActivo===undefined||!s||!planActual){ el.innerHTML=''; return; }
   const esGK=slotActivo==='P';
@@ -5326,7 +4887,8 @@ function mostrarSlot(){
   const sug=cand[0];
   el.innerHTML='<div class="card" style="margin-top:12px">'+
     '<p class="eyebrow juego" style="margin:0 0 6px">Cambiar: '+esc(ROL_TXT[sl.role]||'')+'</p>'+
-    '<p class="mini muted" style="margin:0 0 10px">En el puesto: <b>'+(actual?esc(actual.j.nombre):'—')+'</b></p>'+
+    '<p class="mini muted" style="margin:0 0 10px">En el puesto: <b>'+(actual?esc(actual.j.nombre):'—')+'</b>'+
+      (actual?' <button class="btn xs" onclick="aBanquillo(\''+actual.r.id+'\')">Al banquillo</button>':'')+'</p>'+
     (sug?'<div class="spread" style="gap:8px;align-items:center;margin-bottom:6px">'+
       '<div class="grow"><span class="chip green">Sugerido</span> <b>'+esc(sug.x.j.nombre)+'</b>'+
       '<div class="mini muted">'+linea(sug.p)+etiquetaPuesto(sug.x.j,sl.role)+'</div></div>'+
@@ -5378,7 +4940,7 @@ function campoSVG(lista){
     const k=x.r.slot;
     if(Number.isInteger(k)&&k<slots.length&&ocupa[k]===null) ocupa[k]=x; else extra.push(x);
   });
-  extra.forEach(x=>{ const k=ocupa.indexOf(null); if(k>=0) ocupa[k]=x; });
+  extra.forEach(x=>{ const k=ocupa.indexOf(null); if(k>=0){ ocupa[k]=x; x.r.slot=k; } });
   let svg='<svg viewBox="0 0 340 500" style="width:100%;max-width:340px;display:block;margin:0 auto" role="img" aria-label="Alineación">'+
     '<defs><pattern id="pvRayas" width="6" height="10" patternUnits="userSpaceOnUse">'+
     '<rect width="3" height="10" fill="#1f4e9c"/><rect x="3" width="3" height="10" fill="#c0392b"/></pattern></defs>'+
@@ -6656,6 +6218,629 @@ try{
     '<p style="color:#63768F;font-size:13px">Si tienes una copia de seguridad, recárgala. '+
     'Si el problema sigue, avísame con este mensaje.</p></div>';
 }
+
+</script>
+<script>
+/* ══════════════════════════════════════════════════════
+   USO DE LA APP · qué se usa de verdad y qué sobra
+   Se cuenta cada vez que se abre una pantalla, en cada
+   dispositivo, y se junta al sincronizar. Además se mira si
+   hay datos guardados en cada función.
+   ══════════════════════════════════════════════════════ */
+const K_DISP='cuadernoDispositivo';
+function dispositivo(){
+  let d=localStorage.getItem(K_DISP);
+  if(!d){ d='d'+uid(); localStorage.setItem(K_DISP,d); }
+  return d;
+}
+/* clave, nombre, pantallas, datos guardados (o null si la función no guarda nada propio) */
+const FUNCIONES=[
+  ['plan','Planificación',['plan','microciclo'],()=>D.plan.filter(p=>p.hecho||(p.notas||'').trim()).length],
+  ['modelo','Modelo de juego',['modelo','editmodelo'],()=>D.modeloMod?1:0],
+  ['tactica','Pizarra táctica',['tactica'],()=>(((D.tactica||{}).objetos)||[]).length],
+  ['gastos','Gastos',['gastos'],()=>(D.gastos||[]).length],
+  ['nube','Sincronizar',['nube'],()=>D.ultimaSync?1:0],
+  ['copias','Copias',['copias'],()=>D.ultimaCopia?1:0],
+  ['privacidad','Privacidad',['privacidad'],null],
+  ['minutos','Minutos',['minutos'],null],
+  ['balance','Balance',['balance'],null],
+  ['micros','Microciclos',['micros','duomc'],null],
+  ['temporada','Temporada',['temporada'],()=>(D.archivo||[]).length],
+  ['liga','Liga interna',['liga','reglamento'],()=>D.registros.filter(r=>r.liga&&Object.keys(r.liga).length).length],
+  ['preparar','Preparar alineación',['preparar'],()=>D.registros.filter(r=>r.minutosPrev!=null).length],
+  ['pizarra','Pizarra de cambios',['pizarra'],null],
+  ['duo','Comparar jugadores',['duo'],null]
+];
+const OCULTABLES=['plan','modelo','tactica','gastos','minutos','balance','micros','temporada','liga'];
+let relojUso=null;
+function registrarUso(v){
+  if(!v||!D) return;
+  D.uso=D.uso||{};
+  const d=dispositivo();
+  const u=D.uso[d]=D.uso[d]||{quien:yo()||'',desde:Date.now(),v:{}};
+  if(yo()) u.quien=yo();
+  const x=u.v[v]||[0,0]; x[0]++; x[1]=Date.now(); u.v[v]=x;
+  clearTimeout(relojUso); relojUso=setTimeout(()=>{ try{ salvar(); }catch(e){} },8000);
+}
+/* fusión: de cada dispositivo, la versión con más aperturas */
+function fusionarUso(a,b){
+  const R={}, tot=u=>Object.values((u&&u.v)||{}).reduce((s,x)=>s+(x[0]||0),0);
+  Object.keys(Object.assign({},a||{},b||{})).forEach(k=>{
+    const x=(a||{})[k], y=(b||{})[k];
+    R[k]= !x ? y : !y ? x : (tot(x)>=tot(y)?x:y);
+  });
+  return R;
+}
+function usoDe(f){
+  let n=0, ultimo=0;
+  Object.values(D.uso||{}).forEach(u=>f[2].forEach(v=>{
+    const x=(u.v||{})[v]; if(x){ n+=x[0]; ultimo=Math.max(ultimo,x[1]); }
+  }));
+  return {n,ultimo,datos:f[3]?f[3]():null};
+}
+const DIAS_DECIDIR=21;
+function mostrarUso(){
+  const disp=Object.values(D.uso||{});
+  const desde=disp.length?Math.min(...disp.map(u=>u.desde||Date.now())):Date.now();
+  const dias=Math.floor((Date.now()-desde)/864e5);
+  const quienes=[...new Set(disp.map(u=>u.quien).filter(Boolean))];
+  document.getElementById('usoSub').innerHTML=
+    'Se cuenta cada pantalla que abrís'+(quienes.length?' ('+quienes.map(esc).join(' y ')+')':'')+
+    ' desde el '+fechaLarga(new Date(desde-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10))+
+    ', y se junta al sincronizar. También se mira si cada función tiene datos guardados. '+
+    (dias<DIAS_DECIDIR?'<b>Llevamos '+dias+' días: a partir de '+DIAS_DECIDIR+' el veredicto es fiable.</b>'
+      :'Con '+dias+' días de uso el veredicto es fiable.')+
+    ' Ocultar solo lo quita del menú; los datos se quedan.';
+  const filas=FUNCIONES.map(f=>{
+    const u=usoDe(f), hace=u.ultimo?Math.floor((Date.now()-u.ultimo)/864e5):null;
+    const sinDatos=u.datos===0, nada=u.n===0;
+    let estado, color;
+    if(nada&&(sinDatos||u.datos===null)){ estado=dias>=DIAS_DECIDIR?'Sin uso':'Sin uso todavía'; color='garnet'; }
+    else if(u.n<=2&&(hace===null||hace>14)){ estado='Poco uso'; color='amber'; }
+    else { estado='Se usa'; color='green'; }
+    return {f,u,hace,estado,color,peso:color==='garnet'?0:color==='amber'?1:2};
+  }).sort((a,b)=>a.peso-b.peso||a.u.n-b.u.n);
+  const oc=new Set(D.ocultos||[]);
+  document.getElementById('usoResumen').innerHTML=
+    celda(filas.filter(x=>x.color==='garnet').length,'sin uso')+
+    celda(filas.filter(x=>x.color==='amber').length,'poco uso')+
+    celda(filas.filter(x=>x.color==='green').length,'se usan')+
+    celda(oc.size,'ocultas');
+  document.getElementById('usoLista').innerHTML=filas.map(x=>{
+    const k=x.f[0], puede=OCULTABLES.includes(k);
+    return '<div class="card"><div class="uso-fila">'+
+      '<span class="grow"><b>'+esc(x.f[1])+'</b>'+(oc.has(k)?' <span class="chip gris">oculta</span>':'')+
+      '<span class="mini muted" style="display:block;margin-top:3px">'+
+      (x.u.n?x.u.n+' veces · última hace '+(x.hace===0?'menos de un día':x.hace+' días'):'No se ha abierto')+
+      (x.u.datos!==null?' · '+x.u.datos+' datos guardados':'')+'</span></span>'+
+      '<span class="chip '+x.color+'">'+x.estado+'</span></div>'+
+      (puede?'<button class="btn xs'+(oc.has(k)?' primary':'')+'" style="margin-top:9px" onclick="alternarOculta(\''+k+'\')">'+
+        (oc.has(k)?'Volver a mostrar en el menú':'Ocultar del menú')+'</button>':'')+
+    '</div>';
+  }).join('');
+}
+function alternarOculta(k){
+  const s=new Set(D.ocultos||[]);
+  s.has(k)?s.delete(k):s.add(k);
+  D.ocultos=[...s]; salvar(); mostrarUso();
+  aviso(s.has(k)?'Oculta del menú':'Vuelve al menú');
+}
+
+/* ══════════════════════════════════════════════════════
+   EQUIPOS POR TAREA · petos y resultado de cada tarea
+   s.equipos = { tareaId: { n, de: {jugadorId: 0..n-1}, ganan: [i…] } }
+   ══════════════════════════════════════════════════════ */
+const PETOS=[['Azul','#2f6fd6'],['Rojo','#d64545'],['Amarillo','#e8b923'],['Verde','#2e9e5b']];
+let tareaEquipos=null;
+function presentesSesion(s){
+  return D.registros.filter(r=>r.sesionId===s.id&&r.asistio&&!r.baja&&!r.pref)
+    .map(r=>({r,j:D.jugadores.find(x=>x.id===r.jugadorId)})).filter(x=>x.j);
+}
+function nivelEntreno(j,s){
+  const p=puntuarJugador(j,s.id);
+  return (p.nota==='—'?5:+p.nota)/10*0.7+(p.asist/100)*0.3;
+}
+function eqDe(s,tid){ s.equipos=s.equipos||{}; return s.equipos[tid]; }
+function eqAbrir(tid){ tareaEquipos= tareaEquipos===tid?null:tid; mostrarTareasSesion(); }
+function eqEquilibrar(tid,n){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  s.equipos=s.equipos||{};
+  n=n||((eqDe(s,tid)||{}).n)||2;
+  const lista=presentesSesion(s).map(x=>({...x,v:nivelEntreno(x.j,s)}));
+  const por=lista.filter(x=>x.j.tipo==='portero').sort((a,b)=>b.v-a.v);
+  const cam=lista.filter(x=>x.j.tipo!=='portero').sort((a,b)=>b.v-a.v);
+  const de={}, suma=Array(n).fill(0), cuenta=Array(n).fill(0);
+  /* porteros repartidos primero; luego cada jugador al equipo con menos gente y, a igualdad, menos nivel */
+  por.forEach((x,i)=>{ const k=i%n; de[x.j.id]=k; cuenta[k]++; });
+  cam.forEach(x=>{
+    let k=0;
+    for(let i=1;i<n;i++) if(cuenta[i]<cuenta[k]||(cuenta[i]===cuenta[k]&&suma[i]<suma[k])) k=i;
+    de[x.j.id]=k; suma[k]+=x.v; cuenta[k]++;
+  });
+  s.equipos[tid]={n,de,ganan:[]};
+  marcar(s); salvar(); tareaEquipos=tid; mostrarTareasSesion();
+  aviso('Equipos igualados por nota y asistencia');
+}
+function eqComoAnterior(tid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  const i=(s.tareas||[]).indexOf(tid);
+  s.equipos=s.equipos||{};
+  const prev=(s.tareas||[]).slice(0,i).reverse().map(t=>eqDe(s,t)).find(Boolean);
+  if(!prev){ aviso('Ninguna tarea anterior tiene equipos','warn'); return; }
+  s.equipos[tid]={n:prev.n,de:Object.assign({},prev.de),ganan:[]};
+  marcar(s); salvar(); mostrarTareasSesion(); aviso('Mismos equipos');
+}
+function eqCambiar(tid,jid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); const e=s&&eqDe(s,tid); if(!e) return;
+  const k=e.de[jid];
+  e.de[jid]= k==null?0:(k+1)%e.n;
+  marcar(s); salvar(); mostrarTareasSesion();
+}
+function eqGanador(tid,k){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); const e=s&&eqDe(s,tid); if(!e) return;
+  if(k==='empate') e.ganan= e.ganan.length===e.n?[]:[...Array(e.n).keys()];
+  else e.ganan= e.ganan.length===1&&e.ganan[0]===k?[]:[k];
+  marcar(s); salvar(); mostrarTareasSesion();
+}
+function eqQuitar(tid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||!s.equipos) return;
+  delete s.equipos[tid]; marcar(s); salvar(); mostrarTareasSesion();
+}
+function eqResumen(s,tid){
+  const e=eqDe(s,tid); if(!e) return '';
+  const cuenta=Array(e.n).fill(0); Object.values(e.de).forEach(k=>{ if(k<e.n) cuenta[k]++; });
+  const res= !e.ganan.length?'sin resultado' : e.ganan.length===e.n?'empate'
+    : 'gana '+PETOS[e.ganan[0]][0].toLowerCase();
+  return '<div class="eq-mini">'+cuenta.map((c,i)=>'<span><i class="pt" style="background:'+PETOS[i][1]+'"></i>'+c+'</span>').join('')+
+    '<span>· '+res+'</span></div>';
+}
+function eqPanel(s,tid){
+  const e=eqDe(s,tid), pres=presentesSesion(s);
+  if(!e) return '<div class="eq-panel"><p class="mini muted" style="margin:0 0 9px">'+pres.length+
+    ' presentes. Elige cuántos equipos y se igualan por nota y asistencia de los últimos entrenos.</p>'+
+    '<div class="row" style="gap:6px;flex-wrap:wrap">'+[2,3,4].map(n=>
+      '<button class="btn xs primary" onclick="eqEquilibrar(\''+tid+'\','+n+')">'+n+' equipos</button>').join('')+
+    '<button class="btn xs" onclick="eqComoAnterior(\''+tid+'\')">Como la tarea anterior</button></div></div>';
+  const grupos=[...Array(e.n)].map(()=>[]), sin=[];
+  pres.forEach(x=>{ const k=e.de[x.j.id]; (k!=null&&k<e.n?grupos[k]:sin).push(x); });
+  const chip=(x,col)=>'<button class="eq-chip" onclick="eqCambiar(\''+tid+'\',\''+x.j.id+'\')">'+
+    (col?'<i class="pt" style="background:'+col+'"></i>':'')+
+    (x.j.dorsal!=null&&x.j.dorsal!==''?'<b>'+esc(x.j.dorsal)+'</b> ':'')+esc((x.j.nombre||'').split(' ')[0])+
+    (x.j.tipo==='portero'?' 🧤':'')+'</button>';
+  return '<div class="eq-panel">'+
+    '<div class="row" style="gap:6px;flex-wrap:wrap">'+
+      [2,3,4].map(n=>'<button class="btn xs'+(n===e.n?' primary':'')+'" onclick="eqEquilibrar(\''+tid+'\','+n+')">'+n+'</button>').join('')+
+      '<button class="btn xs" onclick="eqEquilibrar(\''+tid+'\')">Igualar otra vez</button>'+
+      '<button class="btn xs" onclick="eqComoAnterior(\''+tid+'\')">Como la anterior</button></div>'+
+    '<p class="mini muted" style="margin:8px 0 0">Toca un jugador para pasarlo al siguiente peto.</p>'+
+    '<div class="eq-cols">'+grupos.map((g,i)=>'<div class="eq-col"><h5><i class="pt" style="background:'+PETOS[i][1]+'"></i>'+
+      PETOS[i][0]+' · '+g.length+'</h5><div class="eq-chips">'+g.map(x=>chip(x)).join('')+'</div></div>').join('')+'</div>'+
+    (sin.length?'<p class="mini muted" style="margin:9px 0 5px">Sin peto (han llegado después)</p><div class="eq-chips">'+
+      sin.map(x=>chip(x)).join('')+'</div>':'')+
+    '<div class="eq-res"><span class="mini muted">Resultado:</span>'+
+      [...Array(e.n).keys()].map(i=>'<button class="btn xs'+(e.ganan.length===1&&e.ganan[0]===i?' on':'')+
+        '" onclick="eqGanador(\''+tid+'\','+i+')">Gana '+PETOS[i][0].toLowerCase()+'</button>').join('')+
+      '<button class="btn xs'+(e.ganan.length===e.n?' on':'')+'" onclick="eqGanador(\''+tid+'\',\'empate\')">Empate</button>'+
+      '<button class="btn xs" style="margin-left:auto" onclick="eqQuitar(\''+tid+'\')">Quitar equipos</button></div>'+
+  '</div>';
+}
+
+/* ══════════════════════════════════════════════════════
+   LIGA INTERNA · reglamento editable, suma y resta
+   Automático: asistencia, tareas ganadas, goles, asistencias,
+   partido jugado y portería a cero. Lo demás se anota a mano
+   en la sesión o en el acta (r.liga = {norma: veces}).
+   ══════════════════════════════════════════════════════ */
+const REGLAS_BASE=[
+  /* clave, nombre, puntos, dónde, automática */
+  ['asiste','Viene a entrenar',1,'entreno',1],
+  ['tarea_gana','Gana una tarea',3,'entreno',1],
+  ['tarea_empata','Empata una tarea',1,'entreno',1],
+  ['mvp_entreno','Mejor de la sesión',3,'entreno',0],
+  ['compite','Compite al máximo',1,'ambos',0],
+  ['ayuda','Habla y ayuda al compañero',1,'ambos',0],
+  ['tarde','Llega tarde',-1,'ambos',0],
+  ['falta','Falta sin avisar',-2,'entreno',0],
+  ['actitud','Mala actitud',-2,'ambos',0],
+  ['juega','Juega el partido',1,'partido',1],
+  ['gol','Gol',2,'partido',1],
+  ['pase_gol','Asistencia de gol',1,'partido',1],
+  ['cero','Portería a cero (portero)',3,'partido',1],
+  ['parada','Parada decisiva',1,'partido',0],
+  ['mvp_partido','Mejor del partido',3,'partido',0],
+  ['amarilla','Tarjeta amarilla',-1,'partido',0],
+  ['roja','Tarjeta roja',-3,'partido',0],
+  ['protesta','Protesta al árbitro',-2,'partido',0]
+];
+function ligaCfg(){
+  if(!D.liga) D.liga={desde:'',reglas:{},mod:0};
+  const L=D.liga; L.reglas=L.reglas||{};
+  REGLAS_BASE.forEach(([k,n,p,a,auto])=>{
+    if(!L.reglas[k]) L.reglas[k]={nombre:n,puntos:p,ambito:a,auto:!!auto,activa:true};
+  });
+  return L;
+}
+const reglasLista=()=>Object.entries(ligaCfg().reglas).map(([k,r])=>({k,...r}));
+const tipoLiga=t=>t==='entreno'?'entreno':(t==='partido'||t==='amistoso')?'partido':null;
+function ligaTocar(){ D.liga.mod=Date.now(); salvar(); }
+/* puntos de cada jugador en un periodo: {id:{total, por:{norma:[veces,puntos]}}} */
+function puntosLiga(desde,hasta){
+  const L=ligaCfg(), R=L.reglas, out={};
+  const sumar=(jid,k,veces)=>{
+    const r=R[k]; if(!r||!r.activa||!veces) return;
+    const o=out[jid]=out[jid]||{total:0,por:{}};
+    const x=o.por[k]=o.por[k]||[0,0]; x[0]+=veces; x[1]+=veces*(+r.puntos||0); o.total+=veces*(+r.puntos||0);
+  };
+  const ini=[desde,L.desde].filter(Boolean).sort().pop()||'';
+  const hoy=hoyISO();   /* las sesiones planificadas a futuro todavía no cuentan */
+  D.sesiones.filter(s=>tipoLiga(s.tipo)&&s.fecha<=hoy&&(!ini||s.fecha>=ini)&&(!hasta||s.fecha<=hasta)).forEach(s=>{
+    const regs=D.registros.filter(r=>r.sesionId===s.id), tl=tipoLiga(s.tipo);
+    if(tl==='entreno'){
+      regs.forEach(r=>{ if(r.asistio&&!r.baja&&!r.pref) sumar(r.jugadorId,'asiste',1); });
+      Object.values(s.equipos||{}).forEach(e=>{
+        if(!e.ganan||!e.ganan.length) return;
+        const empate=e.ganan.length===e.n;
+        Object.entries(e.de||{}).forEach(([jid,k])=>{
+          if(!regs.some(r=>r.jugadorId===jid&&r.asistio)) return;
+          if(empate) sumar(jid,'tarea_empata',1); else if(e.ganan.includes(k)) sumar(jid,'tarea_gana',1);
+        });
+      });
+    } else {
+      const gc=+((s.resultado||'').split('-')[1]);
+      regs.forEach(r=>{
+        if((r.estado||'titular')==='no'||!r.asistio) return;
+        sumar(r.jugadorId,'juega',1);
+        sumar(r.jugadorId,'gol',+r.goles||0);
+        sumar(r.jugadorId,'pase_gol',+r.asistencias||0);
+        const j=D.jugadores.find(x=>x.id===r.jugadorId);
+        if(j&&j.tipo==='portero'&&(r.estado||'titular')==='titular'&&(s.resultado||'').includes('-')&&gc===0)
+          sumar(r.jugadorId,'cero',1);
+      });
+    }
+    regs.forEach(r=>Object.entries(r.liga||{}).forEach(([k,v])=>sumar(r.jugadorId,k,+v||0)));
+  });
+  return out;
+}
+/* ─── anotar en la sesión o en el acta ─── */
+let normaActiva=null, ligaQuitar=false;
+function ligaBloque(s){
+  const tl=tipoLiga(s.tipo); if(!tl) return '';
+  const manuales=reglasLista().filter(r=>!r.auto&&r.activa&&(r.ambito==='ambos'||r.ambito===tl));
+  if(!manuales.length) return '';
+  if(!normaActiva||!manuales.some(r=>r.k===normaActiva)) normaActiva=manuales[0].k;
+  const regs=D.registros.filter(r=>r.sesionId===s.id&&(tl==='entreno'?(r.asistio||(r.liga&&Object.keys(r.liga).length)):(r.estado||'titular')!=='no'));
+  const hoy=puntosLiga(s.fecha,s.fecha);
+  const top=Object.entries(hoy).sort((a,b)=>b[1].total-a[1].total).slice(0,3)
+    .map(([id,o])=>{ const j=D.jugadores.find(x=>x.id===id); return j?esc((j.nombre||'').split(' ')[0])+' '+(o.total>0?'+':'')+o.total:''; })
+    .filter(Boolean).join(' · ');
+  const r0=ligaCfg().reglas[normaActiva];
+  return '<p class="eyebrow mt"><span>Liga interna</span><button class="btn xs'+(ligaQuitar?' primary':'')+
+      '" onclick="ligaQuitar=!ligaQuitar;refrescarLiga()">'+(ligaQuitar?'Quitando…':'Quitar')+'</button></p>'+
+    '<p class="mini muted" style="margin:-4px 0 9px">Elige la norma y toca al jugador. '+
+      (tl==='entreno'?'Asistencia y tareas ganadas se suman solas.':'Goles, asistencias, partido jugado y portería a cero se suman solos.')+
+      (top?' Hoy: '+top:'')+'</p>'+
+    '<div class="lg-reglas">'+manuales.map(r=>'<button class="btn xs'+(r.k===normaActiva?' primary':'')+
+      '" onclick="normaActiva=\''+r.k+'\';refrescarLiga()">'+esc(r.nombre)+' '+(r.puntos>0?'+':'')+r.puntos+'</button>').join('')+'</div>'+
+    '<div class="lg-jug">'+regs.map(r=>{
+      const j=D.jugadores.find(x=>x.id===r.jugadorId); if(!j) return '';
+      const v=(r.liga||{})[normaActiva]||0, t=(hoy[j.id]||{}).total||0;
+      return '<button onclick="ligaAnotar(\''+r.id+'\')"><span class="pts'+(t<0?' neg':'')+'">'+(t>0?'+':'')+t+'</span>'+
+        '<b>'+esc(j.dorsal??'')+'</b>'+esc((j.nombre||'').split(' ')[0])+(v?' ×'+v:'')+'</button>';
+    }).join('')+'</div>'+
+    '<p class="mini muted" style="margin:7px 0 0">'+esc(r0?r0.nombre:'')+(ligaQuitar?': toca para quitar una.':': toca para sumar una.')+'</p>';
+}
+function ligaAnotar(rid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva);
+  if(s&&esPartido(s.tipo)&&siCerrada()) return;
+  const r=D.registros.find(x=>x.id===rid); if(!r||!normaActiva) return;
+  r.liga=r.liga||{};
+  const v=(r.liga[normaActiva]||0)+(ligaQuitar?-1:1);
+  if(v<=0) delete r.liga[normaActiva]; else r.liga[normaActiva]=v;
+  marcar(r); salvar(); refrescarLiga();
+}
+function refrescarLiga(){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  const el=document.getElementById(esPartido(s.tipo)?'aLiga':'sLiga');
+  if(el) el.innerHTML=ligaBloque(s);
+}
+/* ─── clasificación ─── */
+let ligaPeriodo='temporada';
+function rangoLiga(){
+  const h=hoyISO();
+  if(ligaPeriodo==='mes'){ const d=new Date(h+'T12:00'); d.setDate(d.getDate()-30); return [d.toISOString().slice(0,10),h]; }
+  if(ligaPeriodo==='semana') return [lunesDe(h),h];
+  return ['',''];
+}
+function clasificacion(){
+  const [a,b]=rangoLiga(), P=puntosLiga(a,b);
+  return D.jugadores.filter(j=>equipoDe(j)==='B')
+    .map(j=>({j,o:P[j.id]||{total:0,por:{}}}))
+    .sort((x,y)=>y.o.total-x.o.total||(x.j.dorsal??99)-(y.j.dorsal??99));
+}
+let ligaAbierto=null;
+function mostrarLiga(){
+  const L=ligaCfg();
+  document.getElementById('lgSub').textContent='Puntos por competir en las tareas, entrenar y lo que pasa en los partidos. '+
+    (L.desde?'Cuenta desde el '+fechaLarga(L.desde)+'.':'Cuenta toda la temporada.');
+  document.getElementById('lgPeriodo').innerHTML=[['temporada','Temporada'],['mes','30 días'],['semana','Esta semana']]
+    .map(([k,t])=>'<button class="'+(k===ligaPeriodo?'on':'')+'" onclick="ligaPeriodo=\''+k+'\';mostrarLiga()">'+t+'</button>').join('');
+  const C=clasificacion(), max=Math.max(1,...C.map(x=>Math.abs(x.o.total)));
+  const tareas=C.reduce((s,x)=>s+((x.o.por.tarea_gana||[0])[0]),0);
+  const neg=C.reduce((s,x)=>s+Object.entries(x.o.por).filter(([k,v])=>v[1]<0).reduce((a,[k,v])=>a+v[0],0),0);
+  document.getElementById('lgResumen').innerHTML=celda(C.length,'jugadores')+celda(C[0]?C[0].o.total:0,'el líder')+
+    celda(tareas,'tareas ganadas')+celda(neg,'sanciones');
+  const R=ligaCfg().reglas;
+  document.getElementById('lgLista').innerHTML=C.length?C.map((x,i)=>{
+    const det=Object.entries(x.o.por).sort((a,b)=>b[1][1]-a[1][1]);
+    return '<button class="card tap" onclick="ligaAbierto=ligaAbierto===\''+x.j.id+'\'?null:\''+x.j.id+'\';mostrarLiga()">'+
+      '<div class="row"><span class="lg-pos">'+(i+1)+'</span>'+avatar(x.j,34)+
+      '<span class="grow"><b style="font-size:15px">'+esc(x.j.nombre)+'</b>'+
+      '<div class="lg-barra"><div class="'+(x.o.total<0?'neg':'')+'" style="width:'+Math.round(100*Math.abs(x.o.total)/max)+'%"></div></div></span>'+
+      '<b class="num" style="font-size:20px;margin-left:8px">'+x.o.total+'</b></div>'+
+      (ligaAbierto===x.j.id?'<div style="margin-top:10px;text-align:left">'+(det.length?det.map(([k,v])=>
+        '<div class="spread mini" style="padding:4px 0;border-top:1px solid var(--line)"><span>'+esc((R[k]||{}).nombre||k)+' ×'+v[0]+'</span>'+
+        '<b class="num">'+(v[1]>0?'+':'')+v[1]+'</b></div>').join(''):'<span class="mini muted">Sin puntos en este periodo.</span>')+'</div>':'')+
+    '</button>';
+  }).join(''):'<div class="card">'+vacio('Aún no hay jugadores en la plantilla.')+'</div>';
+}
+function mostrarReglamento(){
+  const L=ligaCfg();
+  document.getElementById('rgDesde').value=L.desde||'';
+  const grupos=[['entreno','En los entrenos'],['partido','En los partidos'],['ambos','En entrenos y partidos']];
+  document.getElementById('rgLista').innerHTML=grupos.map(([a,t])=>{
+    const rs=reglasLista().filter(r=>r.ambito===a); if(!rs.length) return '';
+    return '<p class="eyebrow mt">'+t+'</p><div class="card">'+rs.map(r=>
+      '<div class="regla'+(r.activa?'':' off')+'">'+
+      '<span class="grow"><b style="font-size:14px">'+esc(r.nombre)+'</b><span class="mini muted" style="display:block">'+
+        (r.auto?'Se suma sola':'Se anota a mano')+'</span></span>'+
+      '<input type="number" inputmode="numeric" value="'+r.puntos+'" onchange="reglaPuntos(\''+r.k+'\',this.value)">'+
+      '<button class="btn xs" onclick="reglaActiva(\''+r.k+'\')">'+(r.activa?'Apagar':'Encender')+'</button>'+
+      (r.propia?'<button class="btn xs" onclick="reglaBorrar(\''+r.k+'\')">×</button>':'')+
+      '</div>').join('')+'</div>';
+  }).join('');
+}
+function reglaPuntos(k,v){ const r=ligaCfg().reglas[k]; if(!r) return; r.puntos=Math.round(+v||0); ligaTocar(); aviso('Puntos guardados'); }
+function reglaActiva(k){ const r=ligaCfg().reglas[k]; if(!r) return; r.activa=!r.activa; ligaTocar(); mostrarReglamento(); }
+function reglaBorrar(k){ if(!confirm('¿Borrar esta norma? Los puntos ya anotados dejan de contar.')) return;
+  delete ligaCfg().reglas[k]; ligaTocar(); mostrarReglamento(); }
+function reglaNueva(){
+  const n=document.getElementById('rgNombre').value.trim(); if(!n){ aviso('Escribe la norma','warn'); return; }
+  const k='p'+uid();
+  ligaCfg().reglas[k]={nombre:n,puntos:Math.round(+document.getElementById('rgPuntos').value||0),
+    ambito:document.getElementById('rgAmbito').value,auto:false,activa:true,propia:true};
+  document.getElementById('rgNombre').value=''; ligaTocar(); mostrarReglamento(); aviso('Norma añadida');
+}
+function ligaDesde(v){ ligaCfg().desde=v||''; ligaTocar(); aviso(v?'La liga cuenta desde el '+fechaLarga(v):'Cuenta toda la temporada'); }
+function pdfLiga(){
+  const C=clasificacion(), R=ligaCfg().reglas;
+  const tit={temporada:'Temporada',mes:'Últimos 30 días',semana:'Esta semana'}[ligaPeriodo];
+  let h=docCab('Liga interna',tit+' · '+fechaLarga(hoyISO()));
+  h+='<table class="doc-lista"><thead><tr><th style="width:34px">Pos.</th><th style="width:36px">Nº</th><th>Jugador</th>'+
+    '<th>Lo que más suma</th><th style="width:60px">Puntos</th></tr></thead><tbody>'+
+    C.map((x,i)=>{
+      const mejor=Object.entries(x.o.por).filter(([k,v])=>v[1]>0).sort((a,b)=>b[1][1]-a[1][1]).slice(0,2)
+        .map(([k,v])=>esc((R[k]||{}).nombre||k)+' ×'+v[0]).join(' · ');
+      return '<tr><td class="c"><b>'+(i+1)+'</b></td><td class="c">'+esc(x.j.dorsal??'')+'</td><td>'+esc(x.j.nombre)+'</td>'+
+        '<td>'+(mejor||'—')+'</td><td class="c"><b>'+x.o.total+'</b></td></tr>';
+    }).join('')+'</tbody></table>';
+  h+=reglamentoTabla()+docPie();
+  imprimir(h,'Liga interna '+hoyISO());
+}
+function reglamentoTabla(){
+  const rs=reglasLista().filter(r=>r.activa);
+  const fila=r=>'<tr><td>'+esc(r.nombre)+'</td><td class="c"><b>'+(r.puntos>0?'+':'')+r.puntos+'</b></td></tr>';
+  return '<h4 class="doc-h">Reglamento</h4><table class="doc-lista"><thead><tr><th>Norma</th><th style="width:70px">Puntos</th></tr></thead><tbody>'+
+    rs.filter(r=>r.puntos>0).map(fila).join('')+rs.filter(r=>r.puntos<=0).map(fila).join('')+'</tbody></table>';
+}
+function pdfReglamento(){ imprimir(docCab('Reglamento de la liga interna','Lo que suma y lo que resta')+reglamentoTabla()+docPie(),'Reglamento'); }
+function fusionarLiga(a,b){ return (a&&b)?(((a.mod||0)>=(b.mod||0))?a:b):(a||b||null); }
+
+/* ══════════════════════════════════════════════════════
+   EL 8 O EL 11 EN EL ACTA · campo con huecos
+   ══════════════════════════════════════════════════════ */
+const FORMACIONES_F11=['4-3-3','4-4-2','4-2-3-1','3-5-2','3-4-3','4-1-4-1'];
+function formatoDe(s){ return s&&s.formato==='F11'?'F11':'F8'; }
+function formacionesDe(s){ return formatoDe(s)==='F11'?FORMACIONES_F11:FORMACIONES; }
+function setFormato(f){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||siCerrada()) return;
+  s.formato=f; s.formacion=formacionesDe(s)[0];
+  D.registros.filter(r=>r.sesionId===s.id).forEach(r=>{ if(Number.isInteger(r.slot)) delete r.slot; });
+  marcar(s); salvar(); refrescarCampo(); aviso(f==='F11'?'Fútbol 11 · 10 + portero':'Fútbol 8 · 7 + portero');
+}
+function setSistemaActa(f){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||siCerrada()) return;
+  if(!formacionesDe(s).includes(f)) return;
+  s.formacion=f; marcar(s); salvar(); refrescarCampo();
+}
+function refrescarCampo(){
+  if(vista==='acta'){ planActual=repartoMinutos(sesionActiva); mostrarCampoActa(); mostrarListaActa(); revisarMinimos(true); }
+  else mostrarPreparar();
+}
+function convocar(rid,si){
+  if(siCerrada()) return;
+  const r=D.registros.find(x=>x.id===rid); if(!r) return;
+  r.estado=si?'suplente':'no'; r.asistio=!!si; delete r.slot;
+  if(!si){ if(r.nota!=null) r.notaGuardada=r.nota; r.nota=null; }
+  marcar(r); salvar(); refrescarCampo();
+}
+function aBanquillo(rid){
+  if(siCerrada()) return;
+  const r=D.registros.find(x=>x.id===rid); if(!r) return;
+  r.estado='suplente'; delete r.slot; marcar(r); salvar(); slotActivo=null; refrescarCampo();
+}
+function sugerirActa(){ if(siCerrada()) return; sugerirGlobal(); }
+function mostrarCampoActa(){
+  const el=document.getElementById('aCampo'); if(!el) return;
+  const s=D.sesiones.find(x=>x.id===sesionActiva);
+  if(!s||esPrueba(s.tipo)){ el.innerHTML=''; return; }
+  if(!planActual) planActual=repartoMinutos(s.id);
+  const c=cfgPartido(), fmt=formatoDe(s);
+  const regs=D.registros.filter(r=>r.sesionId===s.id);
+  const jug=r=>D.jugadores.find(x=>x.id===r.jugadorId);
+  const tit=regs.filter(r=>(r.estado||'titular')==='titular');
+  const titC=tit.filter(r=>(jug(r)||{}).tipo!=='portero').length, titP=tit.length-titC;
+  const banco=regs.filter(r=>r.estado==='suplente'&&jug(r)), fuera=regs.filter(r=>r.estado==='no'&&jug(r));
+  const ficha=(r,acc,extra)=>{ const j=jug(r);
+    return '<button class="eq-chip" onclick="'+acc+'">'+(j.dorsal!=null&&j.dorsal!==''?'<b>'+esc(j.dorsal)+'</b> ':'')+
+      esc((j.nombre||'').split(' ')[0])+(j.tipo==='portero'?' 🧤':'')+(extra||'')+'</button>'; };
+  const dibujo=campoSVG(planActual), nHuecos=slotsDe(formacionDe(s)).length;
+  const gks=tit.filter(r=>(jug(r)||{}).tipo==='portero');
+  const usados=new Set(), sobran=[];
+  planActual.filter(x=>(x.r.estado||'titular')==='titular'&&!x.es).forEach(x=>{
+    const k=x.r.slot;
+    if(Number.isInteger(k)&&k<nHuecos&&!usados.has(k)) usados.add(k); else sobran.push(x.r);
+  });
+  const gkDibujado=(planActual.find(x=>(x.r.estado||'titular')==='titular'&&x.es)||{}).r;
+  gks.filter(r=>r!==gkDibujado).forEach(r=>sobran.push(r));
+  el.innerHTML='<div class="card" style="margin-bottom:13px">'+
+    '<div class="spread" style="margin-bottom:10px"><div class="seg" style="flex:1">'+
+      ['F8','F11'].map(f=>'<button class="'+(f===fmt?'on':'')+'" onclick="setFormato(\''+f+'\')">'+(f==='F8'?'Fútbol 8':'Fútbol 11')+'</button>').join('')+
+    '</div><span class="chip '+(titC===c.campo&&titP===1?'green':'amber')+'" style="margin-left:8px">'+titC+'+'+titP+'</span></div>'+
+    '<div class="grid2" style="align-items:end;margin-bottom:10px">'+
+      '<label class="field" style="margin:0"><span>Sistema</span><select onchange="setSistemaActa(this.value)">'+
+        formacionesDe(s).map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+f+'</option>').join('')+
+      '</select></label>'+
+      '<button class="btn" onclick="sugerirActa()">Sugerir el '+(c.campo+1)+'</button></div>'+
+    dibujo+
+    '<p class="mini muted" style="text-align:center;margin:8px 0 0">Toca un hueco o un jugador del campo para cambiarlo.</p>'+
+    (sobran.length?'<div class="alerta" style="margin-top:10px"><b>'+sobran.length+' titulares sin hueco</b>'+
+      'Toca para mandarlos al banquillo, o pulsa «Sugerir».<div class="banco">'+
+      sobran.map(r=>ficha(r,'aBanquillo(\''+r.id+'\')')).join('')+'</div></div>':'')+
+    '<div id="aSlot"></div>'+
+    '<p class="eyebrow" style="margin:14px 0 0">Banquillo · '+banco.length+'</p>'+
+    '<div class="banco">'+(banco.length?banco.map(r=>ficha(r,'convocar(\''+r.id+'\',0)',' <span class="muted">×</span>')).join(''):'<span class="mini muted">Nadie</span>')+'</div>'+
+    (fuera.length?'<p class="eyebrow" style="margin:12px 0 0">No convocados · toca para convocar</p>'+
+      '<div class="banco">'+fuera.map(r=>ficha(r,'convocar(\''+r.id+'\',1)')).join('')+'</div>':'')+
+  '</div>';
+  mostrarSlot();
+}
+
+</script>
+<script>
+/* ══════════════════════════════════════════════════════
+   MICROCONCEPTOS POR MICROCICLO
+   El objetivo del microciclo, bajado al jugador: un objetivo con balón
+   y uno sin balón (lo que se manda a Daniel) y, debajo, las conductas
+   pequeñas y observables que lo forman. Del jugador al colectivo.
+   mc: [con balón, sin balón, [microconceptos con balón], [sin balón], [portero]]
+   ══════════════════════════════════════════════════════ */
+const MICROCONCEPTOS={
+ 1:["Conducción con percepción periférica", "Repliegue intensivo tras pérdida", ["Conducción: superficie exterior o interior, balón a menos de un paso, mirada al juego", "Petición del balón: comunicación verbal y gestual antes de la recepción", "Pase raso: superficie interior, tenso, dirigido al pie más alejado del rival"], ["Repliegue: carrera hacia portería propia inmediata a la pérdida", "Posición defensiva: entre el par y la portería, en la línea balón-portería", "Comunicación defensiva: aviso de rival próximo y de marcas libres"], ["Posición base: apoyos a la anchura de hombros, flexión y peso en la parte anterior del pie", "Comunicación: dirección de la línea defensiva en cada acción"]],
+ 2:["Recepción perfilada en el inicio de juego", "Ocupación posicional en la estructura de salida", ["Perfil corporal abierto: el central recibe en el borde del área, orientado hacia el carril exterior", "Control orientado: primer contacto hacia el espacio libre, nunca hacia el presionador", "Descenso del pivote: se incrusta entre centrales con balón en poder del portero (1-3-3-1)", "Pase de seguridad: devolución al portero ante presión cerrada, sin conducción"], ["Estructura de salida: ocupación de su posición en 1-3-3-1 y en 1-2-4-1", "Disparador de ascenso: balón superando la línea media, el pivote progresa a la segunda línea", "Desmarque de apoyo: salida de la sombra del par para ofrecer línea de pase"], ["Saque en corto: pase raso al pie del central libre dentro del área", "Apoyo posterior: posición de pase de seguridad tras el primer pase"]],
+ 3:["Recepción en amplitud y desborde en 1x1", "Fijación de la amplitud máxima", ["Recepción en amplitud: extremo con apoyos sobre la línea de banda y perfil orientado al juego", "Control orientado progresivo: primer contacto hacia delante, atacando al defensor", "Desborde en 1x1: cambio de ritmo y de dirección hacia línea de fondo", "Pase atrás raso: desde línea de fondo hacia el punto de penalti"], ["Amplitud fija: extremos sobre la línea de banda hasta la recepción", "Fijación de centrales: el punta ocupa a los centrales para impedir la ayuda en banda", "Apoyo de soporte: el interior cercano se sitúa por detrás de la línea del balón"], ["Blocaje raso: caída lateral con mano superior por detrás del balón", "Posición en centro lateral: bisectriz entre balón y primer palo"]],
+ 4:["Control orientado tras recuperación y decisión vertical o de seguridad", "Presión orientada con cierre de línea de pase y anticipación", ["Percepción previa a la recuperación: localización del compañero libre antes del robo", "Decisión tras recuperación: progresión vertical con espacio, pase de seguridad sin él", "Primer pase tras robo: hacia delante en los primeros segundos de la transición"], ["Presión orientada: aproximación por el exterior cerrando la línea de pase interior", "Anticipación: llegada antes que el rival al balón dividido en 1x1 y 2x1", "Contrapresión: decisión en menos de cinco segundos entre presionar o temporizar y cubrir", "Cobertura: el segundo defensor protege la espalda del presionador"], ["Adelantamiento de la posición: portero-líbero con el bloque en presión alta", "Lectura del balón largo: atención al envío a la espalda de la línea defensiva"]],
+ 5:["Protección del balón ante marcaje individual", "Marcaje individual con referencia de balón", ["Desmarque previo: de apoyo o de ruptura para ganar ventaja antes de la recepción", "Protección: interposición del cuerpo entre rival y balón en la recepción", "Juego de cara: pase a un toque al recibir de espaldas con marcaje cercano"], ["Posición de perfil: control visual simultáneo de balón y par", "Distancia de marcaje: estrecha con balón próximo, cerrando al centro con balón lejano", "Interceptación: anticipación por delante del par cuando el pase lo permite", "Entrega de marca: comunicación del cambio de zona del par al compañero"], ["Organización de la marca: asignación verbal de marcas antes de cada reanudación", "Blocaje y caída: caída lateral hacia el lado del balón"]],
+ 6:["Selección de la opción más avanzada viable", "Ocupación de líneas de pase interiores", ["Escaneo: orientación visual por encima del hombro antes de la recepción", "Jerarquía de pase: punta, extremo y, en último lugar, interior", "Conservación: circulación de seguridad cuando la opción avanzada no es viable"], ["Desmarque entre líneas: el punta se sitúa a la espalda del mediocentro rival", "Ocupación de línea de pase: interiores fuera de la sombra de los rivales", "Comunicación ofensiva: indicaciones al poseedor («solo», «gira», «atrás»)"], ["Juego de pies progresivo: pase hacia delante con hombre libre detectado", "Control orientado bajo presión: primer contacto lejos del presionador"]],
+ 7:["Transición ofensiva según zona de recuperación", "Ocupación de espacios en el momento del robo", ["Recuperación en zona 3: finalización en un máximo de cuatro pases", "Recuperación en zona 2: un pase de seguridad y ataque", "Recuperación en zona 1: conservación y salida por carril exterior"], ["Apertura: los extremos ganan amplitud en el instante del robo", "Ruptura: el punta ataca la espalda de la línea defensiva rival", "Apoyo inmediato: el jugador más próximo ofrece línea de pase al recuperador"], ["Saque rápido con la mano: reanudación inmediata al compañero libre tras la parada", "Selección de zona: saque hacia el carril con más espacio"]],
+ 8:["Gestión de toques por zona", "Apoyo cercano al poseedor", ["Zona 1: toques libres, sin regate en el carril central", "Zona 2: máximo tres contactos con control orientado y pase", "Zona 3: libertad para el desborde y la finalización"], ["Apoyo cercano: línea de pase a distancia corta del poseedor", "Sincronización: desmarque en el momento en que el poseedor eleva la mirada", "Comunicación: aviso de presión por la espalda del poseedor"], ["Blocaje frontal: balones a media altura con manos en «W»", "Reanudación: juego en menos de dos segundos tras el blocaje"]],
+ 9:["Recepción en espacios libres", "Ocupación racional del espacio", ["Percepción del espacio: identificación del hueco antes de pedir el balón", "Recepción entre líneas: perfil abierto en el intervalo entre líneas rivales", "Escalonamiento: un jugador abandona la zona si dos coinciden en ella"], ["Ocupación racional: no se aproxima al balón si la zona ya está ocupada", "Desmarque de liberación: alejamiento para generar espacio a un compañero", "Distancias de relación: ni superposición ni desconexión entre compañeros"], ["Dirección de centrales: corrección verbal de su posición", "Posición según balón: ajuste a la ubicación del balón en cada momento"]],
+ 10:["Ejecución de la acción a balón parado lateral", "Defensa de la acción a balón parado lateral", ["Asignación de roles: cada jugador conoce su posición y su movimiento", "Sincronización: inicio del movimiento a la señal acordada", "Ejecución del envío: balón tenso a la zona acordada"], ["Marcaje previo: emparejamiento antes del saque", "Ataque al balón: el defensor sale al balón, no lo espera", "Despeje: orientado hacia fuera, nunca hacia el carril central"], ["Posición adelantada: ajuste ante saque de banda rival", "Salida aérea: decisión y comunicación («mía»)"]],
+ 11:["Consolidación: escaneo y opción más avanzada", "Consolidación: presión orientada y marcaje", ["Escaneo previo: percepción antes de cada recepción", "Jerarquía de pase: selección de la opción más avanzada viable", "Calidad de pase: raso y tenso al pie"], ["Presión orientada: cierre de línea de pase y anticipación", "Marcaje con referencia de balón: distancia según la posición del balón", "Contrapresión: reacción en menos de cinco segundos tras pérdida"], ["Repaso técnico: blocaje, caída y juego de pies", "Comunicación: dirección constante de la defensa"]],
+ 12:["Ejecución de acciones a balón parado de esquina", "Defensa mixta del saque de esquina", ["Roles: bloqueo o desmarque asignado a cada jugador", "Envío: balón a la zona acordada con la trayectoria acordada", "Ataque al primer palo: desmarque de ruptura con remate"], ["Defensa zonal: ocupación de la zona asignada antes del saque", "Defensa individual: el marcador mantiene contacto con su par", "Salida tras despeje: la línea sale de forma simultánea"], ["Organización: colocación de la defensa antes del saque", "Decisión: salida o permanencia, comunicada en voz alta"]],
+ 13:["Fijación en un carril", "Mantenimiento de la estructura durante la fijación", ["Circulación de atracción: juego en un carril para provocar la basculación rival", "Pase corto de seguridad: invitación a la presión del rival", "Momento del cambio: pase cuando el rival ha basculado"], ["Extremo lejano: amplitud mantenida sin aproximarse al balón", "Soporte: el interior cercano se sitúa por detrás de la línea del balón", "Evitar la acumulación: ningún jugador se superpone en el carril del balón"], ["Participación en circulación: apoyo posterior a los centrales", "Blocaje y caída: mantenimiento técnico"]],
+ 14:["Cambio de orientación al lado débil", "Preparación del cambio sin balón", ["Percepción del lado débil: orientación visual antes de la recepción", "Ejecución: cambio en uno o dos pases, raso o tenso", "Control orientado progresivo del receptor"], ["Amplitud en el lado débil: extremo lejano preparado para recibir", "Jugador puente: interiores como enlace del cambio", "Comunicación: indicación verbal del cambio"], ["Recolocación: desplazamiento con el cambio de carril del balón", "Puente con el pie: participación como apoyo del cambio"]],
+ 15:["Mecanismo de identidad completo", "Ocupación de los roles del mecanismo", ["Secuencia: fijación, cambio de orientación y 1x1 del extremo lejano", "Desborde hasta línea de fondo", "Pase atrás raso al jugador que llega en segunda línea"], ["Llegada al área: dos jugadores atacan el espacio del pase atrás", "Vigilancia: el pivote permanece como equilibrio defensivo", "Rol en el mecanismo: cada jugador conoce su función en cada fase"], ["Participación en la fijación con el pie", "Adelantamiento de la posición con el equipo en ataque"]],
+ 16:["Salida tras recuperación en bloque medio", "Organización del bloque medio", ["Primer pase tras robo: hacia el exterior, fuera de la zona de presión", "Conducción de liberación: solo para superar al presionador", "Conexión con el extremo abierto"], ["Altura del bloque: en la mitad del campo propio", "Distancia entre líneas: máximo quince metros", "Cierre interior: protección del carril central y concesión de bandas"], ["Posición según altura del bloque", "Dirección verbal de la distancia de la línea defensiva"]],
+ 17:["Lectura de la presión rival: progresar o conservar", "Activación de la presión desde bloque medio", ["Lectura previa de la presión rival", "Con presión: conservación y salida por carril exterior", "Sin presión: progresión por el carril central"], ["Disparadores: pase atrás, control deficiente o balón en banda", "Salto del primer presionador y aproximación del bloque", "Sin disparador: mantenimiento de la estructura del bloque"], ["Control de la espalda de la línea con el bloque en presión", "Comunicación del disparador"]],
+ 18:["Gestión de la posesión según el marcador", "Vigilancias defensivas en fase ofensiva", ["Con ventaja: posesión de seguridad y riesgo mínimo en zona 1", "Con desventaja: priorización de la opción vertical", "Conocimiento permanente del marcador y del tiempo"], ["Vigilancias: dos jugadores por detrás del balón en ataque", "Control del punta rival por parte del jugador en vigilancia", "Contrapresión: el vigilante es el primer presionador tras pérdida"], ["Portero-líbero: posición adelantada a la espalda de la línea defensiva", "Despeje con el pie fuera del área cuando sea necesario"]],
+ 19:["Ataque del fuera de juego rival", "Gestión de la línea de fuera de juego", ["Timing del desmarque: inicio en el momento del pase", "Percepción de la línea defensiva por el pasador", "Desmarque en diagonal para mantener la posición legal"], ["Línea defensiva: avance coordinado a la voz", "Habilitación: el defensor retrasado habilita a todos los rivales", "Disparador de avance: pase atrás del rival"], ["Dirección verbal del avance de la línea", "Salidas rasas a la espalda de la defensa"]],
+ 20:["Integración de la fase ofensiva", "Integración de la fase defensiva", ["Inicio, amplitud y mecanismo de identidad en contexto de partido", "Escaneo previo en cada recepción", "Selección de la opción más avanzada viable"], ["Bloque, presión y marcaje en contexto de partido", "Contrapresión de cinco segundos", "Comunicación y ayudas permanentes"], ["Repaso integrado del bloque", "Comunicación continua"]],
+ 21:["Ataque por carril exterior con ruptura al primer palo", "Acompañamiento y equilibrio en el ataque por banda", ["Desborde del extremo hasta línea de fondo", "Centro raso y tenso al primer palo", "Ruptura del punta al primer palo"], ["Llegada de segunda línea al segundo palo", "Ocupación de la frontal para el rechace", "Mantenimiento de la vigilancia"], ["Defensa del primer palo ante centros", "1x1: reducción del ángulo y espera"]],
+ 22:["Juego directo a la espalda de la línea defensiva", "Desmarque de ruptura en el momento justo", ["Percepción del espacio a la espalda antes del pase", "Condición del envío: solo con desmarque iniciado desde posición legal", "Pase al espacio, no al pie"], ["Ruptura desde detrás de la línea o del balón", "Trayectoria diagonal hacia portería", "Reajuste: nueva oferta de apoyo si el pase no se produce"], ["Juego de pies en largo a la espalda rival", "Decisión entre juego directo y juego corto según presión"]],
+ 23:["Gestión del ritmo de juego", "Lectura del desorden rival", ["Aceleración con ventaja: juego a uno o dos toques", "Pausa sin ventaja: circulación de seguridad y reinicio", "Conducción de atracción para liberar compañeros"], ["Adaptación de la movilidad al ritmo del equipo", "Oferta de apoyo seguro en fase de pausa", "Comunicación del ritmo («rápido», «tranquilo»)"], ["Decisión de inicio corto o largo según el rival", "Regulación del ritmo con la reanudación"]],
+ 24:["Salida del lado fuerte tras recuperación", "Basculación colectiva en tres carriles", ["Recuperación en banda: orientación del balón hacia el carril central", "Percepción del lado débil tras el robo", "Pase de seguridad previo a la progresión"], ["Basculación: desplazamiento colectivo hacia el carril del balón", "Cierre interior del extremo lejano", "Protección del carril central"], ["Desplazamiento con la basculación", "Dirección verbal del carril de cada defensor"]],
+ 25:["Finalización con oposición", "Defensa del área con oposición", ["Percepción de portería y portero antes del golpeo", "Golpeo raso y cruzado", "Alternativa: pase atrás al jugador de segunda línea"], ["Bloqueo de golpeo con el cuerpo", "Seguimiento del rematador hasta el final de la acción", "Prioridad: balón y, después, rechace"], ["Blocaje de golpeos rasos", "Desvío hacia fuera, nunca al carril central"]],
+ 26:["Consolidación ofensiva del bloque", "Consolidación defensiva del bloque", ["Mecanismo de identidad", "Gestión del ritmo", "Finalización"], ["Basculación en tres carriles", "Vigilancias según marcador", "Línea de fuera de juego"], ["Repaso técnico", "Comunicación"]],
+ 27:["Adaptación ofensiva a contextos variables con consigna", "Adaptación defensiva a contextos variables con consigna", ["Aplicación de la consigna en la acción siguiente", "Conocimiento del cambio en su demarcación", "Transmisión de la consigna al compañero"], ["Cambio de altura de bloque o de marcaje a la señal", "Comunicación verbal del cambio", "Mantenimiento de la distancia entre líneas tras el ajuste"], ["Transmisión de la consigna a la línea defensiva", "Recolocación según el nuevo plan"]],
+ 28:["Adaptación ofensiva autónoma", "Detección del cambio de planteamiento rival", ["Identificación de presión alta o bloque bajo del rival", "Ajuste sin indicación externa", "Comunicación del ajuste al equipo"], ["Detección del cambio de sistema rival", "Ajuste autónomo del marcaje", "Reorganización verbal del resto"], ["Detección precoz del cambio rival", "Dirección de la reorganización"]],
+ 29:["Variantes a balón parado", "Defensa del balón parado con variantes", ["Dominio de dos variantes por acción", "Selección de la variante según la respuesta rival", "Ejecución a la señal"], ["Reconocimiento y aviso de la acción rival", "Mantenimiento de marca o zona", "Salida simultánea tras el despeje"], ["Defensa del córner y colocación de la barrera", "Decisión de salida o permanencia"]],
+ 30:["Explotación de la superioridad numérica", "Defensa ante rival en inferioridad", ["Identificación del hombre libre", "Fijación del defensor y pase al libre", "Velocidad de ejecución antes de la reorganización rival"], ["Presión al poseedor con cobertura asegurada", "Cierre del único apoyo disponible", "Transición inmediata tras recuperación"], ["1x1: espera y reducción de ángulo", "Participación con el pie para generar superioridad"]],
+ 31:["Conservación en inferioridad numérica", "Defensa en inferioridad numérica", ["Protección del balón a la espera de apoyos", "Riesgo mínimo en zona 1", "Juego directo como alternativa ante bloqueo"], ["Temporización en lugar de entrada", "Prioridad defensiva: carril central y portería", "Comunicación para el repliegue de compañeros"], ["1x1 y golpeos rasos", "Dirección de la defensa en inferioridad"]],
+ 32:["Integración ofensiva del bloque", "Integración defensiva del bloque", ["Superioridades y gestión del ritmo en partido", "Mecanismo de identidad", "Finalización"], ["Inferioridades y basculación en partido", "Contrapresión de cinco segundos", "Comunicación y ayudas"], ["Repaso integrado", "Comunicación"]],
+ 33:["Polivalencia ofensiva en una segunda demarcación", "Polivalencia defensiva en una segunda demarcación", ["Conducta con balón propia de la segunda demarcación", "Aplicación de la palabra del puesto (serenidad, panorámica, atrevimiento, ruptura)", "Orientación corporal adaptada al nuevo espacio"], ["Tarea defensiva de la segunda demarcación", "Referencias de marcaje del nuevo puesto", "Coordinación con el compañero adyacente"], ["Juego de pies como central añadido", "Colocación en cada estructura de salida"]],
+ 34:["Permutas posicionales en fase ofensiva", "Coberturas ante permutas", ["Permuta con un compañero durante la acción", "Mantenimiento de la estructura pese a la rotación", "Oferta de línea de pase en la nueva posición"], ["Cobertura del espacio del jugador que progresa", "Comunicación de la permuta", "Reocupación de la posición al finalizar la acción"], ["Juego de pies y colocación", "Organización verbal de las rotaciones"]],
+ 35:["Autonomía en la selección del mecanismo ofensivo", "Autonomía en la activación de la presión", ["Selección autónoma entre mecanismo de identidad o juego directo", "Decisión fundamentada en el comportamiento rival", "Comunicación de la decisión al equipo"], ["Decisión del momento de presión", "Comunicación de la activación", "Respuesta coordinada del resto del equipo"], ["Decisión del tipo de reanudación", "Organización del equipo desde atrás"]],
+ 36:["Toma de decisiones y gestión del error", "Organización defensiva autónoma", ["Decisión sin dependencia del banquillo", "Reintento tras el error", "Corrección entre iguales"], ["Organización defensiva entre los propios jugadores", "Adaptación al rival sin indicaciones", "Comunicación y ayudas"], ["Decisión en salidas y despejes", "Liderazgo desde la portería"]],
+ 37:["Juego en espacios amplios", "Defensa en espacios amplios", ["Pases de mayor distancia y tensión", "Mayor amplitud y profundidad", "Oferta de apoyo a mayor distancia"], ["Mayor distancia de cobertura", "Repliegue con balón a la espalda", "Anticipación con más espacio por delante"], ["Portero-líbero en campo amplio", "Dominio del área grande"]],
+ 38:["Ataque en espacios amplios", "Control de la profundidad en espacios amplios", ["Cambios de orientación largos", "Conducción en espacio libre", "Llegada al área con más jugadores"], ["Control de la espalda en campo amplio", "Mantenimiento prolongado de la línea", "Basculación de mayor recorrido"], ["Portero-líbero", "Juego de pies en largo"]],
+ 39:["Repaso global de la fase ofensiva", "Repaso global de los movimientos sin balón en ataque", ["Inicio, amplitud y mecanismo de identidad", "Opción más avanzada viable", "Finalización"], ["Desmarques de apoyo y ruptura", "Ocupación racional del espacio", "Vigilancias"], ["Juego de pies", "Saque"]],
+ 40:["Repaso de la transición ofensiva", "Repaso global de la fase defensiva", ["Transición ofensiva por zonas", "Pase de seguridad tras robo", "Salida desde bloque"], ["Presión y contrapresión", "Bloque medio", "Línea de fuera de juego"], ["Colocación", "Comunicación"]],
+ 41:["Integración global con balón", "Integración global sin balón", ["Fase ofensiva completa en partido", "Toma de decisiones autónoma", "Gestión del ritmo"], ["Fase defensiva completa en partido", "Contrapresión de cinco segundos", "Comunicación y ayudas"], ["Repaso integrado", "Comunicación"]],
+ 42:["Competición con balón", "Competición sin balón", ["Aplicación global del modelo en partido", "Decisión bajo presión", "Finalización"], ["Presión, bloque y marcaje en competición", "Intensidad competitiva sostenida", "Comunicación y ayudas"], ["Repaso integrado", "Liderazgo"]],
+ 43:["Creatividad con balón", "Cooperación sin balón", ["Libertad creativa en la resolución", "Experimentación de recursos nuevos", "Participación de todos los jugadores"], ["Intensidad en cada acción", "Ayuda al compañero", "Juego limpio"], ["Juego libre", "Disfrute"]],
+ 44:["Evaluación de la evolución con balón", "Evaluación de la evolución sin balón", ["Autoevaluación de la fase ofensiva", "Objetivos para el periodo estival", "Aspecto de mayor mejora"], ["Autoevaluación de la fase defensiva", "Objetivos para el periodo estival", "Aspecto de mayor mejora"], ["Informe final de porteros", "Objetivos para el periodo estival"]]
+};
+/* el plan que tiene cada uno puede estar cambiado: solo se rellena donde el contenido sigue siendo el original */
+const MICRO_V=2;
+function completarMicroconceptos(){
+  let n=0;
+  D.plan.forEach(p=>{
+    if(p.micro&&(p.micro.v||1)<MICRO_V&&!p.micro.propio) delete p.micro;   /* versión anterior sin tocar: se pone la técnica */
+    if(p.micro) return;
+    const base=MICROCICLOS.find(m=>m[0]===p.mc), x=MICROCONCEPTOS[p.mc];
+    if(!x) return;
+    const original=base&&(p.dominante||'').trim()===base[1];
+    p.micro= original ? {cb:x[0],sb:x[1],mcb:x[2].slice(),msb:x[3].slice(),por:x[4].slice(),v:MICRO_V}
+      : {cb:'',sb:'',mcb:[],msb:[],por:[],v:MICRO_V};
+    n++;
+  });
+  return n;
+}
+const lineas=t=>String(t||'').split('\n').map(x=>x.replace(/^[·\-•\s]+/,'').trim()).filter(Boolean);
+function conceptoHTML(x){ const i=String(x).indexOf(':');
+  return i>0&&i<60?'<b>'+esc(x.slice(0,i))+'</b>'+esc(x.slice(i)):esc(x); }
+function microDe(mc){ const p=D.plan.find(x=>x.mc===mc)||{}; return p.micro||{cb:'',sb:'',mcb:[],msb:[],por:[]}; }
+function htmlMicro(m,compacto){
+  const lista=(t,arr)=>arr.length?'<p class="eyebrow" style="margin:10px 0 5px">'+t+'</p><ul class="micro-ul">'+
+    arr.map(x=>'<li>'+conceptoHTML(x)+'</li>').join('')+'</ul>':'';
+  return (m.cb||m.sb?'<div class="micro-obj">'+
+      (m.cb?'<div><span class="chip blue">Con balón</span> <b>'+esc(m.cb)+'</b></div>':'')+
+      (m.sb?'<div style="margin-top:6px"><span class="chip garnet">Sin balón</span> <b>'+esc(m.sb)+'</b></div>':'')+'</div>':'')+
+    lista('Microconceptos con balón',m.mcb||[])+lista('Microconceptos sin balón',m.msb||[])+
+    (compacto?'':lista('Portero',m.por||[]));
+}
+
+function equiposFila(s,tid){
+  const e=(s.equipos||{})[tid]; if(!e) return '';
+  const g=[...Array(e.n)].map(()=>[]);
+  Object.entries(e.de||{}).forEach(([jid,k])=>{ const j=D.jugadores.find(x=>x.id===jid); if(j&&k<e.n) g[k].push((j.dorsal!=null&&j.dorsal!==''?j.dorsal+' ':'')+(j.nombre||'').split(' ')[0]); });
+  return '<tr><td colspan="3"><b>Equipos</b>'+g.map((l,i)=>'<b>'+PETOS[i][0]+':</b> '+esc(l.join(', '))).join(' · ')+'</td></tr>';
+}
+function textoDaniel(mc){
+  const m=microDe(mc);
+  return 'MC'+String(mc).padStart(2,'0')+'\nCon balón: '+(m.cb||'—')+'\nSin balón: '+(m.sb||'—');
+}
+async function copiarDaniel(){
+  const t=textoDaniel(mcEdit);
+  try{ await navigator.clipboard.writeText(t); aviso('Copiado: pégalo en el mensaje a Daniel'); }
+  catch(e){ prompt('Copia este texto:',t); }
+}
+function pdfMicrociclo(){
+  const p=D.plan.find(x=>x.mc===mcEdit)||{}, m=microDe(mcEdit), b=bloqueDe(mcEdit);
+  let h=docCab('Microciclo '+String(mcEdit).padStart(2,'0'),b.nombre+' · '+(p.dominante||''));
+  h+='<table class="doc-meta"><tr><td><b>Objetivo con balón</b>'+esc(m.cb||'—')+'</td>'+
+    '<td><b>Objetivo sin balón</b>'+esc(m.sb||'—')+'</td></tr></table>';
+  [['Microconceptos con balón',m.mcb],['Microconceptos sin balón',m.msb],['Portero',m.por]].forEach(([t,l])=>{
+    if((l||[]).length) h+='<h4 class="doc-h">'+t+'</h4><ul class="doc-ul">'+l.map(x=>'<li>'+conceptoHTML(x)+'</li>').join('')+'</ul>';
+  });
+  if(p.notas) h+='<h4 class="doc-h">Notas</h4><p class="doc-p">'+esc(p.notas)+'</p>';
+  h+=docPie(); imprimir(h,'Microciclo '+mcEdit);
+}
+function pintarMicroHoy(){
+  const el=document.getElementById('hoyMicro'); if(!el) return;
+  const m=microDe(D.mc);
+  el.innerHTML= (m.cb||m.sb||(m.mcb||[]).length) ? '<details class="card micro-card"><summary><b>Objetivos de la semana</b>'+
+    '<span class="mini muted" style="display:block;margin-top:3px">'+esc(m.cb||'')+(m.cb&&m.sb?' · ':'')+esc(m.sb||'')+'</span></summary>'+
+    htmlMicro(m,false)+'</details>' : '';
+}
+function pintarMicroSesion(s){
+  const el=document.getElementById('sMicro'); if(!el||!s) return;
+  const m=microDe(s.mc);
+  el.innerHTML= (m.cb||m.sb||(m.mcb||[]).length) ? '<details class="card micro-card" style="margin-bottom:14px"><summary><b>Microconceptos del MC'+
+    String(s.mc).padStart(2,'0')+'</b><span class="mini muted" style="display:block;margin-top:3px">Lo que hay que ver y corregir hoy</span></summary>'+
+    htmlMicro(m,s.tipo!=='porteros')+'</details>' : '';
+}
+if(typeof D!=='undefined'&&D&&D.plan&&D.plan.length&&completarMicroconceptos()) salvar();
 
 </script>
 <div id="impresion"></div>
