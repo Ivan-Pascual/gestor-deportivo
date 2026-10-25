@@ -4008,6 +4008,629 @@ function cambiarQuien(){
 </script>
 <script>
 /* ══════════════════════════════════════════════════════
+   USO DE LA APP · qué se usa de verdad y qué sobra
+   Se cuenta cada vez que se abre una pantalla, en cada
+   dispositivo, y se junta al sincronizar. Además se mira si
+   hay datos guardados en cada función.
+   ══════════════════════════════════════════════════════ */
+const K_DISP='cuadernoDispositivo';
+function dispositivo(){
+  let d=localStorage.getItem(K_DISP);
+  if(!d){ d='d'+uid(); localStorage.setItem(K_DISP,d); }
+  return d;
+}
+/* clave, nombre, pantallas, datos guardados (o null si la función no guarda nada propio) */
+const FUNCIONES=[
+  ['plan','Planificación',['plan','microciclo'],()=>D.plan.filter(p=>p.hecho||(p.notas||'').trim()).length],
+  ['modelo','Modelo de juego',['modelo','editmodelo'],()=>D.modeloMod?1:0],
+  ['tactica','Pizarra táctica',['tactica'],()=>(((D.tactica||{}).objetos)||[]).length],
+  ['gastos','Gastos',['gastos'],()=>(D.gastos||[]).length],
+  ['nube','Sincronizar',['nube'],()=>D.ultimaSync?1:0],
+  ['copias','Copias',['copias'],()=>D.ultimaCopia?1:0],
+  ['privacidad','Privacidad',['privacidad'],null],
+  ['minutos','Minutos',['minutos'],null],
+  ['balance','Balance',['balance'],null],
+  ['micros','Microciclos',['micros','duomc'],null],
+  ['temporada','Temporada',['temporada'],()=>(D.archivo||[]).length],
+  ['liga','Liga interna',['liga','reglamento'],()=>D.registros.filter(r=>r.liga&&Object.keys(r.liga).length).length],
+  ['preparar','Preparar alineación',['preparar'],()=>D.registros.filter(r=>r.minutosPrev!=null).length],
+  ['pizarra','Pizarra de cambios',['pizarra'],null],
+  ['duo','Comparar jugadores',['duo'],null]
+];
+const OCULTABLES=['plan','modelo','tactica','gastos','minutos','balance','micros','temporada','liga'];
+let relojUso=null;
+function registrarUso(v){
+  if(!v||!D) return;
+  D.uso=D.uso||{};
+  const d=dispositivo();
+  const u=D.uso[d]=D.uso[d]||{quien:yo()||'',desde:Date.now(),v:{}};
+  if(yo()) u.quien=yo();
+  const x=u.v[v]||[0,0]; x[0]++; x[1]=Date.now(); u.v[v]=x;
+  clearTimeout(relojUso); relojUso=setTimeout(()=>{ try{ salvar(); }catch(e){} },8000);
+}
+/* fusión: de cada dispositivo, la versión con más aperturas */
+function fusionarUso(a,b){
+  const R={}, tot=u=>Object.values((u&&u.v)||{}).reduce((s,x)=>s+(x[0]||0),0);
+  Object.keys(Object.assign({},a||{},b||{})).forEach(k=>{
+    const x=(a||{})[k], y=(b||{})[k];
+    R[k]= !x ? y : !y ? x : (tot(x)>=tot(y)?x:y);
+  });
+  return R;
+}
+function usoDe(f){
+  let n=0, ultimo=0;
+  Object.values(D.uso||{}).forEach(u=>f[2].forEach(v=>{
+    const x=(u.v||{})[v]; if(x){ n+=x[0]; ultimo=Math.max(ultimo,x[1]); }
+  }));
+  return {n,ultimo,datos:f[3]?f[3]():null};
+}
+const DIAS_DECIDIR=21;
+function mostrarUso(){
+  const disp=Object.values(D.uso||{});
+  const desde=disp.length?Math.min(...disp.map(u=>u.desde||Date.now())):Date.now();
+  const dias=Math.floor((Date.now()-desde)/864e5);
+  const quienes=[...new Set(disp.map(u=>u.quien).filter(Boolean))];
+  document.getElementById('usoSub').innerHTML=
+    'Se cuenta cada pantalla que abrís'+(quienes.length?' ('+quienes.map(esc).join(' y ')+')':'')+
+    ' desde el '+fechaLarga(new Date(desde-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10))+
+    ', y se junta al sincronizar. También se mira si cada función tiene datos guardados. '+
+    (dias<DIAS_DECIDIR?'<b>Llevamos '+dias+' días: a partir de '+DIAS_DECIDIR+' el veredicto es fiable.</b>'
+      :'Con '+dias+' días de uso el veredicto es fiable.')+
+    ' Ocultar solo lo quita del menú; los datos se quedan.';
+  const filas=FUNCIONES.map(f=>{
+    const u=usoDe(f), hace=u.ultimo?Math.floor((Date.now()-u.ultimo)/864e5):null;
+    const sinDatos=u.datos===0, nada=u.n===0;
+    let estado, color;
+    if(nada&&(sinDatos||u.datos===null)){ estado=dias>=DIAS_DECIDIR?'Sin uso':'Sin uso todavía'; color='garnet'; }
+    else if(u.n<=2&&(hace===null||hace>14)){ estado='Poco uso'; color='amber'; }
+    else { estado='Se usa'; color='green'; }
+    return {f,u,hace,estado,color,peso:color==='garnet'?0:color==='amber'?1:2};
+  }).sort((a,b)=>a.peso-b.peso||a.u.n-b.u.n);
+  const oc=new Set(D.ocultos||[]);
+  document.getElementById('usoResumen').innerHTML=
+    celda(filas.filter(x=>x.color==='garnet').length,'sin uso')+
+    celda(filas.filter(x=>x.color==='amber').length,'poco uso')+
+    celda(filas.filter(x=>x.color==='green').length,'se usan')+
+    celda(oc.size,'ocultas');
+  document.getElementById('usoLista').innerHTML=filas.map(x=>{
+    const k=x.f[0], puede=OCULTABLES.includes(k);
+    return '<div class="card"><div class="uso-fila">'+
+      '<span class="grow"><b>'+esc(x.f[1])+'</b>'+(oc.has(k)?' <span class="chip gris">oculta</span>':'')+
+      '<span class="mini muted" style="display:block;margin-top:3px">'+
+      (x.u.n?x.u.n+' veces · última hace '+(x.hace===0?'menos de un día':x.hace+' días'):'No se ha abierto')+
+      (x.u.datos!==null?' · '+x.u.datos+' datos guardados':'')+'</span></span>'+
+      '<span class="chip '+x.color+'">'+x.estado+'</span></div>'+
+      (puede?'<button class="btn xs'+(oc.has(k)?' primary':'')+'" style="margin-top:9px" onclick="alternarOculta(\''+k+'\')">'+
+        (oc.has(k)?'Volver a mostrar en el menú':'Ocultar del menú')+'</button>':'')+
+    '</div>';
+  }).join('');
+}
+function alternarOculta(k){
+  const s=new Set(D.ocultos||[]);
+  s.has(k)?s.delete(k):s.add(k);
+  D.ocultos=[...s]; salvar(); mostrarUso();
+  aviso(s.has(k)?'Oculta del menú':'Vuelve al menú');
+}
+
+/* ══════════════════════════════════════════════════════
+   EQUIPOS POR TAREA · petos y resultado de cada tarea
+   s.equipos = { tareaId: { n, de: {jugadorId: 0..n-1}, ganan: [i…] } }
+   ══════════════════════════════════════════════════════ */
+const PETOS=[['Azul','#2f6fd6'],['Rojo','#d64545'],['Amarillo','#e8b923'],['Verde','#2e9e5b']];
+let tareaEquipos=null;
+function presentesSesion(s){
+  return D.registros.filter(r=>r.sesionId===s.id&&r.asistio&&!r.baja&&!r.pref)
+    .map(r=>({r,j:D.jugadores.find(x=>x.id===r.jugadorId)})).filter(x=>x.j);
+}
+function nivelEntreno(j,s){
+  const p=puntuarJugador(j,s.id);
+  return (p.nota==='—'?5:+p.nota)/10*0.7+(p.asist/100)*0.3;
+}
+function eqDe(s,tid){ s.equipos=s.equipos||{}; return s.equipos[tid]; }
+function eqAbrir(tid){ tareaEquipos= tareaEquipos===tid?null:tid; mostrarTareasSesion(); }
+function eqEquilibrar(tid,n){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  s.equipos=s.equipos||{};
+  n=n||((eqDe(s,tid)||{}).n)||2;
+  const lista=presentesSesion(s).map(x=>({...x,v:nivelEntreno(x.j,s)}));
+  const por=lista.filter(x=>x.j.tipo==='portero').sort((a,b)=>b.v-a.v);
+  const cam=lista.filter(x=>x.j.tipo!=='portero').sort((a,b)=>b.v-a.v);
+  const de={}, suma=Array(n).fill(0), cuenta=Array(n).fill(0);
+  /* porteros repartidos primero; luego cada jugador al equipo con menos gente y, a igualdad, menos nivel */
+  por.forEach((x,i)=>{ const k=i%n; de[x.j.id]=k; cuenta[k]++; });
+  cam.forEach(x=>{
+    let k=0;
+    for(let i=1;i<n;i++) if(cuenta[i]<cuenta[k]||(cuenta[i]===cuenta[k]&&suma[i]<suma[k])) k=i;
+    de[x.j.id]=k; suma[k]+=x.v; cuenta[k]++;
+  });
+  s.equipos[tid]={n,de,ganan:[]};
+  marcar(s); salvar(); tareaEquipos=tid; mostrarTareasSesion();
+  aviso('Equipos igualados por nota y asistencia');
+}
+function eqComoAnterior(tid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  const i=(s.tareas||[]).indexOf(tid);
+  s.equipos=s.equipos||{};
+  const prev=(s.tareas||[]).slice(0,i).reverse().map(t=>eqDe(s,t)).find(Boolean);
+  if(!prev){ aviso('Ninguna tarea anterior tiene equipos','warn'); return; }
+  s.equipos[tid]={n:prev.n,de:Object.assign({},prev.de),ganan:[]};
+  marcar(s); salvar(); mostrarTareasSesion(); aviso('Mismos equipos');
+}
+function eqCambiar(tid,jid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); const e=s&&eqDe(s,tid); if(!e) return;
+  const k=e.de[jid];
+  e.de[jid]= k==null?0:(k+1)%e.n;
+  marcar(s); salvar(); mostrarTareasSesion();
+}
+function eqGanador(tid,k){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); const e=s&&eqDe(s,tid); if(!e) return;
+  if(k==='empate') e.ganan= e.ganan.length===e.n?[]:[...Array(e.n).keys()];
+  else e.ganan= e.ganan.length===1&&e.ganan[0]===k?[]:[k];
+  marcar(s); salvar(); mostrarTareasSesion();
+}
+function eqQuitar(tid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||!s.equipos) return;
+  delete s.equipos[tid]; marcar(s); salvar(); mostrarTareasSesion();
+}
+function eqResumen(s,tid){
+  const e=eqDe(s,tid); if(!e) return '';
+  const cuenta=Array(e.n).fill(0); Object.values(e.de).forEach(k=>{ if(k<e.n) cuenta[k]++; });
+  const res= !e.ganan.length?'sin resultado' : e.ganan.length===e.n?'empate'
+    : 'gana '+PETOS[e.ganan[0]][0].toLowerCase();
+  return '<div class="eq-mini">'+cuenta.map((c,i)=>'<span><i class="pt" style="background:'+PETOS[i][1]+'"></i>'+c+'</span>').join('')+
+    '<span>· '+res+'</span></div>';
+}
+function eqPanel(s,tid){
+  const e=eqDe(s,tid), pres=presentesSesion(s);
+  if(!e) return '<div class="eq-panel"><p class="mini muted" style="margin:0 0 9px">'+pres.length+
+    ' presentes. Elige cuántos equipos y se igualan por nota y asistencia de los últimos entrenos.</p>'+
+    '<div class="row" style="gap:6px;flex-wrap:wrap">'+[2,3,4].map(n=>
+      '<button class="btn xs primary" onclick="eqEquilibrar(\''+tid+'\','+n+')">'+n+' equipos</button>').join('')+
+    '<button class="btn xs" onclick="eqComoAnterior(\''+tid+'\')">Como la tarea anterior</button></div></div>';
+  const grupos=[...Array(e.n)].map(()=>[]), sin=[];
+  pres.forEach(x=>{ const k=e.de[x.j.id]; (k!=null&&k<e.n?grupos[k]:sin).push(x); });
+  const chip=(x,col)=>'<button class="eq-chip" onclick="eqCambiar(\''+tid+'\',\''+x.j.id+'\')">'+
+    (col?'<i class="pt" style="background:'+col+'"></i>':'')+
+    (x.j.dorsal!=null&&x.j.dorsal!==''?'<b>'+esc(x.j.dorsal)+'</b> ':'')+esc((x.j.nombre||'').split(' ')[0])+
+    (x.j.tipo==='portero'?' 🧤':'')+'</button>';
+  return '<div class="eq-panel">'+
+    '<div class="row" style="gap:6px;flex-wrap:wrap">'+
+      [2,3,4].map(n=>'<button class="btn xs'+(n===e.n?' primary':'')+'" onclick="eqEquilibrar(\''+tid+'\','+n+')">'+n+'</button>').join('')+
+      '<button class="btn xs" onclick="eqEquilibrar(\''+tid+'\')">Igualar otra vez</button>'+
+      '<button class="btn xs" onclick="eqComoAnterior(\''+tid+'\')">Como la anterior</button></div>'+
+    '<p class="mini muted" style="margin:8px 0 0">Toca un jugador para pasarlo al siguiente peto.</p>'+
+    '<div class="eq-cols">'+grupos.map((g,i)=>'<div class="eq-col"><h5><i class="pt" style="background:'+PETOS[i][1]+'"></i>'+
+      PETOS[i][0]+' · '+g.length+'</h5><div class="eq-chips">'+g.map(x=>chip(x)).join('')+'</div></div>').join('')+'</div>'+
+    (sin.length?'<p class="mini muted" style="margin:9px 0 5px">Sin peto (han llegado después)</p><div class="eq-chips">'+
+      sin.map(x=>chip(x)).join('')+'</div>':'')+
+    '<div class="eq-res"><span class="mini muted">Resultado:</span>'+
+      [...Array(e.n).keys()].map(i=>'<button class="btn xs'+(e.ganan.length===1&&e.ganan[0]===i?' on':'')+
+        '" onclick="eqGanador(\''+tid+'\','+i+')">Gana '+PETOS[i][0].toLowerCase()+'</button>').join('')+
+      '<button class="btn xs'+(e.ganan.length===e.n?' on':'')+'" onclick="eqGanador(\''+tid+'\',\'empate\')">Empate</button>'+
+      '<button class="btn xs" style="margin-left:auto" onclick="eqQuitar(\''+tid+'\')">Quitar equipos</button></div>'+
+  '</div>';
+}
+
+/* ══════════════════════════════════════════════════════
+   LIGA INTERNA · reglamento editable, suma y resta
+   Automático: asistencia, tareas ganadas, goles, asistencias,
+   partido jugado y portería a cero. Lo demás se anota a mano
+   en la sesión o en el acta (r.liga = {norma: veces}).
+   ══════════════════════════════════════════════════════ */
+const REGLAS_BASE=[
+  /* clave, nombre, puntos, dónde, automática */
+  ['asiste','Viene a entrenar',1,'entreno',1],
+  ['tarea_gana','Gana una tarea',3,'entreno',1],
+  ['tarea_empata','Empata una tarea',1,'entreno',1],
+  ['mvp_entreno','Mejor de la sesión',3,'entreno',0],
+  ['compite','Compite al máximo',1,'ambos',0],
+  ['ayuda','Habla y ayuda al compañero',1,'ambos',0],
+  ['tarde','Llega tarde',-1,'ambos',0],
+  ['falta','Falta sin avisar',-2,'entreno',0],
+  ['actitud','Mala actitud',-2,'ambos',0],
+  ['juega','Juega el partido',1,'partido',1],
+  ['gol','Gol',2,'partido',1],
+  ['pase_gol','Asistencia de gol',1,'partido',1],
+  ['cero','Portería a cero (portero)',3,'partido',1],
+  ['parada','Parada decisiva',1,'partido',0],
+  ['mvp_partido','Mejor del partido',3,'partido',0],
+  ['amarilla','Tarjeta amarilla',-1,'partido',0],
+  ['roja','Tarjeta roja',-3,'partido',0],
+  ['protesta','Protesta al árbitro',-2,'partido',0]
+];
+function ligaCfg(){
+  if(!D.liga) D.liga={desde:'',reglas:{},mod:0};
+  const L=D.liga; L.reglas=L.reglas||{};
+  REGLAS_BASE.forEach(([k,n,p,a,auto])=>{
+    if(!L.reglas[k]) L.reglas[k]={nombre:n,puntos:p,ambito:a,auto:!!auto,activa:true};
+  });
+  return L;
+}
+const reglasLista=()=>Object.entries(ligaCfg().reglas).map(([k,r])=>({k,...r}));
+const tipoLiga=t=>t==='entreno'?'entreno':(t==='partido'||t==='amistoso')?'partido':null;
+function ligaTocar(){ D.liga.mod=Date.now(); salvar(); }
+/* puntos de cada jugador en un periodo: {id:{total, por:{norma:[veces,puntos]}}} */
+function puntosLiga(desde,hasta){
+  const L=ligaCfg(), R=L.reglas, out={};
+  const sumar=(jid,k,veces)=>{
+    const r=R[k]; if(!r||!r.activa||!veces) return;
+    const o=out[jid]=out[jid]||{total:0,por:{}};
+    const x=o.por[k]=o.por[k]||[0,0]; x[0]+=veces; x[1]+=veces*(+r.puntos||0); o.total+=veces*(+r.puntos||0);
+  };
+  const ini=[desde,L.desde].filter(Boolean).sort().pop()||'';
+  const hoy=hoyISO();   /* las sesiones planificadas a futuro todavía no cuentan */
+  D.sesiones.filter(s=>tipoLiga(s.tipo)&&s.fecha<=hoy&&(!ini||s.fecha>=ini)&&(!hasta||s.fecha<=hasta)).forEach(s=>{
+    const regs=D.registros.filter(r=>r.sesionId===s.id), tl=tipoLiga(s.tipo);
+    if(tl==='entreno'){
+      regs.forEach(r=>{ if(r.asistio&&!r.baja&&!r.pref) sumar(r.jugadorId,'asiste',1); });
+      Object.values(s.equipos||{}).forEach(e=>{
+        if(!e.ganan||!e.ganan.length) return;
+        const empate=e.ganan.length===e.n;
+        Object.entries(e.de||{}).forEach(([jid,k])=>{
+          if(!regs.some(r=>r.jugadorId===jid&&r.asistio)) return;
+          if(empate) sumar(jid,'tarea_empata',1); else if(e.ganan.includes(k)) sumar(jid,'tarea_gana',1);
+        });
+      });
+    } else {
+      const gc=+((s.resultado||'').split('-')[1]);
+      regs.forEach(r=>{
+        if((r.estado||'titular')==='no'||!r.asistio) return;
+        sumar(r.jugadorId,'juega',1);
+        sumar(r.jugadorId,'gol',+r.goles||0);
+        sumar(r.jugadorId,'pase_gol',+r.asistencias||0);
+        const j=D.jugadores.find(x=>x.id===r.jugadorId);
+        if(j&&j.tipo==='portero'&&(r.estado||'titular')==='titular'&&(s.resultado||'').includes('-')&&gc===0)
+          sumar(r.jugadorId,'cero',1);
+      });
+    }
+    regs.forEach(r=>Object.entries(r.liga||{}).forEach(([k,v])=>sumar(r.jugadorId,k,+v||0)));
+  });
+  return out;
+}
+/* ─── anotar en la sesión o en el acta ─── */
+let normaActiva=null, ligaQuitar=false;
+function ligaBloque(s){
+  const tl=tipoLiga(s.tipo); if(!tl) return '';
+  const manuales=reglasLista().filter(r=>!r.auto&&r.activa&&(r.ambito==='ambos'||r.ambito===tl));
+  if(!manuales.length) return '';
+  if(!normaActiva||!manuales.some(r=>r.k===normaActiva)) normaActiva=manuales[0].k;
+  const regs=D.registros.filter(r=>r.sesionId===s.id&&(tl==='entreno'?(r.asistio||(r.liga&&Object.keys(r.liga).length)):(r.estado||'titular')!=='no'));
+  const hoy=puntosLiga(s.fecha,s.fecha);
+  const top=Object.entries(hoy).sort((a,b)=>b[1].total-a[1].total).slice(0,3)
+    .map(([id,o])=>{ const j=D.jugadores.find(x=>x.id===id); return j?esc((j.nombre||'').split(' ')[0])+' '+(o.total>0?'+':'')+o.total:''; })
+    .filter(Boolean).join(' · ');
+  const r0=ligaCfg().reglas[normaActiva];
+  return '<p class="eyebrow mt"><span>Liga interna</span><button class="btn xs'+(ligaQuitar?' primary':'')+
+      '" onclick="ligaQuitar=!ligaQuitar;refrescarLiga()">'+(ligaQuitar?'Quitando…':'Quitar')+'</button></p>'+
+    '<p class="mini muted" style="margin:-4px 0 9px">Elige la norma y toca al jugador. '+
+      (tl==='entreno'?'Asistencia y tareas ganadas se suman solas.':'Goles, asistencias, partido jugado y portería a cero se suman solos.')+
+      (top?' Hoy: '+top:'')+'</p>'+
+    '<div class="lg-reglas">'+manuales.map(r=>'<button class="btn xs'+(r.k===normaActiva?' primary':'')+
+      '" onclick="normaActiva=\''+r.k+'\';refrescarLiga()">'+esc(r.nombre)+' '+(r.puntos>0?'+':'')+r.puntos+'</button>').join('')+'</div>'+
+    '<div class="lg-jug">'+regs.map(r=>{
+      const j=D.jugadores.find(x=>x.id===r.jugadorId); if(!j) return '';
+      const v=(r.liga||{})[normaActiva]||0, t=(hoy[j.id]||{}).total||0;
+      return '<button onclick="ligaAnotar(\''+r.id+'\')"><span class="pts'+(t<0?' neg':'')+'">'+(t>0?'+':'')+t+'</span>'+
+        '<b>'+esc(j.dorsal??'')+'</b>'+esc((j.nombre||'').split(' ')[0])+(v?' ×'+v:'')+'</button>';
+    }).join('')+'</div>'+
+    '<p class="mini muted" style="margin:7px 0 0">'+esc(r0?r0.nombre:'')+(ligaQuitar?': toca para quitar una.':': toca para sumar una.')+'</p>';
+}
+function ligaAnotar(rid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva);
+  if(s&&esPartido(s.tipo)&&siCerrada()) return;
+  const r=D.registros.find(x=>x.id===rid); if(!r||!normaActiva) return;
+  r.liga=r.liga||{};
+  const v=(r.liga[normaActiva]||0)+(ligaQuitar?-1:1);
+  if(v<=0) delete r.liga[normaActiva]; else r.liga[normaActiva]=v;
+  marcar(r); salvar(); refrescarLiga();
+}
+function refrescarLiga(){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  const el=document.getElementById(esPartido(s.tipo)?'aLiga':'sLiga');
+  if(el) el.innerHTML=ligaBloque(s);
+}
+/* ─── clasificación ─── */
+let ligaPeriodo='temporada';
+function rangoLiga(){
+  const h=hoyISO();
+  if(ligaPeriodo==='mes'){ const d=new Date(h+'T12:00'); d.setDate(d.getDate()-30); return [d.toISOString().slice(0,10),h]; }
+  if(ligaPeriodo==='semana') return [lunesDe(h),h];
+  return ['',''];
+}
+function clasificacion(){
+  const [a,b]=rangoLiga(), P=puntosLiga(a,b);
+  return D.jugadores.filter(j=>equipoDe(j)==='B')
+    .map(j=>({j,o:P[j.id]||{total:0,por:{}}}))
+    .sort((x,y)=>y.o.total-x.o.total||(x.j.dorsal??99)-(y.j.dorsal??99));
+}
+let ligaAbierto=null;
+function mostrarLiga(){
+  const L=ligaCfg();
+  document.getElementById('lgSub').textContent='Puntos por competir en las tareas, entrenar y lo que pasa en los partidos. '+
+    (L.desde?'Cuenta desde el '+fechaLarga(L.desde)+'.':'Cuenta toda la temporada.');
+  document.getElementById('lgPeriodo').innerHTML=[['temporada','Temporada'],['mes','30 días'],['semana','Esta semana']]
+    .map(([k,t])=>'<button class="'+(k===ligaPeriodo?'on':'')+'" onclick="ligaPeriodo=\''+k+'\';mostrarLiga()">'+t+'</button>').join('');
+  const C=clasificacion(), max=Math.max(1,...C.map(x=>Math.abs(x.o.total)));
+  const tareas=C.reduce((s,x)=>s+((x.o.por.tarea_gana||[0])[0]),0);
+  const neg=C.reduce((s,x)=>s+Object.entries(x.o.por).filter(([k,v])=>v[1]<0).reduce((a,[k,v])=>a+v[0],0),0);
+  document.getElementById('lgResumen').innerHTML=celda(C.length,'jugadores')+celda(C[0]?C[0].o.total:0,'el líder')+
+    celda(tareas,'tareas ganadas')+celda(neg,'sanciones');
+  const R=ligaCfg().reglas;
+  document.getElementById('lgLista').innerHTML=C.length?C.map((x,i)=>{
+    const det=Object.entries(x.o.por).sort((a,b)=>b[1][1]-a[1][1]);
+    return '<button class="card tap" onclick="ligaAbierto=ligaAbierto===\''+x.j.id+'\'?null:\''+x.j.id+'\';mostrarLiga()">'+
+      '<div class="row"><span class="lg-pos">'+(i+1)+'</span>'+avatar(x.j,34)+
+      '<span class="grow"><b style="font-size:15px">'+esc(x.j.nombre)+'</b>'+
+      '<div class="lg-barra"><div class="'+(x.o.total<0?'neg':'')+'" style="width:'+Math.round(100*Math.abs(x.o.total)/max)+'%"></div></div></span>'+
+      '<b class="num" style="font-size:20px;margin-left:8px">'+x.o.total+'</b></div>'+
+      (ligaAbierto===x.j.id?'<div style="margin-top:10px;text-align:left">'+(det.length?det.map(([k,v])=>
+        '<div class="spread mini" style="padding:4px 0;border-top:1px solid var(--line)"><span>'+esc((R[k]||{}).nombre||k)+' ×'+v[0]+'</span>'+
+        '<b class="num">'+(v[1]>0?'+':'')+v[1]+'</b></div>').join(''):'<span class="mini muted">Sin puntos en este periodo.</span>')+'</div>':'')+
+    '</button>';
+  }).join(''):'<div class="card">'+vacio('Aún no hay jugadores en la plantilla.')+'</div>';
+}
+function mostrarReglamento(){
+  const L=ligaCfg();
+  document.getElementById('rgDesde').value=L.desde||'';
+  const grupos=[['entreno','En los entrenos'],['partido','En los partidos'],['ambos','En entrenos y partidos']];
+  document.getElementById('rgLista').innerHTML=grupos.map(([a,t])=>{
+    const rs=reglasLista().filter(r=>r.ambito===a); if(!rs.length) return '';
+    return '<p class="eyebrow mt">'+t+'</p><div class="card">'+rs.map(r=>
+      '<div class="regla'+(r.activa?'':' off')+'">'+
+      '<span class="grow"><b style="font-size:14px">'+esc(r.nombre)+'</b><span class="mini muted" style="display:block">'+
+        (r.auto?'Se suma sola':'Se anota a mano')+'</span></span>'+
+      '<input type="number" inputmode="numeric" value="'+r.puntos+'" onchange="reglaPuntos(\''+r.k+'\',this.value)">'+
+      '<button class="btn xs" onclick="reglaActiva(\''+r.k+'\')">'+(r.activa?'Apagar':'Encender')+'</button>'+
+      (r.propia?'<button class="btn xs" onclick="reglaBorrar(\''+r.k+'\')">×</button>':'')+
+      '</div>').join('')+'</div>';
+  }).join('');
+}
+function reglaPuntos(k,v){ const r=ligaCfg().reglas[k]; if(!r) return; r.puntos=Math.round(+v||0); ligaTocar(); aviso('Puntos guardados'); }
+function reglaActiva(k){ const r=ligaCfg().reglas[k]; if(!r) return; r.activa=!r.activa; ligaTocar(); mostrarReglamento(); }
+function reglaBorrar(k){ if(!confirm('¿Borrar esta norma? Los puntos ya anotados dejan de contar.')) return;
+  delete ligaCfg().reglas[k]; ligaTocar(); mostrarReglamento(); }
+function reglaNueva(){
+  const n=document.getElementById('rgNombre').value.trim(); if(!n){ aviso('Escribe la norma','warn'); return; }
+  const k='p'+uid();
+  ligaCfg().reglas[k]={nombre:n,puntos:Math.round(+document.getElementById('rgPuntos').value||0),
+    ambito:document.getElementById('rgAmbito').value,auto:false,activa:true,propia:true};
+  document.getElementById('rgNombre').value=''; ligaTocar(); mostrarReglamento(); aviso('Norma añadida');
+}
+function ligaDesde(v){ ligaCfg().desde=v||''; ligaTocar(); aviso(v?'La liga cuenta desde el '+fechaLarga(v):'Cuenta toda la temporada'); }
+function pdfLiga(){
+  const C=clasificacion(), R=ligaCfg().reglas;
+  const tit={temporada:'Temporada',mes:'Últimos 30 días',semana:'Esta semana'}[ligaPeriodo];
+  let h=docCab('Liga interna',tit+' · '+fechaLarga(hoyISO()));
+  h+='<table class="doc-lista"><thead><tr><th style="width:34px">Pos.</th><th style="width:36px">Nº</th><th>Jugador</th>'+
+    '<th>Lo que más suma</th><th style="width:60px">Puntos</th></tr></thead><tbody>'+
+    C.map((x,i)=>{
+      const mejor=Object.entries(x.o.por).filter(([k,v])=>v[1]>0).sort((a,b)=>b[1][1]-a[1][1]).slice(0,2)
+        .map(([k,v])=>esc((R[k]||{}).nombre||k)+' ×'+v[0]).join(' · ');
+      return '<tr><td class="c"><b>'+(i+1)+'</b></td><td class="c">'+esc(x.j.dorsal??'')+'</td><td>'+esc(x.j.nombre)+'</td>'+
+        '<td>'+(mejor||'—')+'</td><td class="c"><b>'+x.o.total+'</b></td></tr>';
+    }).join('')+'</tbody></table>';
+  h+=reglamentoTabla()+docPie();
+  imprimir(h,'Liga interna '+hoyISO());
+}
+function reglamentoTabla(){
+  const rs=reglasLista().filter(r=>r.activa);
+  const fila=r=>'<tr><td>'+esc(r.nombre)+'</td><td class="c"><b>'+(r.puntos>0?'+':'')+r.puntos+'</b></td></tr>';
+  return '<h4 class="doc-h">Reglamento</h4><table class="doc-lista"><thead><tr><th>Norma</th><th style="width:70px">Puntos</th></tr></thead><tbody>'+
+    rs.filter(r=>r.puntos>0).map(fila).join('')+rs.filter(r=>r.puntos<=0).map(fila).join('')+'</tbody></table>';
+}
+function pdfReglamento(){ imprimir(docCab('Reglamento de la liga interna','Lo que suma y lo que resta')+reglamentoTabla()+docPie(),'Reglamento'); }
+function fusionarLiga(a,b){ return (a&&b)?(((a.mod||0)>=(b.mod||0))?a:b):(a||b||null); }
+
+/* ══════════════════════════════════════════════════════
+   EL 8 O EL 11 EN EL ACTA · campo con huecos
+   ══════════════════════════════════════════════════════ */
+const FORMACIONES_F11=['4-3-3','4-4-2','4-2-3-1','3-5-2','3-4-3','4-1-4-1'];
+function formatoDe(s){ return s&&s.formato==='F11'?'F11':'F8'; }
+function formacionesDe(s){ return formatoDe(s)==='F11'?FORMACIONES_F11:FORMACIONES; }
+function setFormato(f){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||siCerrada()) return;
+  s.formato=f; s.formacion=formacionesDe(s)[0];
+  D.registros.filter(r=>r.sesionId===s.id).forEach(r=>{ if(Number.isInteger(r.slot)) delete r.slot; });
+  marcar(s); salvar(); refrescarCampo(); aviso(f==='F11'?'Fútbol 11 · 10 + portero':'Fútbol 8 · 7 + portero');
+}
+function setSistemaActa(f){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||siCerrada()) return;
+  if(!formacionesDe(s).includes(f)) return;
+  s.formacion=f; marcar(s); salvar(); refrescarCampo();
+}
+function refrescarCampo(){
+  if(vista==='acta'){ planActual=repartoMinutos(sesionActiva); mostrarCampoActa(); mostrarListaActa(); revisarMinimos(true); }
+  else mostrarPreparar();
+}
+function convocar(rid,si){
+  if(siCerrada()) return;
+  const r=D.registros.find(x=>x.id===rid); if(!r) return;
+  r.estado=si?'suplente':'no'; r.asistio=!!si; delete r.slot;
+  if(!si){ if(r.nota!=null) r.notaGuardada=r.nota; r.nota=null; }
+  marcar(r); salvar(); refrescarCampo();
+}
+function aBanquillo(rid){
+  if(siCerrada()) return;
+  const r=D.registros.find(x=>x.id===rid); if(!r) return;
+  r.estado='suplente'; delete r.slot; marcar(r); salvar(); slotActivo=null; refrescarCampo();
+}
+function sugerirActa(){ if(siCerrada()) return; sugerirGlobal(); }
+function mostrarCampoActa(){
+  const el=document.getElementById('aCampo'); if(!el) return;
+  const s=D.sesiones.find(x=>x.id===sesionActiva);
+  if(!s||esPrueba(s.tipo)){ el.innerHTML=''; return; }
+  if(!planActual) planActual=repartoMinutos(s.id);
+  const c=cfgPartido(), fmt=formatoDe(s);
+  const regs=D.registros.filter(r=>r.sesionId===s.id);
+  const jug=r=>D.jugadores.find(x=>x.id===r.jugadorId);
+  const tit=regs.filter(r=>(r.estado||'titular')==='titular');
+  const titC=tit.filter(r=>(jug(r)||{}).tipo!=='portero').length, titP=tit.length-titC;
+  const banco=regs.filter(r=>r.estado==='suplente'&&jug(r)), fuera=regs.filter(r=>r.estado==='no'&&jug(r));
+  const ficha=(r,acc,extra)=>{ const j=jug(r);
+    return '<button class="eq-chip" onclick="'+acc+'">'+(j.dorsal!=null&&j.dorsal!==''?'<b>'+esc(j.dorsal)+'</b> ':'')+
+      esc((j.nombre||'').split(' ')[0])+(j.tipo==='portero'?' 🧤':'')+(extra||'')+'</button>'; };
+  const dibujo=campoSVG(planActual), nHuecos=slotsDe(formacionDe(s)).length;
+  const gks=tit.filter(r=>(jug(r)||{}).tipo==='portero');
+  const usados=new Set(), sobran=[];
+  planActual.filter(x=>(x.r.estado||'titular')==='titular'&&!x.es).forEach(x=>{
+    const k=x.r.slot;
+    if(Number.isInteger(k)&&k<nHuecos&&!usados.has(k)) usados.add(k); else sobran.push(x.r);
+  });
+  const gkDibujado=(planActual.find(x=>(x.r.estado||'titular')==='titular'&&x.es)||{}).r;
+  gks.filter(r=>r!==gkDibujado).forEach(r=>sobran.push(r));
+  el.innerHTML='<div class="card" style="margin-bottom:13px">'+
+    '<div class="spread" style="margin-bottom:10px"><div class="seg" style="flex:1">'+
+      ['F8','F11'].map(f=>'<button class="'+(f===fmt?'on':'')+'" onclick="setFormato(\''+f+'\')">'+(f==='F8'?'Fútbol 8':'Fútbol 11')+'</button>').join('')+
+    '</div><span class="chip '+(titC===c.campo&&titP===1?'green':'amber')+'" style="margin-left:8px">'+titC+'+'+titP+'</span></div>'+
+    '<div class="grid2" style="align-items:end;margin-bottom:10px">'+
+      '<label class="field" style="margin:0"><span>Sistema</span><select onchange="setSistemaActa(this.value)">'+
+        formacionesDe(s).map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+f+'</option>').join('')+
+      '</select></label>'+
+      '<button class="btn" onclick="sugerirActa()">Sugerir el '+(c.campo+1)+'</button></div>'+
+    dibujo+
+    '<p class="mini muted" style="text-align:center;margin:8px 0 0">Toca un hueco o un jugador del campo para cambiarlo.</p>'+
+    (sobran.length?'<div class="alerta" style="margin-top:10px"><b>'+sobran.length+' titulares sin hueco</b>'+
+      'Toca para mandarlos al banquillo, o pulsa «Sugerir».<div class="banco">'+
+      sobran.map(r=>ficha(r,'aBanquillo(\''+r.id+'\')')).join('')+'</div></div>':'')+
+    '<div id="aSlot"></div>'+
+    '<p class="eyebrow" style="margin:14px 0 0">Banquillo · '+banco.length+'</p>'+
+    '<div class="banco">'+(banco.length?banco.map(r=>ficha(r,'convocar(\''+r.id+'\',0)',' <span class="muted">×</span>')).join(''):'<span class="mini muted">Nadie</span>')+'</div>'+
+    (fuera.length?'<p class="eyebrow" style="margin:12px 0 0">No convocados · toca para convocar</p>'+
+      '<div class="banco">'+fuera.map(r=>ficha(r,'convocar(\''+r.id+'\',1)')).join('')+'</div>':'')+
+  '</div>';
+  mostrarSlot();
+}
+
+</script>
+<script>
+/* ══════════════════════════════════════════════════════
+   MICROCONCEPTOS POR MICROCICLO
+   El objetivo del microciclo, bajado al jugador: un objetivo con balón
+   y uno sin balón (lo que se manda a Daniel) y, debajo, las conductas
+   pequeñas y observables que lo forman. Del jugador al colectivo.
+   mc: [con balón, sin balón, [microconceptos con balón], [sin balón], [portero]]
+   ══════════════════════════════════════════════════════ */
+const MICROCONCEPTOS={
+ 1:["Conducción con percepción periférica", "Repliegue intensivo tras pérdida", ["Conducción: superficie exterior o interior, balón a menos de un paso, mirada al juego", "Petición del balón: comunicación verbal y gestual antes de la recepción", "Pase raso: superficie interior, tenso, dirigido al pie más alejado del rival"], ["Repliegue: carrera hacia portería propia inmediata a la pérdida", "Posición defensiva: entre el par y la portería, en la línea balón-portería", "Comunicación defensiva: aviso de rival próximo y de marcas libres"], ["Posición base: apoyos a la anchura de hombros, flexión y peso en la parte anterior del pie", "Comunicación: dirección de la línea defensiva en cada acción"]],
+ 2:["Recepción perfilada en el inicio de juego", "Ocupación posicional en la estructura de salida", ["Perfil corporal abierto: el central recibe en el borde del área, orientado hacia el carril exterior", "Control orientado: primer contacto hacia el espacio libre, nunca hacia el presionador", "Descenso del pivote: se incrusta entre centrales con balón en poder del portero (1-3-3-1)", "Pase de seguridad: devolución al portero ante presión cerrada, sin conducción"], ["Estructura de salida: ocupación de su posición en 1-3-3-1 y en 1-2-4-1", "Disparador de ascenso: balón superando la línea media, el pivote progresa a la segunda línea", "Desmarque de apoyo: salida de la sombra del par para ofrecer línea de pase"], ["Saque en corto: pase raso al pie del central libre dentro del área", "Apoyo posterior: posición de pase de seguridad tras el primer pase"]],
+ 3:["Recepción en amplitud y desborde en 1x1", "Fijación de la amplitud máxima", ["Recepción en amplitud: extremo con apoyos sobre la línea de banda y perfil orientado al juego", "Control orientado progresivo: primer contacto hacia delante, atacando al defensor", "Desborde en 1x1: cambio de ritmo y de dirección hacia línea de fondo", "Pase atrás raso: desde línea de fondo hacia el punto de penalti"], ["Amplitud fija: extremos sobre la línea de banda hasta la recepción", "Fijación de centrales: el punta ocupa a los centrales para impedir la ayuda en banda", "Apoyo de soporte: el interior cercano se sitúa por detrás de la línea del balón"], ["Blocaje raso: caída lateral con mano superior por detrás del balón", "Posición en centro lateral: bisectriz entre balón y primer palo"]],
+ 4:["Control orientado tras recuperación y decisión vertical o de seguridad", "Presión orientada con cierre de línea de pase y anticipación", ["Percepción previa a la recuperación: localización del compañero libre antes del robo", "Decisión tras recuperación: progresión vertical con espacio, pase de seguridad sin él", "Primer pase tras robo: hacia delante en los primeros segundos de la transición"], ["Presión orientada: aproximación por el exterior cerrando la línea de pase interior", "Anticipación: llegada antes que el rival al balón dividido en 1x1 y 2x1", "Contrapresión: decisión en menos de cinco segundos entre presionar o temporizar y cubrir", "Cobertura: el segundo defensor protege la espalda del presionador"], ["Adelantamiento de la posición: portero-líbero con el bloque en presión alta", "Lectura del balón largo: atención al envío a la espalda de la línea defensiva"]],
+ 5:["Protección del balón ante marcaje individual", "Marcaje individual con referencia de balón", ["Desmarque previo: de apoyo o de ruptura para ganar ventaja antes de la recepción", "Protección: interposición del cuerpo entre rival y balón en la recepción", "Juego de cara: pase a un toque al recibir de espaldas con marcaje cercano"], ["Posición de perfil: control visual simultáneo de balón y par", "Distancia de marcaje: estrecha con balón próximo, cerrando al centro con balón lejano", "Interceptación: anticipación por delante del par cuando el pase lo permite", "Entrega de marca: comunicación del cambio de zona del par al compañero"], ["Organización de la marca: asignación verbal de marcas antes de cada reanudación", "Blocaje y caída: caída lateral hacia el lado del balón"]],
+ 6:["Selección de la opción más avanzada viable", "Ocupación de líneas de pase interiores", ["Escaneo: orientación visual por encima del hombro antes de la recepción", "Jerarquía de pase: punta, extremo y, en último lugar, interior", "Conservación: circulación de seguridad cuando la opción avanzada no es viable"], ["Desmarque entre líneas: el punta se sitúa a la espalda del mediocentro rival", "Ocupación de línea de pase: interiores fuera de la sombra de los rivales", "Comunicación ofensiva: indicaciones al poseedor («solo», «gira», «atrás»)"], ["Juego de pies progresivo: pase hacia delante con hombre libre detectado", "Control orientado bajo presión: primer contacto lejos del presionador"]],
+ 7:["Transición ofensiva según zona de recuperación", "Ocupación de espacios en el momento del robo", ["Recuperación en zona 3: finalización en un máximo de cuatro pases", "Recuperación en zona 2: un pase de seguridad y ataque", "Recuperación en zona 1: conservación y salida por carril exterior"], ["Apertura: los extremos ganan amplitud en el instante del robo", "Ruptura: el punta ataca la espalda de la línea defensiva rival", "Apoyo inmediato: el jugador más próximo ofrece línea de pase al recuperador"], ["Saque rápido con la mano: reanudación inmediata al compañero libre tras la parada", "Selección de zona: saque hacia el carril con más espacio"]],
+ 8:["Gestión de toques por zona", "Apoyo cercano al poseedor", ["Zona 1: toques libres, sin regate en el carril central", "Zona 2: máximo tres contactos con control orientado y pase", "Zona 3: libertad para el desborde y la finalización"], ["Apoyo cercano: línea de pase a distancia corta del poseedor", "Sincronización: desmarque en el momento en que el poseedor eleva la mirada", "Comunicación: aviso de presión por la espalda del poseedor"], ["Blocaje frontal: balones a media altura con manos en «W»", "Reanudación: juego en menos de dos segundos tras el blocaje"]],
+ 9:["Recepción en espacios libres", "Ocupación racional del espacio", ["Percepción del espacio: identificación del hueco antes de pedir el balón", "Recepción entre líneas: perfil abierto en el intervalo entre líneas rivales", "Escalonamiento: un jugador abandona la zona si dos coinciden en ella"], ["Ocupación racional: no se aproxima al balón si la zona ya está ocupada", "Desmarque de liberación: alejamiento para generar espacio a un compañero", "Distancias de relación: ni superposición ni desconexión entre compañeros"], ["Dirección de centrales: corrección verbal de su posición", "Posición según balón: ajuste a la ubicación del balón en cada momento"]],
+ 10:["Ejecución de la acción a balón parado lateral", "Defensa de la acción a balón parado lateral", ["Asignación de roles: cada jugador conoce su posición y su movimiento", "Sincronización: inicio del movimiento a la señal acordada", "Ejecución del envío: balón tenso a la zona acordada"], ["Marcaje previo: emparejamiento antes del saque", "Ataque al balón: el defensor sale al balón, no lo espera", "Despeje: orientado hacia fuera, nunca hacia el carril central"], ["Posición adelantada: ajuste ante saque de banda rival", "Salida aérea: decisión y comunicación («mía»)"]],
+ 11:["Consolidación: escaneo y opción más avanzada", "Consolidación: presión orientada y marcaje", ["Escaneo previo: percepción antes de cada recepción", "Jerarquía de pase: selección de la opción más avanzada viable", "Calidad de pase: raso y tenso al pie"], ["Presión orientada: cierre de línea de pase y anticipación", "Marcaje con referencia de balón: distancia según la posición del balón", "Contrapresión: reacción en menos de cinco segundos tras pérdida"], ["Repaso técnico: blocaje, caída y juego de pies", "Comunicación: dirección constante de la defensa"]],
+ 12:["Ejecución de acciones a balón parado de esquina", "Defensa mixta del saque de esquina", ["Roles: bloqueo o desmarque asignado a cada jugador", "Envío: balón a la zona acordada con la trayectoria acordada", "Ataque al primer palo: desmarque de ruptura con remate"], ["Defensa zonal: ocupación de la zona asignada antes del saque", "Defensa individual: el marcador mantiene contacto con su par", "Salida tras despeje: la línea sale de forma simultánea"], ["Organización: colocación de la defensa antes del saque", "Decisión: salida o permanencia, comunicada en voz alta"]],
+ 13:["Fijación en un carril", "Mantenimiento de la estructura durante la fijación", ["Circulación de atracción: juego en un carril para provocar la basculación rival", "Pase corto de seguridad: invitación a la presión del rival", "Momento del cambio: pase cuando el rival ha basculado"], ["Extremo lejano: amplitud mantenida sin aproximarse al balón", "Soporte: el interior cercano se sitúa por detrás de la línea del balón", "Evitar la acumulación: ningún jugador se superpone en el carril del balón"], ["Participación en circulación: apoyo posterior a los centrales", "Blocaje y caída: mantenimiento técnico"]],
+ 14:["Cambio de orientación al lado débil", "Preparación del cambio sin balón", ["Percepción del lado débil: orientación visual antes de la recepción", "Ejecución: cambio en uno o dos pases, raso o tenso", "Control orientado progresivo del receptor"], ["Amplitud en el lado débil: extremo lejano preparado para recibir", "Jugador puente: interiores como enlace del cambio", "Comunicación: indicación verbal del cambio"], ["Recolocación: desplazamiento con el cambio de carril del balón", "Puente con el pie: participación como apoyo del cambio"]],
+ 15:["Mecanismo de identidad completo", "Ocupación de los roles del mecanismo", ["Secuencia: fijación, cambio de orientación y 1x1 del extremo lejano", "Desborde hasta línea de fondo", "Pase atrás raso al jugador que llega en segunda línea"], ["Llegada al área: dos jugadores atacan el espacio del pase atrás", "Vigilancia: el pivote permanece como equilibrio defensivo", "Rol en el mecanismo: cada jugador conoce su función en cada fase"], ["Participación en la fijación con el pie", "Adelantamiento de la posición con el equipo en ataque"]],
+ 16:["Salida tras recuperación en bloque medio", "Organización del bloque medio", ["Primer pase tras robo: hacia el exterior, fuera de la zona de presión", "Conducción de liberación: solo para superar al presionador", "Conexión con el extremo abierto"], ["Altura del bloque: en la mitad del campo propio", "Distancia entre líneas: máximo quince metros", "Cierre interior: protección del carril central y concesión de bandas"], ["Posición según altura del bloque", "Dirección verbal de la distancia de la línea defensiva"]],
+ 17:["Lectura de la presión rival: progresar o conservar", "Activación de la presión desde bloque medio", ["Lectura previa de la presión rival", "Con presión: conservación y salida por carril exterior", "Sin presión: progresión por el carril central"], ["Disparadores: pase atrás, control deficiente o balón en banda", "Salto del primer presionador y aproximación del bloque", "Sin disparador: mantenimiento de la estructura del bloque"], ["Control de la espalda de la línea con el bloque en presión", "Comunicación del disparador"]],
+ 18:["Gestión de la posesión según el marcador", "Vigilancias defensivas en fase ofensiva", ["Con ventaja: posesión de seguridad y riesgo mínimo en zona 1", "Con desventaja: priorización de la opción vertical", "Conocimiento permanente del marcador y del tiempo"], ["Vigilancias: dos jugadores por detrás del balón en ataque", "Control del punta rival por parte del jugador en vigilancia", "Contrapresión: el vigilante es el primer presionador tras pérdida"], ["Portero-líbero: posición adelantada a la espalda de la línea defensiva", "Despeje con el pie fuera del área cuando sea necesario"]],
+ 19:["Ataque del fuera de juego rival", "Gestión de la línea de fuera de juego", ["Timing del desmarque: inicio en el momento del pase", "Percepción de la línea defensiva por el pasador", "Desmarque en diagonal para mantener la posición legal"], ["Línea defensiva: avance coordinado a la voz", "Habilitación: el defensor retrasado habilita a todos los rivales", "Disparador de avance: pase atrás del rival"], ["Dirección verbal del avance de la línea", "Salidas rasas a la espalda de la defensa"]],
+ 20:["Integración de la fase ofensiva", "Integración de la fase defensiva", ["Inicio, amplitud y mecanismo de identidad en contexto de partido", "Escaneo previo en cada recepción", "Selección de la opción más avanzada viable"], ["Bloque, presión y marcaje en contexto de partido", "Contrapresión de cinco segundos", "Comunicación y ayudas permanentes"], ["Repaso integrado del bloque", "Comunicación continua"]],
+ 21:["Ataque por carril exterior con ruptura al primer palo", "Acompañamiento y equilibrio en el ataque por banda", ["Desborde del extremo hasta línea de fondo", "Centro raso y tenso al primer palo", "Ruptura del punta al primer palo"], ["Llegada de segunda línea al segundo palo", "Ocupación de la frontal para el rechace", "Mantenimiento de la vigilancia"], ["Defensa del primer palo ante centros", "1x1: reducción del ángulo y espera"]],
+ 22:["Juego directo a la espalda de la línea defensiva", "Desmarque de ruptura en el momento justo", ["Percepción del espacio a la espalda antes del pase", "Condición del envío: solo con desmarque iniciado desde posición legal", "Pase al espacio, no al pie"], ["Ruptura desde detrás de la línea o del balón", "Trayectoria diagonal hacia portería", "Reajuste: nueva oferta de apoyo si el pase no se produce"], ["Juego de pies en largo a la espalda rival", "Decisión entre juego directo y juego corto según presión"]],
+ 23:["Gestión del ritmo de juego", "Lectura del desorden rival", ["Aceleración con ventaja: juego a uno o dos toques", "Pausa sin ventaja: circulación de seguridad y reinicio", "Conducción de atracción para liberar compañeros"], ["Adaptación de la movilidad al ritmo del equipo", "Oferta de apoyo seguro en fase de pausa", "Comunicación del ritmo («rápido», «tranquilo»)"], ["Decisión de inicio corto o largo según el rival", "Regulación del ritmo con la reanudación"]],
+ 24:["Salida del lado fuerte tras recuperación", "Basculación colectiva en tres carriles", ["Recuperación en banda: orientación del balón hacia el carril central", "Percepción del lado débil tras el robo", "Pase de seguridad previo a la progresión"], ["Basculación: desplazamiento colectivo hacia el carril del balón", "Cierre interior del extremo lejano", "Protección del carril central"], ["Desplazamiento con la basculación", "Dirección verbal del carril de cada defensor"]],
+ 25:["Finalización con oposición", "Defensa del área con oposición", ["Percepción de portería y portero antes del golpeo", "Golpeo raso y cruzado", "Alternativa: pase atrás al jugador de segunda línea"], ["Bloqueo de golpeo con el cuerpo", "Seguimiento del rematador hasta el final de la acción", "Prioridad: balón y, después, rechace"], ["Blocaje de golpeos rasos", "Desvío hacia fuera, nunca al carril central"]],
+ 26:["Consolidación ofensiva del bloque", "Consolidación defensiva del bloque", ["Mecanismo de identidad", "Gestión del ritmo", "Finalización"], ["Basculación en tres carriles", "Vigilancias según marcador", "Línea de fuera de juego"], ["Repaso técnico", "Comunicación"]],
+ 27:["Adaptación ofensiva a contextos variables con consigna", "Adaptación defensiva a contextos variables con consigna", ["Aplicación de la consigna en la acción siguiente", "Conocimiento del cambio en su demarcación", "Transmisión de la consigna al compañero"], ["Cambio de altura de bloque o de marcaje a la señal", "Comunicación verbal del cambio", "Mantenimiento de la distancia entre líneas tras el ajuste"], ["Transmisión de la consigna a la línea defensiva", "Recolocación según el nuevo plan"]],
+ 28:["Adaptación ofensiva autónoma", "Detección del cambio de planteamiento rival", ["Identificación de presión alta o bloque bajo del rival", "Ajuste sin indicación externa", "Comunicación del ajuste al equipo"], ["Detección del cambio de sistema rival", "Ajuste autónomo del marcaje", "Reorganización verbal del resto"], ["Detección precoz del cambio rival", "Dirección de la reorganización"]],
+ 29:["Variantes a balón parado", "Defensa del balón parado con variantes", ["Dominio de dos variantes por acción", "Selección de la variante según la respuesta rival", "Ejecución a la señal"], ["Reconocimiento y aviso de la acción rival", "Mantenimiento de marca o zona", "Salida simultánea tras el despeje"], ["Defensa del córner y colocación de la barrera", "Decisión de salida o permanencia"]],
+ 30:["Explotación de la superioridad numérica", "Defensa ante rival en inferioridad", ["Identificación del hombre libre", "Fijación del defensor y pase al libre", "Velocidad de ejecución antes de la reorganización rival"], ["Presión al poseedor con cobertura asegurada", "Cierre del único apoyo disponible", "Transición inmediata tras recuperación"], ["1x1: espera y reducción de ángulo", "Participación con el pie para generar superioridad"]],
+ 31:["Conservación en inferioridad numérica", "Defensa en inferioridad numérica", ["Protección del balón a la espera de apoyos", "Riesgo mínimo en zona 1", "Juego directo como alternativa ante bloqueo"], ["Temporización en lugar de entrada", "Prioridad defensiva: carril central y portería", "Comunicación para el repliegue de compañeros"], ["1x1 y golpeos rasos", "Dirección de la defensa en inferioridad"]],
+ 32:["Integración ofensiva del bloque", "Integración defensiva del bloque", ["Superioridades y gestión del ritmo en partido", "Mecanismo de identidad", "Finalización"], ["Inferioridades y basculación en partido", "Contrapresión de cinco segundos", "Comunicación y ayudas"], ["Repaso integrado", "Comunicación"]],
+ 33:["Polivalencia ofensiva en una segunda demarcación", "Polivalencia defensiva en una segunda demarcación", ["Conducta con balón propia de la segunda demarcación", "Aplicación de la palabra del puesto (serenidad, panorámica, atrevimiento, ruptura)", "Orientación corporal adaptada al nuevo espacio"], ["Tarea defensiva de la segunda demarcación", "Referencias de marcaje del nuevo puesto", "Coordinación con el compañero adyacente"], ["Juego de pies como central añadido", "Colocación en cada estructura de salida"]],
+ 34:["Permutas posicionales en fase ofensiva", "Coberturas ante permutas", ["Permuta con un compañero durante la acción", "Mantenimiento de la estructura pese a la rotación", "Oferta de línea de pase en la nueva posición"], ["Cobertura del espacio del jugador que progresa", "Comunicación de la permuta", "Reocupación de la posición al finalizar la acción"], ["Juego de pies y colocación", "Organización verbal de las rotaciones"]],
+ 35:["Autonomía en la selección del mecanismo ofensivo", "Autonomía en la activación de la presión", ["Selección autónoma entre mecanismo de identidad o juego directo", "Decisión fundamentada en el comportamiento rival", "Comunicación de la decisión al equipo"], ["Decisión del momento de presión", "Comunicación de la activación", "Respuesta coordinada del resto del equipo"], ["Decisión del tipo de reanudación", "Organización del equipo desde atrás"]],
+ 36:["Toma de decisiones y gestión del error", "Organización defensiva autónoma", ["Decisión sin dependencia del banquillo", "Reintento tras el error", "Corrección entre iguales"], ["Organización defensiva entre los propios jugadores", "Adaptación al rival sin indicaciones", "Comunicación y ayudas"], ["Decisión en salidas y despejes", "Liderazgo desde la portería"]],
+ 37:["Juego en espacios amplios", "Defensa en espacios amplios", ["Pases de mayor distancia y tensión", "Mayor amplitud y profundidad", "Oferta de apoyo a mayor distancia"], ["Mayor distancia de cobertura", "Repliegue con balón a la espalda", "Anticipación con más espacio por delante"], ["Portero-líbero en campo amplio", "Dominio del área grande"]],
+ 38:["Ataque en espacios amplios", "Control de la profundidad en espacios amplios", ["Cambios de orientación largos", "Conducción en espacio libre", "Llegada al área con más jugadores"], ["Control de la espalda en campo amplio", "Mantenimiento prolongado de la línea", "Basculación de mayor recorrido"], ["Portero-líbero", "Juego de pies en largo"]],
+ 39:["Repaso global de la fase ofensiva", "Repaso global de los movimientos sin balón en ataque", ["Inicio, amplitud y mecanismo de identidad", "Opción más avanzada viable", "Finalización"], ["Desmarques de apoyo y ruptura", "Ocupación racional del espacio", "Vigilancias"], ["Juego de pies", "Saque"]],
+ 40:["Repaso de la transición ofensiva", "Repaso global de la fase defensiva", ["Transición ofensiva por zonas", "Pase de seguridad tras robo", "Salida desde bloque"], ["Presión y contrapresión", "Bloque medio", "Línea de fuera de juego"], ["Colocación", "Comunicación"]],
+ 41:["Integración global con balón", "Integración global sin balón", ["Fase ofensiva completa en partido", "Toma de decisiones autónoma", "Gestión del ritmo"], ["Fase defensiva completa en partido", "Contrapresión de cinco segundos", "Comunicación y ayudas"], ["Repaso integrado", "Comunicación"]],
+ 42:["Competición con balón", "Competición sin balón", ["Aplicación global del modelo en partido", "Decisión bajo presión", "Finalización"], ["Presión, bloque y marcaje en competición", "Intensidad competitiva sostenida", "Comunicación y ayudas"], ["Repaso integrado", "Liderazgo"]],
+ 43:["Creatividad con balón", "Cooperación sin balón", ["Libertad creativa en la resolución", "Experimentación de recursos nuevos", "Participación de todos los jugadores"], ["Intensidad en cada acción", "Ayuda al compañero", "Juego limpio"], ["Juego libre", "Disfrute"]],
+ 44:["Evaluación de la evolución con balón", "Evaluación de la evolución sin balón", ["Autoevaluación de la fase ofensiva", "Objetivos para el periodo estival", "Aspecto de mayor mejora"], ["Autoevaluación de la fase defensiva", "Objetivos para el periodo estival", "Aspecto de mayor mejora"], ["Informe final de porteros", "Objetivos para el periodo estival"]]
+};
+/* el plan que tiene cada uno puede estar cambiado: solo se rellena donde el contenido sigue siendo el original */
+const MICRO_V=2;
+function completarMicroconceptos(){
+  let n=0;
+  D.plan.forEach(p=>{
+    if(p.micro&&(p.micro.v||1)<MICRO_V&&!p.micro.propio) delete p.micro;   /* versión anterior sin tocar: se pone la técnica */
+    if(p.micro) return;
+    const base=MICROCICLOS.find(m=>m[0]===p.mc), x=MICROCONCEPTOS[p.mc];
+    if(!x) return;
+    const original=base&&(p.dominante||'').trim()===base[1];
+    p.micro= original ? {cb:x[0],sb:x[1],mcb:x[2].slice(),msb:x[3].slice(),por:x[4].slice(),v:MICRO_V}
+      : {cb:'',sb:'',mcb:[],msb:[],por:[],v:MICRO_V};
+    n++;
+  });
+  return n;
+}
+const lineas=t=>String(t||'').split('\n').map(x=>x.replace(/^[·\-•\s]+/,'').trim()).filter(Boolean);
+function conceptoHTML(x){ const i=String(x).indexOf(':');
+  return i>0&&i<60?'<b>'+esc(x.slice(0,i))+'</b>'+esc(x.slice(i)):esc(x); }
+function microDe(mc){ const p=D.plan.find(x=>x.mc===mc)||{}; return p.micro||{cb:'',sb:'',mcb:[],msb:[],por:[]}; }
+function htmlMicro(m,compacto){
+  const lista=(t,arr)=>arr.length?'<p class="eyebrow" style="margin:10px 0 5px">'+t+'</p><ul class="micro-ul">'+
+    arr.map(x=>'<li>'+conceptoHTML(x)+'</li>').join('')+'</ul>':'';
+  return (m.cb||m.sb?'<div class="micro-obj">'+
+      (m.cb?'<div><span class="chip blue">Con balón</span> <b>'+esc(m.cb)+'</b></div>':'')+
+      (m.sb?'<div style="margin-top:6px"><span class="chip garnet">Sin balón</span> <b>'+esc(m.sb)+'</b></div>':'')+'</div>':'')+
+    lista('Microconceptos con balón',m.mcb||[])+lista('Microconceptos sin balón',m.msb||[])+
+    (compacto?'':lista('Portero',m.por||[]));
+}
+
+function equiposFila(s,tid){
+  const e=(s.equipos||{})[tid]; if(!e) return '';
+  const g=[...Array(e.n)].map(()=>[]);
+  Object.entries(e.de||{}).forEach(([jid,k])=>{ const j=D.jugadores.find(x=>x.id===jid); if(j&&k<e.n) g[k].push((j.dorsal!=null&&j.dorsal!==''?j.dorsal+' ':'')+(j.nombre||'').split(' ')[0]); });
+  return '<tr><td colspan="3"><b>Equipos</b>'+g.map((l,i)=>'<b>'+PETOS[i][0]+':</b> '+esc(l.join(', '))).join(' · ')+'</td></tr>';
+}
+function textoDaniel(mc){
+  const m=microDe(mc);
+  return 'MC'+String(mc).padStart(2,'0')+'\nCon balón: '+(m.cb||'—')+'\nSin balón: '+(m.sb||'—');
+}
+async function copiarDaniel(){
+  const t=textoDaniel(mcEdit);
+  try{ await navigator.clipboard.writeText(t); aviso('Copiado: pégalo en el mensaje a Daniel'); }
+  catch(e){ prompt('Copia este texto:',t); }
+}
+function pdfMicrociclo(){
+  const p=D.plan.find(x=>x.mc===mcEdit)||{}, m=microDe(mcEdit), b=bloqueDe(mcEdit);
+  let h=docCab('Microciclo '+String(mcEdit).padStart(2,'0'),b.nombre+' · '+(p.dominante||''));
+  h+='<table class="doc-meta"><tr><td><b>Objetivo con balón</b>'+esc(m.cb||'—')+'</td>'+
+    '<td><b>Objetivo sin balón</b>'+esc(m.sb||'—')+'</td></tr></table>';
+  [['Microconceptos con balón',m.mcb],['Microconceptos sin balón',m.msb],['Portero',m.por]].forEach(([t,l])=>{
+    if((l||[]).length) h+='<h4 class="doc-h">'+t+'</h4><ul class="doc-ul">'+l.map(x=>'<li>'+conceptoHTML(x)+'</li>').join('')+'</ul>';
+  });
+  if(p.notas) h+='<h4 class="doc-h">Notas</h4><p class="doc-p">'+esc(p.notas)+'</p>';
+  h+=docPie(); imprimir(h,'Microciclo '+mcEdit);
+}
+function pintarMicroHoy(){
+  const el=document.getElementById('hoyMicro'); if(!el) return;
+  const m=microDe(D.mc);
+  el.innerHTML= (m.cb||m.sb||(m.mcb||[]).length) ? '<details class="card micro-card"><summary><b>Objetivos de la semana</b>'+
+    '<span class="mini muted" style="display:block;margin-top:3px">'+esc(m.cb||'')+(m.cb&&m.sb?' · ':'')+esc(m.sb||'')+'</span></summary>'+
+    htmlMicro(m,false)+'</details>' : '';
+}
+function pintarMicroSesion(s){
+  const el=document.getElementById('sMicro'); if(!el||!s) return;
+  const m=microDe(s.mc);
+  el.innerHTML= (m.cb||m.sb||(m.mcb||[]).length) ? '<details class="card micro-card" style="margin-bottom:14px"><summary><b>Microconceptos del MC'+
+    String(s.mc).padStart(2,'0')+'</b><span class="mini muted" style="display:block;margin-top:3px">Lo que hay que ver y corregir hoy</span></summary>'+
+    htmlMicro(m,s.tipo!=='porteros')+'</details>' : '';
+}
+if(typeof D!=='undefined'&&D&&D.plan&&D.plan.length&&completarMicroconceptos()) salvar();
+
+</script>
+<script>
+/* ══════════════════════════════════════════════════════
    EVALUACIÓN POR PUESTO · orientada al modelo de juego
    Cada ítem lleva: id · enunciado · frase alta · frase baja
    Las frases alimentan el generador de informes.
@@ -6218,629 +6841,6 @@ try{
     '<p style="color:#63768F;font-size:13px">Si tienes una copia de seguridad, recárgala. '+
     'Si el problema sigue, avísame con este mensaje.</p></div>';
 }
-
-</script>
-<script>
-/* ══════════════════════════════════════════════════════
-   USO DE LA APP · qué se usa de verdad y qué sobra
-   Se cuenta cada vez que se abre una pantalla, en cada
-   dispositivo, y se junta al sincronizar. Además se mira si
-   hay datos guardados en cada función.
-   ══════════════════════════════════════════════════════ */
-const K_DISP='cuadernoDispositivo';
-function dispositivo(){
-  let d=localStorage.getItem(K_DISP);
-  if(!d){ d='d'+uid(); localStorage.setItem(K_DISP,d); }
-  return d;
-}
-/* clave, nombre, pantallas, datos guardados (o null si la función no guarda nada propio) */
-const FUNCIONES=[
-  ['plan','Planificación',['plan','microciclo'],()=>D.plan.filter(p=>p.hecho||(p.notas||'').trim()).length],
-  ['modelo','Modelo de juego',['modelo','editmodelo'],()=>D.modeloMod?1:0],
-  ['tactica','Pizarra táctica',['tactica'],()=>(((D.tactica||{}).objetos)||[]).length],
-  ['gastos','Gastos',['gastos'],()=>(D.gastos||[]).length],
-  ['nube','Sincronizar',['nube'],()=>D.ultimaSync?1:0],
-  ['copias','Copias',['copias'],()=>D.ultimaCopia?1:0],
-  ['privacidad','Privacidad',['privacidad'],null],
-  ['minutos','Minutos',['minutos'],null],
-  ['balance','Balance',['balance'],null],
-  ['micros','Microciclos',['micros','duomc'],null],
-  ['temporada','Temporada',['temporada'],()=>(D.archivo||[]).length],
-  ['liga','Liga interna',['liga','reglamento'],()=>D.registros.filter(r=>r.liga&&Object.keys(r.liga).length).length],
-  ['preparar','Preparar alineación',['preparar'],()=>D.registros.filter(r=>r.minutosPrev!=null).length],
-  ['pizarra','Pizarra de cambios',['pizarra'],null],
-  ['duo','Comparar jugadores',['duo'],null]
-];
-const OCULTABLES=['plan','modelo','tactica','gastos','minutos','balance','micros','temporada','liga'];
-let relojUso=null;
-function registrarUso(v){
-  if(!v||!D) return;
-  D.uso=D.uso||{};
-  const d=dispositivo();
-  const u=D.uso[d]=D.uso[d]||{quien:yo()||'',desde:Date.now(),v:{}};
-  if(yo()) u.quien=yo();
-  const x=u.v[v]||[0,0]; x[0]++; x[1]=Date.now(); u.v[v]=x;
-  clearTimeout(relojUso); relojUso=setTimeout(()=>{ try{ salvar(); }catch(e){} },8000);
-}
-/* fusión: de cada dispositivo, la versión con más aperturas */
-function fusionarUso(a,b){
-  const R={}, tot=u=>Object.values((u&&u.v)||{}).reduce((s,x)=>s+(x[0]||0),0);
-  Object.keys(Object.assign({},a||{},b||{})).forEach(k=>{
-    const x=(a||{})[k], y=(b||{})[k];
-    R[k]= !x ? y : !y ? x : (tot(x)>=tot(y)?x:y);
-  });
-  return R;
-}
-function usoDe(f){
-  let n=0, ultimo=0;
-  Object.values(D.uso||{}).forEach(u=>f[2].forEach(v=>{
-    const x=(u.v||{})[v]; if(x){ n+=x[0]; ultimo=Math.max(ultimo,x[1]); }
-  }));
-  return {n,ultimo,datos:f[3]?f[3]():null};
-}
-const DIAS_DECIDIR=21;
-function mostrarUso(){
-  const disp=Object.values(D.uso||{});
-  const desde=disp.length?Math.min(...disp.map(u=>u.desde||Date.now())):Date.now();
-  const dias=Math.floor((Date.now()-desde)/864e5);
-  const quienes=[...new Set(disp.map(u=>u.quien).filter(Boolean))];
-  document.getElementById('usoSub').innerHTML=
-    'Se cuenta cada pantalla que abrís'+(quienes.length?' ('+quienes.map(esc).join(' y ')+')':'')+
-    ' desde el '+fechaLarga(new Date(desde-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10))+
-    ', y se junta al sincronizar. También se mira si cada función tiene datos guardados. '+
-    (dias<DIAS_DECIDIR?'<b>Llevamos '+dias+' días: a partir de '+DIAS_DECIDIR+' el veredicto es fiable.</b>'
-      :'Con '+dias+' días de uso el veredicto es fiable.')+
-    ' Ocultar solo lo quita del menú; los datos se quedan.';
-  const filas=FUNCIONES.map(f=>{
-    const u=usoDe(f), hace=u.ultimo?Math.floor((Date.now()-u.ultimo)/864e5):null;
-    const sinDatos=u.datos===0, nada=u.n===0;
-    let estado, color;
-    if(nada&&(sinDatos||u.datos===null)){ estado=dias>=DIAS_DECIDIR?'Sin uso':'Sin uso todavía'; color='garnet'; }
-    else if(u.n<=2&&(hace===null||hace>14)){ estado='Poco uso'; color='amber'; }
-    else { estado='Se usa'; color='green'; }
-    return {f,u,hace,estado,color,peso:color==='garnet'?0:color==='amber'?1:2};
-  }).sort((a,b)=>a.peso-b.peso||a.u.n-b.u.n);
-  const oc=new Set(D.ocultos||[]);
-  document.getElementById('usoResumen').innerHTML=
-    celda(filas.filter(x=>x.color==='garnet').length,'sin uso')+
-    celda(filas.filter(x=>x.color==='amber').length,'poco uso')+
-    celda(filas.filter(x=>x.color==='green').length,'se usan')+
-    celda(oc.size,'ocultas');
-  document.getElementById('usoLista').innerHTML=filas.map(x=>{
-    const k=x.f[0], puede=OCULTABLES.includes(k);
-    return '<div class="card"><div class="uso-fila">'+
-      '<span class="grow"><b>'+esc(x.f[1])+'</b>'+(oc.has(k)?' <span class="chip gris">oculta</span>':'')+
-      '<span class="mini muted" style="display:block;margin-top:3px">'+
-      (x.u.n?x.u.n+' veces · última hace '+(x.hace===0?'menos de un día':x.hace+' días'):'No se ha abierto')+
-      (x.u.datos!==null?' · '+x.u.datos+' datos guardados':'')+'</span></span>'+
-      '<span class="chip '+x.color+'">'+x.estado+'</span></div>'+
-      (puede?'<button class="btn xs'+(oc.has(k)?' primary':'')+'" style="margin-top:9px" onclick="alternarOculta(\''+k+'\')">'+
-        (oc.has(k)?'Volver a mostrar en el menú':'Ocultar del menú')+'</button>':'')+
-    '</div>';
-  }).join('');
-}
-function alternarOculta(k){
-  const s=new Set(D.ocultos||[]);
-  s.has(k)?s.delete(k):s.add(k);
-  D.ocultos=[...s]; salvar(); mostrarUso();
-  aviso(s.has(k)?'Oculta del menú':'Vuelve al menú');
-}
-
-/* ══════════════════════════════════════════════════════
-   EQUIPOS POR TAREA · petos y resultado de cada tarea
-   s.equipos = { tareaId: { n, de: {jugadorId: 0..n-1}, ganan: [i…] } }
-   ══════════════════════════════════════════════════════ */
-const PETOS=[['Azul','#2f6fd6'],['Rojo','#d64545'],['Amarillo','#e8b923'],['Verde','#2e9e5b']];
-let tareaEquipos=null;
-function presentesSesion(s){
-  return D.registros.filter(r=>r.sesionId===s.id&&r.asistio&&!r.baja&&!r.pref)
-    .map(r=>({r,j:D.jugadores.find(x=>x.id===r.jugadorId)})).filter(x=>x.j);
-}
-function nivelEntreno(j,s){
-  const p=puntuarJugador(j,s.id);
-  return (p.nota==='—'?5:+p.nota)/10*0.7+(p.asist/100)*0.3;
-}
-function eqDe(s,tid){ s.equipos=s.equipos||{}; return s.equipos[tid]; }
-function eqAbrir(tid){ tareaEquipos= tareaEquipos===tid?null:tid; mostrarTareasSesion(); }
-function eqEquilibrar(tid,n){
-  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
-  s.equipos=s.equipos||{};
-  n=n||((eqDe(s,tid)||{}).n)||2;
-  const lista=presentesSesion(s).map(x=>({...x,v:nivelEntreno(x.j,s)}));
-  const por=lista.filter(x=>x.j.tipo==='portero').sort((a,b)=>b.v-a.v);
-  const cam=lista.filter(x=>x.j.tipo!=='portero').sort((a,b)=>b.v-a.v);
-  const de={}, suma=Array(n).fill(0), cuenta=Array(n).fill(0);
-  /* porteros repartidos primero; luego cada jugador al equipo con menos gente y, a igualdad, menos nivel */
-  por.forEach((x,i)=>{ const k=i%n; de[x.j.id]=k; cuenta[k]++; });
-  cam.forEach(x=>{
-    let k=0;
-    for(let i=1;i<n;i++) if(cuenta[i]<cuenta[k]||(cuenta[i]===cuenta[k]&&suma[i]<suma[k])) k=i;
-    de[x.j.id]=k; suma[k]+=x.v; cuenta[k]++;
-  });
-  s.equipos[tid]={n,de,ganan:[]};
-  marcar(s); salvar(); tareaEquipos=tid; mostrarTareasSesion();
-  aviso('Equipos igualados por nota y asistencia');
-}
-function eqComoAnterior(tid){
-  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
-  const i=(s.tareas||[]).indexOf(tid);
-  s.equipos=s.equipos||{};
-  const prev=(s.tareas||[]).slice(0,i).reverse().map(t=>eqDe(s,t)).find(Boolean);
-  if(!prev){ aviso('Ninguna tarea anterior tiene equipos','warn'); return; }
-  s.equipos[tid]={n:prev.n,de:Object.assign({},prev.de),ganan:[]};
-  marcar(s); salvar(); mostrarTareasSesion(); aviso('Mismos equipos');
-}
-function eqCambiar(tid,jid){
-  const s=D.sesiones.find(x=>x.id===sesionActiva); const e=s&&eqDe(s,tid); if(!e) return;
-  const k=e.de[jid];
-  e.de[jid]= k==null?0:(k+1)%e.n;
-  marcar(s); salvar(); mostrarTareasSesion();
-}
-function eqGanador(tid,k){
-  const s=D.sesiones.find(x=>x.id===sesionActiva); const e=s&&eqDe(s,tid); if(!e) return;
-  if(k==='empate') e.ganan= e.ganan.length===e.n?[]:[...Array(e.n).keys()];
-  else e.ganan= e.ganan.length===1&&e.ganan[0]===k?[]:[k];
-  marcar(s); salvar(); mostrarTareasSesion();
-}
-function eqQuitar(tid){
-  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||!s.equipos) return;
-  delete s.equipos[tid]; marcar(s); salvar(); mostrarTareasSesion();
-}
-function eqResumen(s,tid){
-  const e=eqDe(s,tid); if(!e) return '';
-  const cuenta=Array(e.n).fill(0); Object.values(e.de).forEach(k=>{ if(k<e.n) cuenta[k]++; });
-  const res= !e.ganan.length?'sin resultado' : e.ganan.length===e.n?'empate'
-    : 'gana '+PETOS[e.ganan[0]][0].toLowerCase();
-  return '<div class="eq-mini">'+cuenta.map((c,i)=>'<span><i class="pt" style="background:'+PETOS[i][1]+'"></i>'+c+'</span>').join('')+
-    '<span>· '+res+'</span></div>';
-}
-function eqPanel(s,tid){
-  const e=eqDe(s,tid), pres=presentesSesion(s);
-  if(!e) return '<div class="eq-panel"><p class="mini muted" style="margin:0 0 9px">'+pres.length+
-    ' presentes. Elige cuántos equipos y se igualan por nota y asistencia de los últimos entrenos.</p>'+
-    '<div class="row" style="gap:6px;flex-wrap:wrap">'+[2,3,4].map(n=>
-      '<button class="btn xs primary" onclick="eqEquilibrar(\''+tid+'\','+n+')">'+n+' equipos</button>').join('')+
-    '<button class="btn xs" onclick="eqComoAnterior(\''+tid+'\')">Como la tarea anterior</button></div></div>';
-  const grupos=[...Array(e.n)].map(()=>[]), sin=[];
-  pres.forEach(x=>{ const k=e.de[x.j.id]; (k!=null&&k<e.n?grupos[k]:sin).push(x); });
-  const chip=(x,col)=>'<button class="eq-chip" onclick="eqCambiar(\''+tid+'\',\''+x.j.id+'\')">'+
-    (col?'<i class="pt" style="background:'+col+'"></i>':'')+
-    (x.j.dorsal!=null&&x.j.dorsal!==''?'<b>'+esc(x.j.dorsal)+'</b> ':'')+esc((x.j.nombre||'').split(' ')[0])+
-    (x.j.tipo==='portero'?' 🧤':'')+'</button>';
-  return '<div class="eq-panel">'+
-    '<div class="row" style="gap:6px;flex-wrap:wrap">'+
-      [2,3,4].map(n=>'<button class="btn xs'+(n===e.n?' primary':'')+'" onclick="eqEquilibrar(\''+tid+'\','+n+')">'+n+'</button>').join('')+
-      '<button class="btn xs" onclick="eqEquilibrar(\''+tid+'\')">Igualar otra vez</button>'+
-      '<button class="btn xs" onclick="eqComoAnterior(\''+tid+'\')">Como la anterior</button></div>'+
-    '<p class="mini muted" style="margin:8px 0 0">Toca un jugador para pasarlo al siguiente peto.</p>'+
-    '<div class="eq-cols">'+grupos.map((g,i)=>'<div class="eq-col"><h5><i class="pt" style="background:'+PETOS[i][1]+'"></i>'+
-      PETOS[i][0]+' · '+g.length+'</h5><div class="eq-chips">'+g.map(x=>chip(x)).join('')+'</div></div>').join('')+'</div>'+
-    (sin.length?'<p class="mini muted" style="margin:9px 0 5px">Sin peto (han llegado después)</p><div class="eq-chips">'+
-      sin.map(x=>chip(x)).join('')+'</div>':'')+
-    '<div class="eq-res"><span class="mini muted">Resultado:</span>'+
-      [...Array(e.n).keys()].map(i=>'<button class="btn xs'+(e.ganan.length===1&&e.ganan[0]===i?' on':'')+
-        '" onclick="eqGanador(\''+tid+'\','+i+')">Gana '+PETOS[i][0].toLowerCase()+'</button>').join('')+
-      '<button class="btn xs'+(e.ganan.length===e.n?' on':'')+'" onclick="eqGanador(\''+tid+'\',\'empate\')">Empate</button>'+
-      '<button class="btn xs" style="margin-left:auto" onclick="eqQuitar(\''+tid+'\')">Quitar equipos</button></div>'+
-  '</div>';
-}
-
-/* ══════════════════════════════════════════════════════
-   LIGA INTERNA · reglamento editable, suma y resta
-   Automático: asistencia, tareas ganadas, goles, asistencias,
-   partido jugado y portería a cero. Lo demás se anota a mano
-   en la sesión o en el acta (r.liga = {norma: veces}).
-   ══════════════════════════════════════════════════════ */
-const REGLAS_BASE=[
-  /* clave, nombre, puntos, dónde, automática */
-  ['asiste','Viene a entrenar',1,'entreno',1],
-  ['tarea_gana','Gana una tarea',3,'entreno',1],
-  ['tarea_empata','Empata una tarea',1,'entreno',1],
-  ['mvp_entreno','Mejor de la sesión',3,'entreno',0],
-  ['compite','Compite al máximo',1,'ambos',0],
-  ['ayuda','Habla y ayuda al compañero',1,'ambos',0],
-  ['tarde','Llega tarde',-1,'ambos',0],
-  ['falta','Falta sin avisar',-2,'entreno',0],
-  ['actitud','Mala actitud',-2,'ambos',0],
-  ['juega','Juega el partido',1,'partido',1],
-  ['gol','Gol',2,'partido',1],
-  ['pase_gol','Asistencia de gol',1,'partido',1],
-  ['cero','Portería a cero (portero)',3,'partido',1],
-  ['parada','Parada decisiva',1,'partido',0],
-  ['mvp_partido','Mejor del partido',3,'partido',0],
-  ['amarilla','Tarjeta amarilla',-1,'partido',0],
-  ['roja','Tarjeta roja',-3,'partido',0],
-  ['protesta','Protesta al árbitro',-2,'partido',0]
-];
-function ligaCfg(){
-  if(!D.liga) D.liga={desde:'',reglas:{},mod:0};
-  const L=D.liga; L.reglas=L.reglas||{};
-  REGLAS_BASE.forEach(([k,n,p,a,auto])=>{
-    if(!L.reglas[k]) L.reglas[k]={nombre:n,puntos:p,ambito:a,auto:!!auto,activa:true};
-  });
-  return L;
-}
-const reglasLista=()=>Object.entries(ligaCfg().reglas).map(([k,r])=>({k,...r}));
-const tipoLiga=t=>t==='entreno'?'entreno':(t==='partido'||t==='amistoso')?'partido':null;
-function ligaTocar(){ D.liga.mod=Date.now(); salvar(); }
-/* puntos de cada jugador en un periodo: {id:{total, por:{norma:[veces,puntos]}}} */
-function puntosLiga(desde,hasta){
-  const L=ligaCfg(), R=L.reglas, out={};
-  const sumar=(jid,k,veces)=>{
-    const r=R[k]; if(!r||!r.activa||!veces) return;
-    const o=out[jid]=out[jid]||{total:0,por:{}};
-    const x=o.por[k]=o.por[k]||[0,0]; x[0]+=veces; x[1]+=veces*(+r.puntos||0); o.total+=veces*(+r.puntos||0);
-  };
-  const ini=[desde,L.desde].filter(Boolean).sort().pop()||'';
-  const hoy=hoyISO();   /* las sesiones planificadas a futuro todavía no cuentan */
-  D.sesiones.filter(s=>tipoLiga(s.tipo)&&s.fecha<=hoy&&(!ini||s.fecha>=ini)&&(!hasta||s.fecha<=hasta)).forEach(s=>{
-    const regs=D.registros.filter(r=>r.sesionId===s.id), tl=tipoLiga(s.tipo);
-    if(tl==='entreno'){
-      regs.forEach(r=>{ if(r.asistio&&!r.baja&&!r.pref) sumar(r.jugadorId,'asiste',1); });
-      Object.values(s.equipos||{}).forEach(e=>{
-        if(!e.ganan||!e.ganan.length) return;
-        const empate=e.ganan.length===e.n;
-        Object.entries(e.de||{}).forEach(([jid,k])=>{
-          if(!regs.some(r=>r.jugadorId===jid&&r.asistio)) return;
-          if(empate) sumar(jid,'tarea_empata',1); else if(e.ganan.includes(k)) sumar(jid,'tarea_gana',1);
-        });
-      });
-    } else {
-      const gc=+((s.resultado||'').split('-')[1]);
-      regs.forEach(r=>{
-        if((r.estado||'titular')==='no'||!r.asistio) return;
-        sumar(r.jugadorId,'juega',1);
-        sumar(r.jugadorId,'gol',+r.goles||0);
-        sumar(r.jugadorId,'pase_gol',+r.asistencias||0);
-        const j=D.jugadores.find(x=>x.id===r.jugadorId);
-        if(j&&j.tipo==='portero'&&(r.estado||'titular')==='titular'&&(s.resultado||'').includes('-')&&gc===0)
-          sumar(r.jugadorId,'cero',1);
-      });
-    }
-    regs.forEach(r=>Object.entries(r.liga||{}).forEach(([k,v])=>sumar(r.jugadorId,k,+v||0)));
-  });
-  return out;
-}
-/* ─── anotar en la sesión o en el acta ─── */
-let normaActiva=null, ligaQuitar=false;
-function ligaBloque(s){
-  const tl=tipoLiga(s.tipo); if(!tl) return '';
-  const manuales=reglasLista().filter(r=>!r.auto&&r.activa&&(r.ambito==='ambos'||r.ambito===tl));
-  if(!manuales.length) return '';
-  if(!normaActiva||!manuales.some(r=>r.k===normaActiva)) normaActiva=manuales[0].k;
-  const regs=D.registros.filter(r=>r.sesionId===s.id&&(tl==='entreno'?(r.asistio||(r.liga&&Object.keys(r.liga).length)):(r.estado||'titular')!=='no'));
-  const hoy=puntosLiga(s.fecha,s.fecha);
-  const top=Object.entries(hoy).sort((a,b)=>b[1].total-a[1].total).slice(0,3)
-    .map(([id,o])=>{ const j=D.jugadores.find(x=>x.id===id); return j?esc((j.nombre||'').split(' ')[0])+' '+(o.total>0?'+':'')+o.total:''; })
-    .filter(Boolean).join(' · ');
-  const r0=ligaCfg().reglas[normaActiva];
-  return '<p class="eyebrow mt"><span>Liga interna</span><button class="btn xs'+(ligaQuitar?' primary':'')+
-      '" onclick="ligaQuitar=!ligaQuitar;refrescarLiga()">'+(ligaQuitar?'Quitando…':'Quitar')+'</button></p>'+
-    '<p class="mini muted" style="margin:-4px 0 9px">Elige la norma y toca al jugador. '+
-      (tl==='entreno'?'Asistencia y tareas ganadas se suman solas.':'Goles, asistencias, partido jugado y portería a cero se suman solos.')+
-      (top?' Hoy: '+top:'')+'</p>'+
-    '<div class="lg-reglas">'+manuales.map(r=>'<button class="btn xs'+(r.k===normaActiva?' primary':'')+
-      '" onclick="normaActiva=\''+r.k+'\';refrescarLiga()">'+esc(r.nombre)+' '+(r.puntos>0?'+':'')+r.puntos+'</button>').join('')+'</div>'+
-    '<div class="lg-jug">'+regs.map(r=>{
-      const j=D.jugadores.find(x=>x.id===r.jugadorId); if(!j) return '';
-      const v=(r.liga||{})[normaActiva]||0, t=(hoy[j.id]||{}).total||0;
-      return '<button onclick="ligaAnotar(\''+r.id+'\')"><span class="pts'+(t<0?' neg':'')+'">'+(t>0?'+':'')+t+'</span>'+
-        '<b>'+esc(j.dorsal??'')+'</b>'+esc((j.nombre||'').split(' ')[0])+(v?' ×'+v:'')+'</button>';
-    }).join('')+'</div>'+
-    '<p class="mini muted" style="margin:7px 0 0">'+esc(r0?r0.nombre:'')+(ligaQuitar?': toca para quitar una.':': toca para sumar una.')+'</p>';
-}
-function ligaAnotar(rid){
-  const s=D.sesiones.find(x=>x.id===sesionActiva);
-  if(s&&esPartido(s.tipo)&&siCerrada()) return;
-  const r=D.registros.find(x=>x.id===rid); if(!r||!normaActiva) return;
-  r.liga=r.liga||{};
-  const v=(r.liga[normaActiva]||0)+(ligaQuitar?-1:1);
-  if(v<=0) delete r.liga[normaActiva]; else r.liga[normaActiva]=v;
-  marcar(r); salvar(); refrescarLiga();
-}
-function refrescarLiga(){
-  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
-  const el=document.getElementById(esPartido(s.tipo)?'aLiga':'sLiga');
-  if(el) el.innerHTML=ligaBloque(s);
-}
-/* ─── clasificación ─── */
-let ligaPeriodo='temporada';
-function rangoLiga(){
-  const h=hoyISO();
-  if(ligaPeriodo==='mes'){ const d=new Date(h+'T12:00'); d.setDate(d.getDate()-30); return [d.toISOString().slice(0,10),h]; }
-  if(ligaPeriodo==='semana') return [lunesDe(h),h];
-  return ['',''];
-}
-function clasificacion(){
-  const [a,b]=rangoLiga(), P=puntosLiga(a,b);
-  return D.jugadores.filter(j=>equipoDe(j)==='B')
-    .map(j=>({j,o:P[j.id]||{total:0,por:{}}}))
-    .sort((x,y)=>y.o.total-x.o.total||(x.j.dorsal??99)-(y.j.dorsal??99));
-}
-let ligaAbierto=null;
-function mostrarLiga(){
-  const L=ligaCfg();
-  document.getElementById('lgSub').textContent='Puntos por competir en las tareas, entrenar y lo que pasa en los partidos. '+
-    (L.desde?'Cuenta desde el '+fechaLarga(L.desde)+'.':'Cuenta toda la temporada.');
-  document.getElementById('lgPeriodo').innerHTML=[['temporada','Temporada'],['mes','30 días'],['semana','Esta semana']]
-    .map(([k,t])=>'<button class="'+(k===ligaPeriodo?'on':'')+'" onclick="ligaPeriodo=\''+k+'\';mostrarLiga()">'+t+'</button>').join('');
-  const C=clasificacion(), max=Math.max(1,...C.map(x=>Math.abs(x.o.total)));
-  const tareas=C.reduce((s,x)=>s+((x.o.por.tarea_gana||[0])[0]),0);
-  const neg=C.reduce((s,x)=>s+Object.entries(x.o.por).filter(([k,v])=>v[1]<0).reduce((a,[k,v])=>a+v[0],0),0);
-  document.getElementById('lgResumen').innerHTML=celda(C.length,'jugadores')+celda(C[0]?C[0].o.total:0,'el líder')+
-    celda(tareas,'tareas ganadas')+celda(neg,'sanciones');
-  const R=ligaCfg().reglas;
-  document.getElementById('lgLista').innerHTML=C.length?C.map((x,i)=>{
-    const det=Object.entries(x.o.por).sort((a,b)=>b[1][1]-a[1][1]);
-    return '<button class="card tap" onclick="ligaAbierto=ligaAbierto===\''+x.j.id+'\'?null:\''+x.j.id+'\';mostrarLiga()">'+
-      '<div class="row"><span class="lg-pos">'+(i+1)+'</span>'+avatar(x.j,34)+
-      '<span class="grow"><b style="font-size:15px">'+esc(x.j.nombre)+'</b>'+
-      '<div class="lg-barra"><div class="'+(x.o.total<0?'neg':'')+'" style="width:'+Math.round(100*Math.abs(x.o.total)/max)+'%"></div></div></span>'+
-      '<b class="num" style="font-size:20px;margin-left:8px">'+x.o.total+'</b></div>'+
-      (ligaAbierto===x.j.id?'<div style="margin-top:10px;text-align:left">'+(det.length?det.map(([k,v])=>
-        '<div class="spread mini" style="padding:4px 0;border-top:1px solid var(--line)"><span>'+esc((R[k]||{}).nombre||k)+' ×'+v[0]+'</span>'+
-        '<b class="num">'+(v[1]>0?'+':'')+v[1]+'</b></div>').join(''):'<span class="mini muted">Sin puntos en este periodo.</span>')+'</div>':'')+
-    '</button>';
-  }).join(''):'<div class="card">'+vacio('Aún no hay jugadores en la plantilla.')+'</div>';
-}
-function mostrarReglamento(){
-  const L=ligaCfg();
-  document.getElementById('rgDesde').value=L.desde||'';
-  const grupos=[['entreno','En los entrenos'],['partido','En los partidos'],['ambos','En entrenos y partidos']];
-  document.getElementById('rgLista').innerHTML=grupos.map(([a,t])=>{
-    const rs=reglasLista().filter(r=>r.ambito===a); if(!rs.length) return '';
-    return '<p class="eyebrow mt">'+t+'</p><div class="card">'+rs.map(r=>
-      '<div class="regla'+(r.activa?'':' off')+'">'+
-      '<span class="grow"><b style="font-size:14px">'+esc(r.nombre)+'</b><span class="mini muted" style="display:block">'+
-        (r.auto?'Se suma sola':'Se anota a mano')+'</span></span>'+
-      '<input type="number" inputmode="numeric" value="'+r.puntos+'" onchange="reglaPuntos(\''+r.k+'\',this.value)">'+
-      '<button class="btn xs" onclick="reglaActiva(\''+r.k+'\')">'+(r.activa?'Apagar':'Encender')+'</button>'+
-      (r.propia?'<button class="btn xs" onclick="reglaBorrar(\''+r.k+'\')">×</button>':'')+
-      '</div>').join('')+'</div>';
-  }).join('');
-}
-function reglaPuntos(k,v){ const r=ligaCfg().reglas[k]; if(!r) return; r.puntos=Math.round(+v||0); ligaTocar(); aviso('Puntos guardados'); }
-function reglaActiva(k){ const r=ligaCfg().reglas[k]; if(!r) return; r.activa=!r.activa; ligaTocar(); mostrarReglamento(); }
-function reglaBorrar(k){ if(!confirm('¿Borrar esta norma? Los puntos ya anotados dejan de contar.')) return;
-  delete ligaCfg().reglas[k]; ligaTocar(); mostrarReglamento(); }
-function reglaNueva(){
-  const n=document.getElementById('rgNombre').value.trim(); if(!n){ aviso('Escribe la norma','warn'); return; }
-  const k='p'+uid();
-  ligaCfg().reglas[k]={nombre:n,puntos:Math.round(+document.getElementById('rgPuntos').value||0),
-    ambito:document.getElementById('rgAmbito').value,auto:false,activa:true,propia:true};
-  document.getElementById('rgNombre').value=''; ligaTocar(); mostrarReglamento(); aviso('Norma añadida');
-}
-function ligaDesde(v){ ligaCfg().desde=v||''; ligaTocar(); aviso(v?'La liga cuenta desde el '+fechaLarga(v):'Cuenta toda la temporada'); }
-function pdfLiga(){
-  const C=clasificacion(), R=ligaCfg().reglas;
-  const tit={temporada:'Temporada',mes:'Últimos 30 días',semana:'Esta semana'}[ligaPeriodo];
-  let h=docCab('Liga interna',tit+' · '+fechaLarga(hoyISO()));
-  h+='<table class="doc-lista"><thead><tr><th style="width:34px">Pos.</th><th style="width:36px">Nº</th><th>Jugador</th>'+
-    '<th>Lo que más suma</th><th style="width:60px">Puntos</th></tr></thead><tbody>'+
-    C.map((x,i)=>{
-      const mejor=Object.entries(x.o.por).filter(([k,v])=>v[1]>0).sort((a,b)=>b[1][1]-a[1][1]).slice(0,2)
-        .map(([k,v])=>esc((R[k]||{}).nombre||k)+' ×'+v[0]).join(' · ');
-      return '<tr><td class="c"><b>'+(i+1)+'</b></td><td class="c">'+esc(x.j.dorsal??'')+'</td><td>'+esc(x.j.nombre)+'</td>'+
-        '<td>'+(mejor||'—')+'</td><td class="c"><b>'+x.o.total+'</b></td></tr>';
-    }).join('')+'</tbody></table>';
-  h+=reglamentoTabla()+docPie();
-  imprimir(h,'Liga interna '+hoyISO());
-}
-function reglamentoTabla(){
-  const rs=reglasLista().filter(r=>r.activa);
-  const fila=r=>'<tr><td>'+esc(r.nombre)+'</td><td class="c"><b>'+(r.puntos>0?'+':'')+r.puntos+'</b></td></tr>';
-  return '<h4 class="doc-h">Reglamento</h4><table class="doc-lista"><thead><tr><th>Norma</th><th style="width:70px">Puntos</th></tr></thead><tbody>'+
-    rs.filter(r=>r.puntos>0).map(fila).join('')+rs.filter(r=>r.puntos<=0).map(fila).join('')+'</tbody></table>';
-}
-function pdfReglamento(){ imprimir(docCab('Reglamento de la liga interna','Lo que suma y lo que resta')+reglamentoTabla()+docPie(),'Reglamento'); }
-function fusionarLiga(a,b){ return (a&&b)?(((a.mod||0)>=(b.mod||0))?a:b):(a||b||null); }
-
-/* ══════════════════════════════════════════════════════
-   EL 8 O EL 11 EN EL ACTA · campo con huecos
-   ══════════════════════════════════════════════════════ */
-const FORMACIONES_F11=['4-3-3','4-4-2','4-2-3-1','3-5-2','3-4-3','4-1-4-1'];
-function formatoDe(s){ return s&&s.formato==='F11'?'F11':'F8'; }
-function formacionesDe(s){ return formatoDe(s)==='F11'?FORMACIONES_F11:FORMACIONES; }
-function setFormato(f){
-  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||siCerrada()) return;
-  s.formato=f; s.formacion=formacionesDe(s)[0];
-  D.registros.filter(r=>r.sesionId===s.id).forEach(r=>{ if(Number.isInteger(r.slot)) delete r.slot; });
-  marcar(s); salvar(); refrescarCampo(); aviso(f==='F11'?'Fútbol 11 · 10 + portero':'Fútbol 8 · 7 + portero');
-}
-function setSistemaActa(f){
-  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||siCerrada()) return;
-  if(!formacionesDe(s).includes(f)) return;
-  s.formacion=f; marcar(s); salvar(); refrescarCampo();
-}
-function refrescarCampo(){
-  if(vista==='acta'){ planActual=repartoMinutos(sesionActiva); mostrarCampoActa(); mostrarListaActa(); revisarMinimos(true); }
-  else mostrarPreparar();
-}
-function convocar(rid,si){
-  if(siCerrada()) return;
-  const r=D.registros.find(x=>x.id===rid); if(!r) return;
-  r.estado=si?'suplente':'no'; r.asistio=!!si; delete r.slot;
-  if(!si){ if(r.nota!=null) r.notaGuardada=r.nota; r.nota=null; }
-  marcar(r); salvar(); refrescarCampo();
-}
-function aBanquillo(rid){
-  if(siCerrada()) return;
-  const r=D.registros.find(x=>x.id===rid); if(!r) return;
-  r.estado='suplente'; delete r.slot; marcar(r); salvar(); slotActivo=null; refrescarCampo();
-}
-function sugerirActa(){ if(siCerrada()) return; sugerirGlobal(); }
-function mostrarCampoActa(){
-  const el=document.getElementById('aCampo'); if(!el) return;
-  const s=D.sesiones.find(x=>x.id===sesionActiva);
-  if(!s||esPrueba(s.tipo)){ el.innerHTML=''; return; }
-  if(!planActual) planActual=repartoMinutos(s.id);
-  const c=cfgPartido(), fmt=formatoDe(s);
-  const regs=D.registros.filter(r=>r.sesionId===s.id);
-  const jug=r=>D.jugadores.find(x=>x.id===r.jugadorId);
-  const tit=regs.filter(r=>(r.estado||'titular')==='titular');
-  const titC=tit.filter(r=>(jug(r)||{}).tipo!=='portero').length, titP=tit.length-titC;
-  const banco=regs.filter(r=>r.estado==='suplente'&&jug(r)), fuera=regs.filter(r=>r.estado==='no'&&jug(r));
-  const ficha=(r,acc,extra)=>{ const j=jug(r);
-    return '<button class="eq-chip" onclick="'+acc+'">'+(j.dorsal!=null&&j.dorsal!==''?'<b>'+esc(j.dorsal)+'</b> ':'')+
-      esc((j.nombre||'').split(' ')[0])+(j.tipo==='portero'?' 🧤':'')+(extra||'')+'</button>'; };
-  const dibujo=campoSVG(planActual), nHuecos=slotsDe(formacionDe(s)).length;
-  const gks=tit.filter(r=>(jug(r)||{}).tipo==='portero');
-  const usados=new Set(), sobran=[];
-  planActual.filter(x=>(x.r.estado||'titular')==='titular'&&!x.es).forEach(x=>{
-    const k=x.r.slot;
-    if(Number.isInteger(k)&&k<nHuecos&&!usados.has(k)) usados.add(k); else sobran.push(x.r);
-  });
-  const gkDibujado=(planActual.find(x=>(x.r.estado||'titular')==='titular'&&x.es)||{}).r;
-  gks.filter(r=>r!==gkDibujado).forEach(r=>sobran.push(r));
-  el.innerHTML='<div class="card" style="margin-bottom:13px">'+
-    '<div class="spread" style="margin-bottom:10px"><div class="seg" style="flex:1">'+
-      ['F8','F11'].map(f=>'<button class="'+(f===fmt?'on':'')+'" onclick="setFormato(\''+f+'\')">'+(f==='F8'?'Fútbol 8':'Fútbol 11')+'</button>').join('')+
-    '</div><span class="chip '+(titC===c.campo&&titP===1?'green':'amber')+'" style="margin-left:8px">'+titC+'+'+titP+'</span></div>'+
-    '<div class="grid2" style="align-items:end;margin-bottom:10px">'+
-      '<label class="field" style="margin:0"><span>Sistema</span><select onchange="setSistemaActa(this.value)">'+
-        formacionesDe(s).map(f=>'<option value="'+f+'"'+(f===formacionDe(s)?' selected':'')+'>'+f+'</option>').join('')+
-      '</select></label>'+
-      '<button class="btn" onclick="sugerirActa()">Sugerir el '+(c.campo+1)+'</button></div>'+
-    dibujo+
-    '<p class="mini muted" style="text-align:center;margin:8px 0 0">Toca un hueco o un jugador del campo para cambiarlo.</p>'+
-    (sobran.length?'<div class="alerta" style="margin-top:10px"><b>'+sobran.length+' titulares sin hueco</b>'+
-      'Toca para mandarlos al banquillo, o pulsa «Sugerir».<div class="banco">'+
-      sobran.map(r=>ficha(r,'aBanquillo(\''+r.id+'\')')).join('')+'</div></div>':'')+
-    '<div id="aSlot"></div>'+
-    '<p class="eyebrow" style="margin:14px 0 0">Banquillo · '+banco.length+'</p>'+
-    '<div class="banco">'+(banco.length?banco.map(r=>ficha(r,'convocar(\''+r.id+'\',0)',' <span class="muted">×</span>')).join(''):'<span class="mini muted">Nadie</span>')+'</div>'+
-    (fuera.length?'<p class="eyebrow" style="margin:12px 0 0">No convocados · toca para convocar</p>'+
-      '<div class="banco">'+fuera.map(r=>ficha(r,'convocar(\''+r.id+'\',1)')).join('')+'</div>':'')+
-  '</div>';
-  mostrarSlot();
-}
-
-</script>
-<script>
-/* ══════════════════════════════════════════════════════
-   MICROCONCEPTOS POR MICROCICLO
-   El objetivo del microciclo, bajado al jugador: un objetivo con balón
-   y uno sin balón (lo que se manda a Daniel) y, debajo, las conductas
-   pequeñas y observables que lo forman. Del jugador al colectivo.
-   mc: [con balón, sin balón, [microconceptos con balón], [sin balón], [portero]]
-   ══════════════════════════════════════════════════════ */
-const MICROCONCEPTOS={
- 1:["Conducción con percepción periférica", "Repliegue intensivo tras pérdida", ["Conducción: superficie exterior o interior, balón a menos de un paso, mirada al juego", "Petición del balón: comunicación verbal y gestual antes de la recepción", "Pase raso: superficie interior, tenso, dirigido al pie más alejado del rival"], ["Repliegue: carrera hacia portería propia inmediata a la pérdida", "Posición defensiva: entre el par y la portería, en la línea balón-portería", "Comunicación defensiva: aviso de rival próximo y de marcas libres"], ["Posición base: apoyos a la anchura de hombros, flexión y peso en la parte anterior del pie", "Comunicación: dirección de la línea defensiva en cada acción"]],
- 2:["Recepción perfilada en el inicio de juego", "Ocupación posicional en la estructura de salida", ["Perfil corporal abierto: el central recibe en el borde del área, orientado hacia el carril exterior", "Control orientado: primer contacto hacia el espacio libre, nunca hacia el presionador", "Descenso del pivote: se incrusta entre centrales con balón en poder del portero (1-3-3-1)", "Pase de seguridad: devolución al portero ante presión cerrada, sin conducción"], ["Estructura de salida: ocupación de su posición en 1-3-3-1 y en 1-2-4-1", "Disparador de ascenso: balón superando la línea media, el pivote progresa a la segunda línea", "Desmarque de apoyo: salida de la sombra del par para ofrecer línea de pase"], ["Saque en corto: pase raso al pie del central libre dentro del área", "Apoyo posterior: posición de pase de seguridad tras el primer pase"]],
- 3:["Recepción en amplitud y desborde en 1x1", "Fijación de la amplitud máxima", ["Recepción en amplitud: extremo con apoyos sobre la línea de banda y perfil orientado al juego", "Control orientado progresivo: primer contacto hacia delante, atacando al defensor", "Desborde en 1x1: cambio de ritmo y de dirección hacia línea de fondo", "Pase atrás raso: desde línea de fondo hacia el punto de penalti"], ["Amplitud fija: extremos sobre la línea de banda hasta la recepción", "Fijación de centrales: el punta ocupa a los centrales para impedir la ayuda en banda", "Apoyo de soporte: el interior cercano se sitúa por detrás de la línea del balón"], ["Blocaje raso: caída lateral con mano superior por detrás del balón", "Posición en centro lateral: bisectriz entre balón y primer palo"]],
- 4:["Control orientado tras recuperación y decisión vertical o de seguridad", "Presión orientada con cierre de línea de pase y anticipación", ["Percepción previa a la recuperación: localización del compañero libre antes del robo", "Decisión tras recuperación: progresión vertical con espacio, pase de seguridad sin él", "Primer pase tras robo: hacia delante en los primeros segundos de la transición"], ["Presión orientada: aproximación por el exterior cerrando la línea de pase interior", "Anticipación: llegada antes que el rival al balón dividido en 1x1 y 2x1", "Contrapresión: decisión en menos de cinco segundos entre presionar o temporizar y cubrir", "Cobertura: el segundo defensor protege la espalda del presionador"], ["Adelantamiento de la posición: portero-líbero con el bloque en presión alta", "Lectura del balón largo: atención al envío a la espalda de la línea defensiva"]],
- 5:["Protección del balón ante marcaje individual", "Marcaje individual con referencia de balón", ["Desmarque previo: de apoyo o de ruptura para ganar ventaja antes de la recepción", "Protección: interposición del cuerpo entre rival y balón en la recepción", "Juego de cara: pase a un toque al recibir de espaldas con marcaje cercano"], ["Posición de perfil: control visual simultáneo de balón y par", "Distancia de marcaje: estrecha con balón próximo, cerrando al centro con balón lejano", "Interceptación: anticipación por delante del par cuando el pase lo permite", "Entrega de marca: comunicación del cambio de zona del par al compañero"], ["Organización de la marca: asignación verbal de marcas antes de cada reanudación", "Blocaje y caída: caída lateral hacia el lado del balón"]],
- 6:["Selección de la opción más avanzada viable", "Ocupación de líneas de pase interiores", ["Escaneo: orientación visual por encima del hombro antes de la recepción", "Jerarquía de pase: punta, extremo y, en último lugar, interior", "Conservación: circulación de seguridad cuando la opción avanzada no es viable"], ["Desmarque entre líneas: el punta se sitúa a la espalda del mediocentro rival", "Ocupación de línea de pase: interiores fuera de la sombra de los rivales", "Comunicación ofensiva: indicaciones al poseedor («solo», «gira», «atrás»)"], ["Juego de pies progresivo: pase hacia delante con hombre libre detectado", "Control orientado bajo presión: primer contacto lejos del presionador"]],
- 7:["Transición ofensiva según zona de recuperación", "Ocupación de espacios en el momento del robo", ["Recuperación en zona 3: finalización en un máximo de cuatro pases", "Recuperación en zona 2: un pase de seguridad y ataque", "Recuperación en zona 1: conservación y salida por carril exterior"], ["Apertura: los extremos ganan amplitud en el instante del robo", "Ruptura: el punta ataca la espalda de la línea defensiva rival", "Apoyo inmediato: el jugador más próximo ofrece línea de pase al recuperador"], ["Saque rápido con la mano: reanudación inmediata al compañero libre tras la parada", "Selección de zona: saque hacia el carril con más espacio"]],
- 8:["Gestión de toques por zona", "Apoyo cercano al poseedor", ["Zona 1: toques libres, sin regate en el carril central", "Zona 2: máximo tres contactos con control orientado y pase", "Zona 3: libertad para el desborde y la finalización"], ["Apoyo cercano: línea de pase a distancia corta del poseedor", "Sincronización: desmarque en el momento en que el poseedor eleva la mirada", "Comunicación: aviso de presión por la espalda del poseedor"], ["Blocaje frontal: balones a media altura con manos en «W»", "Reanudación: juego en menos de dos segundos tras el blocaje"]],
- 9:["Recepción en espacios libres", "Ocupación racional del espacio", ["Percepción del espacio: identificación del hueco antes de pedir el balón", "Recepción entre líneas: perfil abierto en el intervalo entre líneas rivales", "Escalonamiento: un jugador abandona la zona si dos coinciden en ella"], ["Ocupación racional: no se aproxima al balón si la zona ya está ocupada", "Desmarque de liberación: alejamiento para generar espacio a un compañero", "Distancias de relación: ni superposición ni desconexión entre compañeros"], ["Dirección de centrales: corrección verbal de su posición", "Posición según balón: ajuste a la ubicación del balón en cada momento"]],
- 10:["Ejecución de la acción a balón parado lateral", "Defensa de la acción a balón parado lateral", ["Asignación de roles: cada jugador conoce su posición y su movimiento", "Sincronización: inicio del movimiento a la señal acordada", "Ejecución del envío: balón tenso a la zona acordada"], ["Marcaje previo: emparejamiento antes del saque", "Ataque al balón: el defensor sale al balón, no lo espera", "Despeje: orientado hacia fuera, nunca hacia el carril central"], ["Posición adelantada: ajuste ante saque de banda rival", "Salida aérea: decisión y comunicación («mía»)"]],
- 11:["Consolidación: escaneo y opción más avanzada", "Consolidación: presión orientada y marcaje", ["Escaneo previo: percepción antes de cada recepción", "Jerarquía de pase: selección de la opción más avanzada viable", "Calidad de pase: raso y tenso al pie"], ["Presión orientada: cierre de línea de pase y anticipación", "Marcaje con referencia de balón: distancia según la posición del balón", "Contrapresión: reacción en menos de cinco segundos tras pérdida"], ["Repaso técnico: blocaje, caída y juego de pies", "Comunicación: dirección constante de la defensa"]],
- 12:["Ejecución de acciones a balón parado de esquina", "Defensa mixta del saque de esquina", ["Roles: bloqueo o desmarque asignado a cada jugador", "Envío: balón a la zona acordada con la trayectoria acordada", "Ataque al primer palo: desmarque de ruptura con remate"], ["Defensa zonal: ocupación de la zona asignada antes del saque", "Defensa individual: el marcador mantiene contacto con su par", "Salida tras despeje: la línea sale de forma simultánea"], ["Organización: colocación de la defensa antes del saque", "Decisión: salida o permanencia, comunicada en voz alta"]],
- 13:["Fijación en un carril", "Mantenimiento de la estructura durante la fijación", ["Circulación de atracción: juego en un carril para provocar la basculación rival", "Pase corto de seguridad: invitación a la presión del rival", "Momento del cambio: pase cuando el rival ha basculado"], ["Extremo lejano: amplitud mantenida sin aproximarse al balón", "Soporte: el interior cercano se sitúa por detrás de la línea del balón", "Evitar la acumulación: ningún jugador se superpone en el carril del balón"], ["Participación en circulación: apoyo posterior a los centrales", "Blocaje y caída: mantenimiento técnico"]],
- 14:["Cambio de orientación al lado débil", "Preparación del cambio sin balón", ["Percepción del lado débil: orientación visual antes de la recepción", "Ejecución: cambio en uno o dos pases, raso o tenso", "Control orientado progresivo del receptor"], ["Amplitud en el lado débil: extremo lejano preparado para recibir", "Jugador puente: interiores como enlace del cambio", "Comunicación: indicación verbal del cambio"], ["Recolocación: desplazamiento con el cambio de carril del balón", "Puente con el pie: participación como apoyo del cambio"]],
- 15:["Mecanismo de identidad completo", "Ocupación de los roles del mecanismo", ["Secuencia: fijación, cambio de orientación y 1x1 del extremo lejano", "Desborde hasta línea de fondo", "Pase atrás raso al jugador que llega en segunda línea"], ["Llegada al área: dos jugadores atacan el espacio del pase atrás", "Vigilancia: el pivote permanece como equilibrio defensivo", "Rol en el mecanismo: cada jugador conoce su función en cada fase"], ["Participación en la fijación con el pie", "Adelantamiento de la posición con el equipo en ataque"]],
- 16:["Salida tras recuperación en bloque medio", "Organización del bloque medio", ["Primer pase tras robo: hacia el exterior, fuera de la zona de presión", "Conducción de liberación: solo para superar al presionador", "Conexión con el extremo abierto"], ["Altura del bloque: en la mitad del campo propio", "Distancia entre líneas: máximo quince metros", "Cierre interior: protección del carril central y concesión de bandas"], ["Posición según altura del bloque", "Dirección verbal de la distancia de la línea defensiva"]],
- 17:["Lectura de la presión rival: progresar o conservar", "Activación de la presión desde bloque medio", ["Lectura previa de la presión rival", "Con presión: conservación y salida por carril exterior", "Sin presión: progresión por el carril central"], ["Disparadores: pase atrás, control deficiente o balón en banda", "Salto del primer presionador y aproximación del bloque", "Sin disparador: mantenimiento de la estructura del bloque"], ["Control de la espalda de la línea con el bloque en presión", "Comunicación del disparador"]],
- 18:["Gestión de la posesión según el marcador", "Vigilancias defensivas en fase ofensiva", ["Con ventaja: posesión de seguridad y riesgo mínimo en zona 1", "Con desventaja: priorización de la opción vertical", "Conocimiento permanente del marcador y del tiempo"], ["Vigilancias: dos jugadores por detrás del balón en ataque", "Control del punta rival por parte del jugador en vigilancia", "Contrapresión: el vigilante es el primer presionador tras pérdida"], ["Portero-líbero: posición adelantada a la espalda de la línea defensiva", "Despeje con el pie fuera del área cuando sea necesario"]],
- 19:["Ataque del fuera de juego rival", "Gestión de la línea de fuera de juego", ["Timing del desmarque: inicio en el momento del pase", "Percepción de la línea defensiva por el pasador", "Desmarque en diagonal para mantener la posición legal"], ["Línea defensiva: avance coordinado a la voz", "Habilitación: el defensor retrasado habilita a todos los rivales", "Disparador de avance: pase atrás del rival"], ["Dirección verbal del avance de la línea", "Salidas rasas a la espalda de la defensa"]],
- 20:["Integración de la fase ofensiva", "Integración de la fase defensiva", ["Inicio, amplitud y mecanismo de identidad en contexto de partido", "Escaneo previo en cada recepción", "Selección de la opción más avanzada viable"], ["Bloque, presión y marcaje en contexto de partido", "Contrapresión de cinco segundos", "Comunicación y ayudas permanentes"], ["Repaso integrado del bloque", "Comunicación continua"]],
- 21:["Ataque por carril exterior con ruptura al primer palo", "Acompañamiento y equilibrio en el ataque por banda", ["Desborde del extremo hasta línea de fondo", "Centro raso y tenso al primer palo", "Ruptura del punta al primer palo"], ["Llegada de segunda línea al segundo palo", "Ocupación de la frontal para el rechace", "Mantenimiento de la vigilancia"], ["Defensa del primer palo ante centros", "1x1: reducción del ángulo y espera"]],
- 22:["Juego directo a la espalda de la línea defensiva", "Desmarque de ruptura en el momento justo", ["Percepción del espacio a la espalda antes del pase", "Condición del envío: solo con desmarque iniciado desde posición legal", "Pase al espacio, no al pie"], ["Ruptura desde detrás de la línea o del balón", "Trayectoria diagonal hacia portería", "Reajuste: nueva oferta de apoyo si el pase no se produce"], ["Juego de pies en largo a la espalda rival", "Decisión entre juego directo y juego corto según presión"]],
- 23:["Gestión del ritmo de juego", "Lectura del desorden rival", ["Aceleración con ventaja: juego a uno o dos toques", "Pausa sin ventaja: circulación de seguridad y reinicio", "Conducción de atracción para liberar compañeros"], ["Adaptación de la movilidad al ritmo del equipo", "Oferta de apoyo seguro en fase de pausa", "Comunicación del ritmo («rápido», «tranquilo»)"], ["Decisión de inicio corto o largo según el rival", "Regulación del ritmo con la reanudación"]],
- 24:["Salida del lado fuerte tras recuperación", "Basculación colectiva en tres carriles", ["Recuperación en banda: orientación del balón hacia el carril central", "Percepción del lado débil tras el robo", "Pase de seguridad previo a la progresión"], ["Basculación: desplazamiento colectivo hacia el carril del balón", "Cierre interior del extremo lejano", "Protección del carril central"], ["Desplazamiento con la basculación", "Dirección verbal del carril de cada defensor"]],
- 25:["Finalización con oposición", "Defensa del área con oposición", ["Percepción de portería y portero antes del golpeo", "Golpeo raso y cruzado", "Alternativa: pase atrás al jugador de segunda línea"], ["Bloqueo de golpeo con el cuerpo", "Seguimiento del rematador hasta el final de la acción", "Prioridad: balón y, después, rechace"], ["Blocaje de golpeos rasos", "Desvío hacia fuera, nunca al carril central"]],
- 26:["Consolidación ofensiva del bloque", "Consolidación defensiva del bloque", ["Mecanismo de identidad", "Gestión del ritmo", "Finalización"], ["Basculación en tres carriles", "Vigilancias según marcador", "Línea de fuera de juego"], ["Repaso técnico", "Comunicación"]],
- 27:["Adaptación ofensiva a contextos variables con consigna", "Adaptación defensiva a contextos variables con consigna", ["Aplicación de la consigna en la acción siguiente", "Conocimiento del cambio en su demarcación", "Transmisión de la consigna al compañero"], ["Cambio de altura de bloque o de marcaje a la señal", "Comunicación verbal del cambio", "Mantenimiento de la distancia entre líneas tras el ajuste"], ["Transmisión de la consigna a la línea defensiva", "Recolocación según el nuevo plan"]],
- 28:["Adaptación ofensiva autónoma", "Detección del cambio de planteamiento rival", ["Identificación de presión alta o bloque bajo del rival", "Ajuste sin indicación externa", "Comunicación del ajuste al equipo"], ["Detección del cambio de sistema rival", "Ajuste autónomo del marcaje", "Reorganización verbal del resto"], ["Detección precoz del cambio rival", "Dirección de la reorganización"]],
- 29:["Variantes a balón parado", "Defensa del balón parado con variantes", ["Dominio de dos variantes por acción", "Selección de la variante según la respuesta rival", "Ejecución a la señal"], ["Reconocimiento y aviso de la acción rival", "Mantenimiento de marca o zona", "Salida simultánea tras el despeje"], ["Defensa del córner y colocación de la barrera", "Decisión de salida o permanencia"]],
- 30:["Explotación de la superioridad numérica", "Defensa ante rival en inferioridad", ["Identificación del hombre libre", "Fijación del defensor y pase al libre", "Velocidad de ejecución antes de la reorganización rival"], ["Presión al poseedor con cobertura asegurada", "Cierre del único apoyo disponible", "Transición inmediata tras recuperación"], ["1x1: espera y reducción de ángulo", "Participación con el pie para generar superioridad"]],
- 31:["Conservación en inferioridad numérica", "Defensa en inferioridad numérica", ["Protección del balón a la espera de apoyos", "Riesgo mínimo en zona 1", "Juego directo como alternativa ante bloqueo"], ["Temporización en lugar de entrada", "Prioridad defensiva: carril central y portería", "Comunicación para el repliegue de compañeros"], ["1x1 y golpeos rasos", "Dirección de la defensa en inferioridad"]],
- 32:["Integración ofensiva del bloque", "Integración defensiva del bloque", ["Superioridades y gestión del ritmo en partido", "Mecanismo de identidad", "Finalización"], ["Inferioridades y basculación en partido", "Contrapresión de cinco segundos", "Comunicación y ayudas"], ["Repaso integrado", "Comunicación"]],
- 33:["Polivalencia ofensiva en una segunda demarcación", "Polivalencia defensiva en una segunda demarcación", ["Conducta con balón propia de la segunda demarcación", "Aplicación de la palabra del puesto (serenidad, panorámica, atrevimiento, ruptura)", "Orientación corporal adaptada al nuevo espacio"], ["Tarea defensiva de la segunda demarcación", "Referencias de marcaje del nuevo puesto", "Coordinación con el compañero adyacente"], ["Juego de pies como central añadido", "Colocación en cada estructura de salida"]],
- 34:["Permutas posicionales en fase ofensiva", "Coberturas ante permutas", ["Permuta con un compañero durante la acción", "Mantenimiento de la estructura pese a la rotación", "Oferta de línea de pase en la nueva posición"], ["Cobertura del espacio del jugador que progresa", "Comunicación de la permuta", "Reocupación de la posición al finalizar la acción"], ["Juego de pies y colocación", "Organización verbal de las rotaciones"]],
- 35:["Autonomía en la selección del mecanismo ofensivo", "Autonomía en la activación de la presión", ["Selección autónoma entre mecanismo de identidad o juego directo", "Decisión fundamentada en el comportamiento rival", "Comunicación de la decisión al equipo"], ["Decisión del momento de presión", "Comunicación de la activación", "Respuesta coordinada del resto del equipo"], ["Decisión del tipo de reanudación", "Organización del equipo desde atrás"]],
- 36:["Toma de decisiones y gestión del error", "Organización defensiva autónoma", ["Decisión sin dependencia del banquillo", "Reintento tras el error", "Corrección entre iguales"], ["Organización defensiva entre los propios jugadores", "Adaptación al rival sin indicaciones", "Comunicación y ayudas"], ["Decisión en salidas y despejes", "Liderazgo desde la portería"]],
- 37:["Juego en espacios amplios", "Defensa en espacios amplios", ["Pases de mayor distancia y tensión", "Mayor amplitud y profundidad", "Oferta de apoyo a mayor distancia"], ["Mayor distancia de cobertura", "Repliegue con balón a la espalda", "Anticipación con más espacio por delante"], ["Portero-líbero en campo amplio", "Dominio del área grande"]],
- 38:["Ataque en espacios amplios", "Control de la profundidad en espacios amplios", ["Cambios de orientación largos", "Conducción en espacio libre", "Llegada al área con más jugadores"], ["Control de la espalda en campo amplio", "Mantenimiento prolongado de la línea", "Basculación de mayor recorrido"], ["Portero-líbero", "Juego de pies en largo"]],
- 39:["Repaso global de la fase ofensiva", "Repaso global de los movimientos sin balón en ataque", ["Inicio, amplitud y mecanismo de identidad", "Opción más avanzada viable", "Finalización"], ["Desmarques de apoyo y ruptura", "Ocupación racional del espacio", "Vigilancias"], ["Juego de pies", "Saque"]],
- 40:["Repaso de la transición ofensiva", "Repaso global de la fase defensiva", ["Transición ofensiva por zonas", "Pase de seguridad tras robo", "Salida desde bloque"], ["Presión y contrapresión", "Bloque medio", "Línea de fuera de juego"], ["Colocación", "Comunicación"]],
- 41:["Integración global con balón", "Integración global sin balón", ["Fase ofensiva completa en partido", "Toma de decisiones autónoma", "Gestión del ritmo"], ["Fase defensiva completa en partido", "Contrapresión de cinco segundos", "Comunicación y ayudas"], ["Repaso integrado", "Comunicación"]],
- 42:["Competición con balón", "Competición sin balón", ["Aplicación global del modelo en partido", "Decisión bajo presión", "Finalización"], ["Presión, bloque y marcaje en competición", "Intensidad competitiva sostenida", "Comunicación y ayudas"], ["Repaso integrado", "Liderazgo"]],
- 43:["Creatividad con balón", "Cooperación sin balón", ["Libertad creativa en la resolución", "Experimentación de recursos nuevos", "Participación de todos los jugadores"], ["Intensidad en cada acción", "Ayuda al compañero", "Juego limpio"], ["Juego libre", "Disfrute"]],
- 44:["Evaluación de la evolución con balón", "Evaluación de la evolución sin balón", ["Autoevaluación de la fase ofensiva", "Objetivos para el periodo estival", "Aspecto de mayor mejora"], ["Autoevaluación de la fase defensiva", "Objetivos para el periodo estival", "Aspecto de mayor mejora"], ["Informe final de porteros", "Objetivos para el periodo estival"]]
-};
-/* el plan que tiene cada uno puede estar cambiado: solo se rellena donde el contenido sigue siendo el original */
-const MICRO_V=2;
-function completarMicroconceptos(){
-  let n=0;
-  D.plan.forEach(p=>{
-    if(p.micro&&(p.micro.v||1)<MICRO_V&&!p.micro.propio) delete p.micro;   /* versión anterior sin tocar: se pone la técnica */
-    if(p.micro) return;
-    const base=MICROCICLOS.find(m=>m[0]===p.mc), x=MICROCONCEPTOS[p.mc];
-    if(!x) return;
-    const original=base&&(p.dominante||'').trim()===base[1];
-    p.micro= original ? {cb:x[0],sb:x[1],mcb:x[2].slice(),msb:x[3].slice(),por:x[4].slice(),v:MICRO_V}
-      : {cb:'',sb:'',mcb:[],msb:[],por:[],v:MICRO_V};
-    n++;
-  });
-  return n;
-}
-const lineas=t=>String(t||'').split('\n').map(x=>x.replace(/^[·\-•\s]+/,'').trim()).filter(Boolean);
-function conceptoHTML(x){ const i=String(x).indexOf(':');
-  return i>0&&i<60?'<b>'+esc(x.slice(0,i))+'</b>'+esc(x.slice(i)):esc(x); }
-function microDe(mc){ const p=D.plan.find(x=>x.mc===mc)||{}; return p.micro||{cb:'',sb:'',mcb:[],msb:[],por:[]}; }
-function htmlMicro(m,compacto){
-  const lista=(t,arr)=>arr.length?'<p class="eyebrow" style="margin:10px 0 5px">'+t+'</p><ul class="micro-ul">'+
-    arr.map(x=>'<li>'+conceptoHTML(x)+'</li>').join('')+'</ul>':'';
-  return (m.cb||m.sb?'<div class="micro-obj">'+
-      (m.cb?'<div><span class="chip blue">Con balón</span> <b>'+esc(m.cb)+'</b></div>':'')+
-      (m.sb?'<div style="margin-top:6px"><span class="chip garnet">Sin balón</span> <b>'+esc(m.sb)+'</b></div>':'')+'</div>':'')+
-    lista('Microconceptos con balón',m.mcb||[])+lista('Microconceptos sin balón',m.msb||[])+
-    (compacto?'':lista('Portero',m.por||[]));
-}
-
-function equiposFila(s,tid){
-  const e=(s.equipos||{})[tid]; if(!e) return '';
-  const g=[...Array(e.n)].map(()=>[]);
-  Object.entries(e.de||{}).forEach(([jid,k])=>{ const j=D.jugadores.find(x=>x.id===jid); if(j&&k<e.n) g[k].push((j.dorsal!=null&&j.dorsal!==''?j.dorsal+' ':'')+(j.nombre||'').split(' ')[0]); });
-  return '<tr><td colspan="3"><b>Equipos</b>'+g.map((l,i)=>'<b>'+PETOS[i][0]+':</b> '+esc(l.join(', '))).join(' · ')+'</td></tr>';
-}
-function textoDaniel(mc){
-  const m=microDe(mc);
-  return 'MC'+String(mc).padStart(2,'0')+'\nCon balón: '+(m.cb||'—')+'\nSin balón: '+(m.sb||'—');
-}
-async function copiarDaniel(){
-  const t=textoDaniel(mcEdit);
-  try{ await navigator.clipboard.writeText(t); aviso('Copiado: pégalo en el mensaje a Daniel'); }
-  catch(e){ prompt('Copia este texto:',t); }
-}
-function pdfMicrociclo(){
-  const p=D.plan.find(x=>x.mc===mcEdit)||{}, m=microDe(mcEdit), b=bloqueDe(mcEdit);
-  let h=docCab('Microciclo '+String(mcEdit).padStart(2,'0'),b.nombre+' · '+(p.dominante||''));
-  h+='<table class="doc-meta"><tr><td><b>Objetivo con balón</b>'+esc(m.cb||'—')+'</td>'+
-    '<td><b>Objetivo sin balón</b>'+esc(m.sb||'—')+'</td></tr></table>';
-  [['Microconceptos con balón',m.mcb],['Microconceptos sin balón',m.msb],['Portero',m.por]].forEach(([t,l])=>{
-    if((l||[]).length) h+='<h4 class="doc-h">'+t+'</h4><ul class="doc-ul">'+l.map(x=>'<li>'+conceptoHTML(x)+'</li>').join('')+'</ul>';
-  });
-  if(p.notas) h+='<h4 class="doc-h">Notas</h4><p class="doc-p">'+esc(p.notas)+'</p>';
-  h+=docPie(); imprimir(h,'Microciclo '+mcEdit);
-}
-function pintarMicroHoy(){
-  const el=document.getElementById('hoyMicro'); if(!el) return;
-  const m=microDe(D.mc);
-  el.innerHTML= (m.cb||m.sb||(m.mcb||[]).length) ? '<details class="card micro-card"><summary><b>Objetivos de la semana</b>'+
-    '<span class="mini muted" style="display:block;margin-top:3px">'+esc(m.cb||'')+(m.cb&&m.sb?' · ':'')+esc(m.sb||'')+'</span></summary>'+
-    htmlMicro(m,false)+'</details>' : '';
-}
-function pintarMicroSesion(s){
-  const el=document.getElementById('sMicro'); if(!el||!s) return;
-  const m=microDe(s.mc);
-  el.innerHTML= (m.cb||m.sb||(m.mcb||[]).length) ? '<details class="card micro-card" style="margin-bottom:14px"><summary><b>Microconceptos del MC'+
-    String(s.mc).padStart(2,'0')+'</b><span class="mini muted" style="display:block;margin-top:3px">Lo que hay que ver y corregir hoy</span></summary>'+
-    htmlMicro(m,s.tipo!=='porteros')+'</details>' : '';
-}
-if(typeof D!=='undefined'&&D&&D.plan&&D.plan.length&&completarMicroconceptos()) salvar();
 
 </script>
 <div id="impresion"></div>

@@ -187,6 +187,18 @@ const ok = (nombre, cond, extra = '') => {
     !fuera.mas.includes('Diario') && !fuera.mas.includes('Pruebas') && fuera.vistas === 0, fuera.hoy.join(', '));
   ok('Microconceptos en formato técnico (concepto: criterio)', fuera.tecnico.includes(':'), fuera.tecnico);
 
+  // 8) Arranque con el nombre ya puesto (como en el iPhone): debe abrir en Hoy sin errores
+  const p2 = await navegador.newPage({ viewport: { width: 390, height: 844 } });
+  const err2 = [];
+  p2.on('pageerror', e => err2.push(e.message));
+  await p2.addInitScript(() => { localStorage.setItem('huescaF8_yo', 'Ivan'); });
+  await p2.goto(APP);
+  await p2.waitForTimeout(900);
+  const arranque = await p2.evaluate(() => ({ hoy: !!document.querySelector('#v-hoy.on'), error: /No se pudo abrir/.test(document.body.innerText) }));
+  ok('Arranca en Hoy con el nombre ya guardado', arranque.hoy && !arranque.error && !err2.length, err2.join(' | '));
+  await p2.evaluate(() => go('liga', false));
+  await p2.close();
+
   ok('Sin errores de página', errores.length === 0, errores.join(' | '));
   await navegador.close();
   console.log(fallos ? '\n' + fallos + ' prueba(s) fallada(s)' : '\nTodas las pruebas pasan');
