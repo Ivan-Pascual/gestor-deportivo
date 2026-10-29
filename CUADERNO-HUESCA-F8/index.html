@@ -166,13 +166,19 @@ main{padding:var(--e4) var(--pad) var(--e2);max-width:860px;margin:0 auto}
 
 /* ══════ CAMPOS ══════ */
 label.field{display:block;margin-bottom:var(--e3)}
-label.field>span{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+.field>span{display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
   color:var(--tinta-3);font-weight:700;margin-bottom:6px}
 input,select,textarea{width:100%;background:var(--noche);border:1px solid var(--line-2);
   border-radius:var(--r-s);padding:12px;outline:none;min-height:var(--toque)}
 input::placeholder,textarea::placeholder{color:#54687F}
 input:focus,select:focus,textarea:focus{border-color:var(--azul);box-shadow:0 0 0 3px rgba(43,95,217,.2)}
 textarea{resize:vertical;min-height:72px;line-height:1.55}
+/* iPhone: los campos de fecha no deben salirse de su columna */
+.grid2>*,.grid3>*{min-width:0}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-width:0;max-width:100%;
+  height:var(--toque);line-height:normal;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0}
+input[type=date]::-webkit-calendar-picker-indicator{opacity:.6}
 select{appearance:none;
   background-image:linear-gradient(45deg,transparent 50%,var(--tinta-3) 50%),
     linear-gradient(135deg,var(--tinta-3) 50%,transparent 50%);
@@ -611,6 +617,10 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
 .escudo{object-fit:contain;vertical-align:middle;border-radius:6px;flex:none}
 .escudo-vacio{font-size:26px;opacity:.5}
 .cumple{border-color:var(--ambar)}
+.foto-fila{display:flex;gap:12px;align-items:center;margin-bottom:14px}
+.foto-grande{width:72px;height:72px;border-radius:14px;overflow:hidden;flex:none;background:var(--panel3);
+  border:1px dashed var(--line-2);display:flex;align-items:center;justify-content:center;font-size:26px}
+.foto-grande img{width:100%;height:100%;object-fit:cover;display:block}
 .cumple.hoy{background:var(--ambar-b)}
 .micro-card[open] summary .mini{display:none}
 </style>
@@ -826,6 +836,7 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
   </div>
   <p class="eyebrow mt">Datos personales y físicos</p>
   <div class="card">
+    <div id="fFotoGrande" class="foto-fila"></div>
     <div class="grid2">
       <label class="field" style="margin:0"><span>Nacimiento <b id="fEdad" class="muted"></b></span>
         <input id="fNac" type="date" onchange="pintarEdad()"></label>
@@ -1521,19 +1532,19 @@ const MICROCICLOS=[
  [5,'Marcaje individual con referencia de balón','','Blocaje y caída'],
  [6,'Buscar la opción más avanzada viable','','Pies bajo presión'],
  [7,'Transición ofensiva por zonas','','1v1 y rasos'],
- [8,'Toques por zona: máximo tres en zona 2','','Blocaje'],
- [9,'Ocupación de espacios en salida','','Colocación'],
- [10,'Balón parado: una jugada de banda','Desde aquí, 15 minutos fijos de balón parado el día 3','Colocación en balón parado'],
- [11,'Repaso e integración','Sin contenido nuevo','Repaso técnico'],
- [12,'Balón parado: dos córners y defensa de córner','Cierre de bloque. Informe individual y antropometría','Defensa de córner'],
- [13,'Fijar un lado — paso 1 del mecanismo','','Blocaje y caída'],
- [14,'Cambio de orientación — paso 2','','Colocación en cambios de orientación'],
- [15,'Mecanismo identidad completo, cinco pasos','Antes del parón de Navidad','Pies'],
- [16,'Bloque medio — introducción','Semana de readaptación. Punto crítico de la temporada','Colocación en bloque medio'],
- [17,'Bloque medio: cuándo activo la presión','','Colocación'],
- [18,'Vigilancia defensiva según marcador','','Portero-líbero, introducción'],
- [19,'Usar la línea de fuera de juego','Subir coordinados. El que se queda, habilita a todos','1v1 y salidas rasas'],
- [20,'Integración ofensiva y defensiva','Cierre de bloque','Repaso'],
+ [8,"Amplitud y 1 contra 1: fijar por dentro y atacar por fuera","","1x1 y salidas rasas"],
+ [9,"Salida 1-3-3-1 ante presión: pivote a su perfil y superioridad 4v2","El pivote baja a su perfil, a la altura del portero. Saque largo solo como excepción (1 de cada 10)","Inicio de juego con el pie y apoyo posterior"],
+ [10,"Bloque medio 30×30 y zona mixta","","Colocación según la altura del bloque"],
+ [11,"Juego entre líneas: recepción orientada del pivote y del mediapunta","","Juego de pies progresivo hacia el interior"],
+ [12,"Tercer hombre: apoyo, descarga y profundidad","","Participación del portero como primer hombre"],
+ [13,"Fijar un lado y cambio de orientación","Pasos 1 y 2 del mecanismo identidad","Recolocación con el cambio de carril"],
+ [14,"Ataque al lado débil: 1x1, línea de fondo y pase atrás","Pasos 3 a 5 del mecanismo identidad","Defensa del centro raso y del primer palo"],
+ [15,"Mecanismo identidad completo, cinco pasos","Antes del parón de Navidad","Participación en la fijación con el pie"],
+ [16,"Readaptación: contrapresión y transición defensiva","Semana de readaptación tras el parón. Punto crítico de la temporada","Portero-líbero tras pérdida"],
+ [17,"Presión alta orientada y disparadores","","Adelantamiento de la posición con presión alta"],
+ [18,"Vigilancias y gestión del marcador","","Portero-líbero según el marcador"],
+ [19,"Defensa de la profundidad: línea de fuera de juego y portero-líbero","Línea de fuera de juego de F8. Subir coordinados: el que se queda habilita a todos","Salidas rasas a la espalda de la defensa"],
+ [20,"Integración ofensiva y defensiva","Cierre de bloque. Informe individual y antropometría","Repaso integrado del bloque"],
  [21,'Alternativa 1: banda y ruptura al primer palo','','1v1'],
  [22,'Alternativa 2: directo a espaldas','Solo antes de la línea o partiendo desde detrás del balón','Pies largos'],
  [23,'Ritmo de juego: cuándo acelero y cuándo aseguro','','Decisión en salidas'],
@@ -1846,6 +1857,7 @@ function cargar(){
   if(!D.plan.length) D.plan=MICROCICLOS.map(m=>({
     mc:m[0],dominante:m[1],notas:m[2],portero:m[3],hecho:false
   }));
+  if(typeof actualizarRuta==='function' && actualizarRuta()) setTimeout(()=>aviso('Ruta de microciclos actualizada (MC08–MC20)'),900);
   if(typeof completarMicroconceptos==='function') completarMicroconceptos();
   if(!D.modelo) D.modelo=JSON.parse(JSON.stringify(MODELO));
   D.perfil=Object.assign({},PERFIL,D.perfil||{});
@@ -3939,6 +3951,7 @@ function fusionar(mio,suyo){
   R.ultimaCopia=mio.ultimaCopia; R.archivo=mio.archivo||suyo.archivo||[];
   R.rivales=fusionarRivales(mio.rivales,suyo.rivales);
   R.uso=fusionarUso(mio.uso,suyo.uso); R.ocultos=mio.ocultos||[]; R.liga=fusionarLiga(mio.liga,suyo.liga);
+  R.rutaV=Math.max(mio.rutaV||1,suyo.rutaV||1);
   R.dibujosV=mio.dibujosV; R.bibliotecaV=mio.bibliotecaV; R.tactica=mio.tactica||suyo.tactica;
   R.v=2;
   return {datos:R,resumen};
@@ -4639,19 +4652,19 @@ const MICROCONCEPTOS={
  5:["Protección del balón ante marcaje individual", "Marcaje individual con referencia de balón", ["Desmarque previo: de apoyo o de ruptura para ganar ventaja antes de la recepción", "Protección: interposición del cuerpo entre rival y balón en la recepción", "Juego de cara: pase a un toque al recibir de espaldas con marcaje cercano"], ["Posición de perfil: control visual simultáneo de balón y par", "Distancia de marcaje: estrecha con balón próximo, cerrando al centro con balón lejano", "Interceptación: anticipación por delante del par cuando el pase lo permite", "Entrega de marca: comunicación del cambio de zona del par al compañero"], ["Organización de la marca: asignación verbal de marcas antes de cada reanudación", "Blocaje y caída: caída lateral hacia el lado del balón"]],
  6:["Selección de la opción más avanzada viable", "Ocupación de líneas de pase interiores", ["Escaneo: orientación visual por encima del hombro antes de la recepción", "Jerarquía de pase: punta, extremo y, en último lugar, interior", "Conservación: circulación de seguridad cuando la opción avanzada no es viable"], ["Desmarque entre líneas: el punta se sitúa a la espalda del mediocentro rival", "Ocupación de línea de pase: interiores fuera de la sombra de los rivales", "Comunicación ofensiva: indicaciones al poseedor («solo», «gira», «atrás»)"], ["Juego de pies progresivo: pase hacia delante con hombre libre detectado", "Control orientado bajo presión: primer contacto lejos del presionador"]],
  7:["Transición ofensiva según zona de recuperación", "Ocupación de espacios en el momento del robo", ["Recuperación en zona 3: finalización en un máximo de cuatro pases", "Recuperación en zona 2: un pase de seguridad y ataque", "Recuperación en zona 1: conservación y salida por carril exterior"], ["Apertura: los extremos ganan amplitud en el instante del robo", "Ruptura: el punta ataca la espalda de la línea defensiva rival", "Apoyo inmediato: el jugador más próximo ofrece línea de pase al recuperador"], ["Saque rápido con la mano: reanudación inmediata al compañero libre tras la parada", "Selección de zona: saque hacia el carril con más espacio"]],
- 8:["Gestión de toques por zona", "Apoyo cercano al poseedor", ["Zona 1: toques libres, sin regate en el carril central", "Zona 2: máximo tres contactos con control orientado y pase", "Zona 3: libertad para el desborde y la finalización"], ["Apoyo cercano: línea de pase a distancia corta del poseedor", "Sincronización: desmarque en el momento en que el poseedor eleva la mirada", "Comunicación: aviso de presión por la espalda del poseedor"], ["Blocaje frontal: balones a media altura con manos en «W»", "Reanudación: juego en menos de dos segundos tras el blocaje"]],
- 9:["Recepción en espacios libres", "Ocupación racional del espacio", ["Percepción del espacio: identificación del hueco antes de pedir el balón", "Recepción entre líneas: perfil abierto en el intervalo entre líneas rivales", "Escalonamiento: un jugador abandona la zona si dos coinciden en ella"], ["Ocupación racional: no se aproxima al balón si la zona ya está ocupada", "Desmarque de liberación: alejamiento para generar espacio a un compañero", "Distancias de relación: ni superposición ni desconexión entre compañeros"], ["Dirección de centrales: corrección verbal de su posición", "Posición según balón: ajuste a la ubicación del balón en cada momento"]],
- 10:["Ejecución de la acción a balón parado lateral", "Defensa de la acción a balón parado lateral", ["Asignación de roles: cada jugador conoce su posición y su movimiento", "Sincronización: inicio del movimiento a la señal acordada", "Ejecución del envío: balón tenso a la zona acordada"], ["Marcaje previo: emparejamiento antes del saque", "Ataque al balón: el defensor sale al balón, no lo espera", "Despeje: orientado hacia fuera, nunca hacia el carril central"], ["Posición adelantada: ajuste ante saque de banda rival", "Salida aérea: decisión y comunicación («mía»)"]],
- 11:["Consolidación: escaneo y opción más avanzada", "Consolidación: presión orientada y marcaje", ["Escaneo previo: percepción antes de cada recepción", "Jerarquía de pase: selección de la opción más avanzada viable", "Calidad de pase: raso y tenso al pie"], ["Presión orientada: cierre de línea de pase y anticipación", "Marcaje con referencia de balón: distancia según la posición del balón", "Contrapresión: reacción en menos de cinco segundos tras pérdida"], ["Repaso técnico: blocaje, caída y juego de pies", "Comunicación: dirección constante de la defensa"]],
- 12:["Ejecución de acciones a balón parado de esquina", "Defensa mixta del saque de esquina", ["Roles: bloqueo o desmarque asignado a cada jugador", "Envío: balón a la zona acordada con la trayectoria acordada", "Ataque al primer palo: desmarque de ruptura con remate"], ["Defensa zonal: ocupación de la zona asignada antes del saque", "Defensa individual: el marcador mantiene contacto con su par", "Salida tras despeje: la línea sale de forma simultánea"], ["Organización: colocación de la defensa antes del saque", "Decisión: salida o permanencia, comunicada en voz alta"]],
- 13:["Fijación en un carril", "Mantenimiento de la estructura durante la fijación", ["Circulación de atracción: juego en un carril para provocar la basculación rival", "Pase corto de seguridad: invitación a la presión del rival", "Momento del cambio: pase cuando el rival ha basculado"], ["Extremo lejano: amplitud mantenida sin aproximarse al balón", "Soporte: el interior cercano se sitúa por detrás de la línea del balón", "Evitar la acumulación: ningún jugador se superpone en el carril del balón"], ["Participación en circulación: apoyo posterior a los centrales", "Blocaje y caída: mantenimiento técnico"]],
- 14:["Cambio de orientación al lado débil", "Preparación del cambio sin balón", ["Percepción del lado débil: orientación visual antes de la recepción", "Ejecución: cambio en uno o dos pases, raso o tenso", "Control orientado progresivo del receptor"], ["Amplitud en el lado débil: extremo lejano preparado para recibir", "Jugador puente: interiores como enlace del cambio", "Comunicación: indicación verbal del cambio"], ["Recolocación: desplazamiento con el cambio de carril del balón", "Puente con el pie: participación como apoyo del cambio"]],
- 15:["Mecanismo de identidad completo", "Ocupación de los roles del mecanismo", ["Secuencia: fijación, cambio de orientación y 1x1 del extremo lejano", "Desborde hasta línea de fondo", "Pase atrás raso al jugador que llega en segunda línea"], ["Llegada al área: dos jugadores atacan el espacio del pase atrás", "Vigilancia: el pivote permanece como equilibrio defensivo", "Rol en el mecanismo: cada jugador conoce su función en cada fase"], ["Participación en la fijación con el pie", "Adelantamiento de la posición con el equipo en ataque"]],
- 16:["Salida tras recuperación en bloque medio", "Organización del bloque medio", ["Primer pase tras robo: hacia el exterior, fuera de la zona de presión", "Conducción de liberación: solo para superar al presionador", "Conexión con el extremo abierto"], ["Altura del bloque: en la mitad del campo propio", "Distancia entre líneas: máximo quince metros", "Cierre interior: protección del carril central y concesión de bandas"], ["Posición según altura del bloque", "Dirección verbal de la distancia de la línea defensiva"]],
- 17:["Lectura de la presión rival: progresar o conservar", "Activación de la presión desde bloque medio", ["Lectura previa de la presión rival", "Con presión: conservación y salida por carril exterior", "Sin presión: progresión por el carril central"], ["Disparadores: pase atrás, control deficiente o balón en banda", "Salto del primer presionador y aproximación del bloque", "Sin disparador: mantenimiento de la estructura del bloque"], ["Control de la espalda de la línea con el bloque en presión", "Comunicación del disparador"]],
- 18:["Gestión de la posesión según el marcador", "Vigilancias defensivas en fase ofensiva", ["Con ventaja: posesión de seguridad y riesgo mínimo en zona 1", "Con desventaja: priorización de la opción vertical", "Conocimiento permanente del marcador y del tiempo"], ["Vigilancias: dos jugadores por detrás del balón en ataque", "Control del punta rival por parte del jugador en vigilancia", "Contrapresión: el vigilante es el primer presionador tras pérdida"], ["Portero-líbero: posición adelantada a la espalda de la línea defensiva", "Despeje con el pie fuera del área cuando sea necesario"]],
- 19:["Ataque del fuera de juego rival", "Gestión de la línea de fuera de juego", ["Timing del desmarque: inicio en el momento del pase", "Percepción de la línea defensiva por el pasador", "Desmarque en diagonal para mantener la posición legal"], ["Línea defensiva: avance coordinado a la voz", "Habilitación: el defensor retrasado habilita a todos los rivales", "Disparador de avance: pase atrás del rival"], ["Dirección verbal del avance de la línea", "Salidas rasas a la espalda de la defensa"]],
- 20:["Integración de la fase ofensiva", "Integración de la fase defensiva", ["Inicio, amplitud y mecanismo de identidad en contexto de partido", "Escaneo previo en cada recepción", "Selección de la opción más avanzada viable"], ["Bloque, presión y marcaje en contexto de partido", "Contrapresión de cinco segundos", "Comunicación y ayudas permanentes"], ["Repaso integrado del bloque", "Comunicación continua"]],
+ 8:["Conducción de fijación y pase al libre", "Amplitud y perfil abierto antes de recibir", ["Conducción de fijación: conducir hacia el defensor interior hasta que salta y soltar al libre", "Pase al libre: tenso y al pie lejano del receptor, en el momento en que el defensor se compromete", "1x1 exterior: control orientado hacia fuera y desborde con cambio de ritmo hacia línea de fondo"], ["Amplitud máxima: banda con apoyos en la cal hasta el momento de recibir", "Perfil abierto: cadera orientada al campo contrario antes de la recepción", "Escaneo previo: localización del par y del espacio interior antes de pedir"], ["1x1: reducción del ángulo y espera, sin caer antes del golpeo", "Salida rasa: decisión temprana ante el balón al espacio"]],
+ 9:["Primer pase al pivote y conducción del central para el 2v1", "Ocupación de la estructura de salida", ["Primer pase: al pivote, tenso y a su pie lejano, siempre como primera opción", "Conducción del central: progresa hacia el par de la banda para generar el 2v1", "Pase de seguridad: devolución al portero ante presión cerrada, sin conducción en zona 1"], ["Pivote a su perfil: baja a la altura del portero (diestro a la derecha, zurdo a la izquierda)", "Centrales abiertos: entre el área grande y la banda antes del saque", "Bandas altas: fijan al lateral rival para el 2v1 con el central que conduce"], ["Saque en corto al pivote o al central libre", "Apoyo posterior: ofrece línea de pase atrás tras el primer pase"]],
+ 10:["Salida tras recuperación fuera del bloque", "Cierre interior y distancias entre líneas", ["Primer pase tras robo: hacia el exterior, fuera de la zona de presión rival", "Conducción de liberación: solo para superar al primer presionador", "Conexión con la banda abierta para atacar el espacio libre"], ["Altura del bloque: en la mitad del campo propio, cerrando el carril central", "Distancias: máximo quince metros entre líneas y entre compañeros de línea", "Zona mixta: estructura zonal y marca individual dentro de la propia zona", "Salto y cobertura: el más cercano salta, el segundo cubre su espalda"], ["Posición según altura del bloque", "Dirección verbal de la distancia de la línea defensiva"]],
+ 11:["Recepción entre líneas con perfil y giro", "Desmarque de apoyo fuera de la sombra", ["Recepción entre líneas: en el intervalo entre medios y defensas rivales", "Control orientado de cara: primer contacto que gira hacia portería rival", "Juego de cara: a un toque cuando el marcaje por la espalda impide el giro"], ["Desmarque de apoyo: salida de la sombra del rival para ofrecer línea de pase interior", "Ocupación de espacios intermedios: entre dos rivales, nunca detrás de uno", "Comunicación: indicación al poseedor («gira», «de cara»)"], ["Pase interior: a la línea de pase que supera a la primera presión", "Control orientado bajo presión"]],
+ 12:["Combinación de tercer hombre", "Desmarque de tercer hombre", ["Pase al apoyo: al jugador de cara para fijar la presión", "Descarga: a un toque hacia el tercer hombre que llega de cara", "Pase en profundidad del tercer hombre: al espacio a la espalda de la línea"], ["Lectura de la descarga: anticipa el pase de cara antes de que se produzca", "Desmarque del tercer hombre: arranque en el momento del pase al apoyo", "Ruptura: a la espalda del defensor que ha saltado sobre el apoyo"], ["Primer hombre: pase al apoyo y nueva línea de pase", "Lectura de la ruptura rival tras combinación"]],
+ 13:["Circulación de atracción y cambio de orientación", "Amplitud en el lado débil y jugador puente", ["Circulación de atracción: juego corto en un carril para provocar la basculación rival", "Momento del cambio: pase cuando el rival ha basculado", "Ejecución: cambio en uno o dos pases, raso o tenso"], ["Lado débil: banda lejana abierta y preparada para recibir", "Jugador puente: pivote o mediapunta como enlace del cambio", "Soporte: el más cercano al balón por detrás de su línea"], ["Recolocación rápida con el cambio de carril", "Puente con el pie en el cambio de orientación"]],
+ 14:["Desborde y centro raso atrás", "Llegada en segunda línea a zonas de remate", ["Recepción orientada del extremo lejano hacia el 1x1", "Desborde hasta línea de fondo con cambio de ritmo", "Pase atrás raso: al punto de penalti o a la frontal"], ["Ocupación de zonas de remate: primer palo, punto de penalti y frontal", "Timing de llegada: arrancar cuando el extremo encara, no antes", "Vigilancia: el pivote permanece como equilibrio"], ["Defensa del primer palo ante centro raso", "Blocaje y desvío hacia fuera"]],
+ 15:["Ejecución del mecanismo identidad", "Ocupación de los roles del mecanismo", ["Secuencia: fijar, cambiar de orientación, 1x1 del extremo lejano, línea de fondo y pase atrás", "Selección: elegir el mecanismo o el juego directo según la presión rival", "Finalización: golpeo raso y cruzado tras el pase atrás"], ["Rol en cada paso del mecanismo", "Llegada al área de dos jugadores para el pase atrás", "Vigilancias en el momento del centro"], ["Adelantamiento con el equipo en ataque", "Comunicación del equilibrio defensivo"]],
+ 16:["Ataque con equilibrio para poder contrapresionar", "Contrapresión de cinco segundos y repliegue", ["Pase de seguridad: ataque con apoyos cercanos para contrapresionar tras la pérdida", "Equilibrio: dos jugadores por detrás del balón en ataque", "Decisión tras robo: vertical con espacio, seguridad sin él"], ["Contrapresión: el más cercano presiona al poseedor en menos de cinco segundos", "Cierre de líneas de pase cercanas por los compañeros próximos", "Repliegue intensivo si la contrapresión es superada"], ["Portero-líbero: control de la espalda tras pérdida", "Comunicación de la reorganización"]],
+ 17:["Superar la presión rival con pase vertical o tercer hombre", "Activación de la presión con disparadores", ["Lectura de la presión rival antes de recibir", "Pase vertical: a la línea que supera al presionador", "Tercer hombre como salida ante presión alta"], ["Disparadores: pase atrás, control deficiente, balón al central de perfil malo o a la banda", "Presión orientada: el delantero cierra el pase interior y dirige a banda", "Salto coordinado: el bloque acompaña al primer presionador"], ["Portero-líbero con el bloque alto", "Lectura del balón largo a la espalda"]],
+ 18:["Gestión de la posesión según el marcador", "Vigilancias defensivas en fase ofensiva", ["Con ventaja: posesión de seguridad y riesgo mínimo en zona 1", "Con desventaja: prioridad a la opción vertical", "Ritmo: acelerar con ventaja posicional, pausar sin ella"], ["Vigilancias: control del delantero rival por los dos jugadores de equilibrio", "Posición del pivote como primer defensor tras pérdida", "Comunicación del marcador y del tiempo"], ["Despeje con el pie fuera del área cuando sea necesario", "Organización de las vigilancias"]],
+ 19:["Timing del pase y del desmarque al espacio", "Gestión de la línea de fuera de juego", ["Percepción de la línea defensiva rival antes del pase", "Desmarque en diagonal para mantener la posición legal", "Pase al espacio, no al pie"], ["Avance coordinado de la línea a la voz", "Habilitación: el defensor retrasado habilita a todos", "Disparador de avance: pase atrás del rival"], ["Dirección verbal del avance de la línea", "Salidas rasas a la espalda de la defensa"]],
+ 20:["Integración de la fase ofensiva", "Integración de la fase defensiva", ["Salida 1-3-3-1, juego entre líneas y tercer hombre en partido", "Mecanismo identidad en contexto real", "Escaneo previo en cada recepción"], ["Bloque medio, presión alta y contrapresión en partido", "Vigilancias y línea de fuera de juego", "Comunicación y ayudas permanentes"], ["Repaso integrado", "Comunicación continua"]],
  21:["Ataque por carril exterior con ruptura al primer palo", "Acompañamiento y equilibrio en el ataque por banda", ["Desborde del extremo hasta línea de fondo", "Centro raso y tenso al primer palo", "Ruptura del punta al primer palo"], ["Llegada de segunda línea al segundo palo", "Ocupación de la frontal para el rechace", "Mantenimiento de la vigilancia"], ["Defensa del primer palo ante centros", "1x1: reducción del ángulo y espera"]],
  22:["Juego directo a la espalda de la línea defensiva", "Desmarque de ruptura en el momento justo", ["Percepción del espacio a la espalda antes del pase", "Condición del envío: solo con desmarque iniciado desde posición legal", "Pase al espacio, no al pie"], ["Ruptura desde detrás de la línea o del balón", "Trayectoria diagonal hacia portería", "Reajuste: nueva oferta de apoyo si el pase no se produce"], ["Juego de pies en largo a la espalda rival", "Decisión entre juego directo y juego corto según presión"]],
  23:["Gestión del ritmo de juego", "Lectura del desorden rival", ["Aceleración con ventaja: juego a uno o dos toques", "Pausa sin ventaja: circulación de seguridad y reinicio", "Conducción de atracción para liberar compañeros"], ["Adaptación de la movilidad al ritmo del equipo", "Oferta de apoyo seguro en fase de pausa", "Comunicación del ritmo («rápido», «tranquilo»)"], ["Decisión de inicio corto o largo según el rival", "Regulación del ritmo con la reanudación"]],
@@ -4677,6 +4690,29 @@ const MICROCONCEPTOS={
  43:["Creatividad con balón", "Cooperación sin balón", ["Libertad creativa en la resolución", "Experimentación de recursos nuevos", "Participación de todos los jugadores"], ["Intensidad en cada acción", "Ayuda al compañero", "Juego limpio"], ["Juego libre", "Disfrute"]],
  44:["Evaluación de la evolución con balón", "Evaluación de la evolución sin balón", ["Autoevaluación de la fase ofensiva", "Objetivos para el periodo estival", "Aspecto de mayor mejora"], ["Autoevaluación de la fase defensiva", "Objetivos para el periodo estival", "Aspecto de mayor mejora"], ["Informe final de porteros", "Objetivos para el periodo estival"]]
 };
+
+/* ruta nueva MC08–MC20 (oct 2026): sustituye los microciclos que siguen como en la ruta anterior */
+const MICROCICLOS_ANTES={"8": ["", "Blocaje"], "9": ["", "Colocación"], "10": ["Desde aquí, 15 minutos fijos de balón parado el día 3", "Colocación en balón parado"], "11": ["Sin contenido nuevo", "Repaso técnico"], "12": ["Cierre de bloque. Informe individual y antropometría", "Defensa de córner"], "13": ["", "Blocaje y caída"], "14": ["", "Colocación en cambios de orientación"], "15": ["Antes del parón de Navidad", "Pies"], "16": ["Semana de readaptación. Punto crítico de la temporada", "Colocación en bloque medio"], "17": ["", "Colocación"], "18": ["", "Portero-líbero, introducción"], "19": ["Subir coordinados. El que se queda, habilita a todos", "1v1 y salidas rasas"], "20": ["Cierre de bloque", "Repaso"]};
+const RUTA_V=2, RUTA_ANTERIOR={"8": "Toques por zona: máximo tres en zona 2", "9": "Ocupación de espacios en salida", "10": "Balón parado: una jugada de banda", "11": "Repaso e integración", "12": "Balón parado: dos córners y defensa de córner", "13": "Fijar un lado — paso 1 del mecanismo", "14": "Cambio de orientación — paso 2", "15": "Mecanismo identidad completo, cinco pasos", "16": "Bloque medio — introducción", "17": "Bloque medio: cuándo activo la presión", "18": "Vigilancia defensiva según marcador", "19": "Usar la línea de fuera de juego", "20": "Integración ofensiva y defensiva"};
+function actualizarRuta(){
+  if((D.rutaV||1)>=RUTA_V) return 0;
+  let n=0;
+  D.plan.forEach(p=>{
+    const viejo=RUTA_ANTERIOR[p.mc]; if(!viejo) return;
+    const nuevo=MICROCICLOS.find(m=>m[0]===p.mc);
+    const dom=(p.dominante||'').trim();
+    if(dom!==viejo&&dom!==nuevo[1]) return;              /* lo cambió él: no se toca */
+    const notaVieja=(MICROCICLOS_ANTES[p.mc]||[])[0], porVieja=(MICROCICLOS_ANTES[p.mc]||[])[1];
+    p.dominante=nuevo[1];
+    if(!p.notas||p.notas===notaVieja) p.notas=nuevo[2];
+    if(!p.portero||p.portero===porVieja) p.portero=nuevo[3];
+    if(!(p.micro&&p.micro.propio)) delete p.micro;
+    n++;
+  });
+  D.rutaV=RUTA_V;
+  if(n){ D.planMod=Date.now(); if(typeof completarMicroconceptos==='function') completarMicroconceptos(); }
+  return n;
+}
 /* el plan que tiene cada uno puede estar cambiado: solo se rellena donde el contenido sigue siendo el original */
 const MICRO_V=2;
 function completarMicroconceptos(){
@@ -4749,7 +4785,7 @@ function pintarMicroSesion(s){
     String(s.mc).padStart(2,'0')+'</b><span class="mini muted" style="display:block;margin-top:3px">Lo que hay que ver y corregir hoy</span></summary>'+
     htmlMicro(m,s.tipo!=='porteros')+'</details>' : '';
 }
-if(typeof D!=='undefined'&&D&&D.plan&&D.plan.length&&completarMicroconceptos()) salvar();
+if(typeof D!=='undefined'&&D&&D.plan&&D.plan.length&&(actualizarRuta()+completarMicroconceptos())) salvar();
 
 </script>
 <script>
@@ -4796,6 +4832,17 @@ function pintarCumples(){
       setTimeout(()=>aviso('🎂 Hoy cumple '+hoy.map(x=>(x.j.nombre||'').split(' ')[0]).join(' y ')),700); } }catch(e){}
   }
 }
+function pintarFotoGrande(j){
+  const el=document.getElementById('fFotoGrande'); if(!el) return;
+  el.innerHTML= j
+    ? '<button class="foto-grande" onclick="pedirFoto(\''+j.id+'\')" aria-label="Foto">'+
+        (j.foto?'<img src="'+j.foto+'" alt="">':'<span>📷</span>')+'</button>'+
+      '<div class="grow"><b style="font-size:14px">Foto de la cara</b>'+
+      '<span class="mini muted" style="display:block;margin:3px 0 8px">Cámara o galería. Se recorta cuadrada y se centra en la cara.</span>'+
+      '<div class="row" style="gap:6px"><button class="btn xs primary" onclick="pedirFoto(\''+j.id+'\')">'+(j.foto?'Cambiar foto':'Poner foto')+'</button>'+
+      (j.foto?'<button class="btn xs" onclick="quitarFoto(\''+j.id+'\')">Quitar</button>':'')+'</div></div>'
+    : '<span class="mini muted">Guarda el jugador para poder ponerle foto.</span>';
+}
 function pintarSecundarias(){
   const el=document.getElementById('fSecund'); if(!el) return;
   el.innerHTML=POS_SEC.map(p=>'<button type="button" class="btn xs'+(secSel.includes(p)?' primary':'')+
@@ -4807,6 +4854,7 @@ function pintarEdad(){
   document.getElementById('fEdad').textContent= e!=null ? e+' años' : '';
 }
 function rellenarFichaExtra(j){
+  pintarFotoGrande(j);
   const g=id=>document.getElementById(id);
   g('fNac').value=j?.nac||''; g('fEstatura').value=j?.estatura??''; g('fPeso').value=j?.peso??'';
   g('fFuertes').value=j?.fuertes||''; g('fMejorar').value=j?.mejorar||''; g('fObjetivo').value=j?.objetivo||'';

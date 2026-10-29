@@ -262,6 +262,19 @@ const ok = (nombre, cond, extra = '') => {
   await page.evaluate(() => window.scrollTo(0, document.getElementById('fNac').getBoundingClientRect().top + scrollY - 120));
   await foto('12-ficha');
 
+  // 11) Ruta nueva MC08–MC20 sobre un plan con la ruta anterior
+  const ruta = await page.evaluate(() => {
+    D.plan.forEach(p => { if (RUTA_ANTERIOR[p.mc]) { p.dominante = RUTA_ANTERIOR[p.mc]; p.micro = { cb: 'viejo', v: 2 }; } });
+    D.plan.find(p => p.mc === 14).dominante = 'Mi contenido propio';
+    D.rutaV = 1;
+    const n = actualizarRuta();
+    const P = mc => D.plan.find(p => p.mc === mc);
+    return { n, mc8: P(8).dominante, mc10: P(10).dominante, mc12: microDe(12).cb, mc14: P(14).dominante, otra: actualizarRuta() };
+  });
+  ok('Ruta nueva aplicada sin tocar lo editado', ruta.n === 12 && ruta.mc8.startsWith('Amplitud y 1 contra 1') &&
+    ruta.mc10.startsWith('Bloque medio') && ruta.mc12 === 'Combinación de tercer hombre' && ruta.mc14 === 'Mi contenido propio' && ruta.otra === 0,
+    JSON.stringify(ruta));
+
   ok('Sin errores de página', errores.length === 0, errores.join(' | '));
   await navegador.close();
   console.log(fallos ? '\n' + fallos + ' prueba(s) fallada(s)' : '\nTodas las pruebas pasan');
