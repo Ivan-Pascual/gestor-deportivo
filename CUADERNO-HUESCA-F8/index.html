@@ -602,6 +602,16 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
 .micro-card summary{cursor:pointer;list-style:none}
 .micro-card summary::-webkit-details-marker{display:none}
 .micro-obj{margin-top:11px}
+.eq-aj{display:flex;flex-wrap:wrap;gap:8px}
+.eq-aj label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:700;color:var(--tinta-3);text-transform:uppercase;letter-spacing:.05em}
+.eq-aj label .pt{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.eq-aj select{min-width:74px;padding:6px 8px}
+.pt.sin{box-shadow:inset 0 0 0 1.5px #8a97a8}
+.eq-com{border-style:dashed}
+.escudo{object-fit:contain;vertical-align:middle;border-radius:6px;flex:none}
+.escudo-vacio{font-size:26px;opacity:.5}
+.cumple{border-color:var(--ambar)}
+.cumple.hoy{background:var(--ambar-b)}
 .micro-card[open] summary .mini{display:none}
 </style>
 </head>
@@ -652,6 +662,7 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
 <section id="v-hoy" class="view on">
   <p class="eyebrow" id="hoyFecha"></p>
   <div class="mc-band" id="hoyMC" style="margin-bottom:13px"></div>
+  <div id="hoyCumple" style="margin-bottom:13px"></div>
   <div id="hoyMicro" style="margin-bottom:13px"></div>
 
   <div id="hoyCard"></div>
@@ -714,7 +725,9 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
     <label class="field"><span>Fecha</span>
       <input id="aFechaEd" type="date" onchange="cambiarFecha(this.value)"></label>
     <label class="field"><span>Rival</span>
-      <input id="aRival" placeholder="Nombre del equipo" oninput="campoSesion('rival',this.value)"></label>
+      <input id="aRival" list="rivalesLista" placeholder="Nombre del equipo" oninput="campoSesion('rival',this.value)" onchange="pintarEscudoActa()"></label>
+    <datalist id="rivalesLista"></datalist>
+    <div id="aEscudo" class="row" style="gap:8px;align-items:center;margin:-4px 0 13px"></div>
     <div class="grid2">
       <label class="field" style="margin:0"><span>Dónde</span>
         <select id="aLocal" onchange="campoSesion('local',this.value)">
@@ -810,6 +823,31 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
     </div>
     <label class="field" style="margin:13px 0 0"><span>Observaciones</span>
       <textarea id="fObs" placeholder="Qué trabajar con él…"></textarea></label>
+  </div>
+  <p class="eyebrow mt">Datos personales y físicos</p>
+  <div class="card">
+    <div class="grid2">
+      <label class="field" style="margin:0"><span>Nacimiento <b id="fEdad" class="muted"></b></span>
+        <input id="fNac" type="date" onchange="pintarEdad()"></label>
+      <label class="field" style="margin:0"><span>Estatura (cm)</span>
+        <input id="fEstatura" type="text" inputmode="decimal" placeholder="145"></label>
+    </div>
+    <div class="grid2" style="margin-top:13px">
+      <label class="field" style="margin:0"><span>Peso (kg)</span>
+        <input id="fPeso" type="text" inputmode="decimal" placeholder="38"></label>
+      <span class="mini muted" style="align-self:end;padding-bottom:6px">Al cambiar estatura o peso se guarda la fecha para ver cuánto crece.</span>
+    </div>
+    <div class="field" style="margin:13px 0 0"><span>También puede jugar de</span>
+      <div id="fSecund" class="row" style="gap:5px;flex-wrap:wrap;margin-top:6px"></div></div>
+  </div>
+  <p class="eyebrow mt">Perfil técnico</p>
+  <div class="card">
+    <label class="field"><span>Fortalezas</span>
+      <textarea id="fFuertes" style="min-height:60px" placeholder="Ej. Control orientado, golpeo con las dos piernas"></textarea></label>
+    <label class="field"><span>Aspectos a mejorar</span>
+      <textarea id="fMejorar" style="min-height:60px" placeholder="Ej. Perfil corporal al recibir, temporización"></textarea></label>
+    <label class="field" style="margin:0"><span>Objetivo individual</span>
+      <input id="fObjetivo" placeholder="Ej. Escanear antes de cada recepción"></label>
   </div>
   <div class="grid2" style="margin-top:13px">
     <button class="btn danger" onclick="borrarJugador()">Eliminar</button>
@@ -1771,7 +1809,7 @@ function hayDuplicadas(){
 function baseDatos(){
   return {jugadores:[],sesiones:[],registros:[],tareas:[],plan:[],diario:[],gastos:[],
     modelo:null,perfil:null,mc:1,duelos:{},archivo:[],borrados:{},planMod:0,modeloMod:0,contador:{},
-    uso:{},ocultos:[],liga:null};
+    uso:{},ocultos:[],liga:null,rivales:{}};
 }
 function cargar(){
   try{
@@ -1979,6 +2017,7 @@ const tile=(color,icono,titulo,sub,accion)=>
 
 function mostrarHoy(){
   if(typeof pintarMicroHoy==='function') pintarMicroHoy();
+  if(typeof pintarCumples==='function') pintarCumples();
   const b=bloqueDe(D.mc), p=D.plan.find(x=>x.mc===D.mc)||{};
   document.getElementById('hdrSub').textContent='Microciclo '+String(D.mc).padStart(2,'0')+' · '+((D.perfil||PERFIL).equipo||'');
   document.getElementById('hoyFecha').innerHTML='<span>'+fechaLarga(hoyISO())+'</span>';
@@ -1998,7 +2037,7 @@ function mostrarHoy(){
     c.innerHTML=hoy.map(s=>{
       const rs=D.registros.filter(r=>r.sesionId===s.id);
       const sub=esPartido(s.tipo)
-        ? (s.rival?'contra '+esc(s.rival):'sin rival')+(s.resultado?' · '+esc(s.resultado):'')
+        ? (s.rival?escudoHTML(s.rival,18)+' contra '+esc(s.rival):'sin rival')+(s.resultado?' · '+esc(s.resultado):'')
         : rs.filter(r=>r.asistio).length+' de '+rs.length+' presentes';
       return '<button class="card card-lead tap" style="margin-bottom:9px" onclick="abrir(\''+s.id+'\')">'+
         '<div class="spread"><div class="grow">'+
@@ -2077,9 +2116,10 @@ function filaSesion(s){
   const sub=esPartido(s.tipo)
     ? (s.rival||'sin rival')+(s.resultado?' · '+s.resultado:'')
     : rs.filter(r=>r.asistio).length+'/'+rs.length+' presentes';
+  const esc0=esPartido(s.tipo)&&s.rival?escudoHTML(s.rival,26):'';
   return '<div class="li">'+
     '<button class="li-main" onclick="abrir(\''+s.id+'\')">'+
-    '<span class="chip '+colorTipo(s.tipo)+'">'+etiqueta(s.tipo).slice(0,3)+'</span>'+
+    (esc0||'<span class="chip '+colorTipo(s.tipo)+'">'+etiqueta(s.tipo).slice(0,3)+'</span>')+
     '<span class="grow"><b class="trunc">'+esc(s.objetivo||etiqueta(s.tipo))+'</b>'+
     '<span class="mini muted">'+fechaCorta(s.fecha)+' · '+esc(sub)+'</span></span></button>'+
     '<button class="li-del" onclick="borrarDesdeLista(\''+s.id+'\')" aria-label="Eliminar">'+
@@ -2177,6 +2217,7 @@ function mostrarLista(){
 function mostrarActa(s){
   document.getElementById('aFecha').textContent=fechaLarga(s.fecha)+' · MC'+String(s.mc).padStart(2,'0');
   document.getElementById('aRival').value=s.rival||'';
+  pintarEscudoActa();
   document.getElementById('aLocal').value=s.local||'local';
   document.getElementById('aResultado').value=s.resultado||'';
   document.getElementById('aNotas').value=s.notas||'';
@@ -2523,13 +2564,15 @@ function editarJugador(id){
   document.getElementById('fBaja').value=j?.baja?.tipo??'';
   document.getElementById('fBajaHasta').value=j?.baja?.hasta??'';
   document.getElementById('fObs').value=j?.obs??'';
+  rellenarFichaExtra(j);
   document.getElementById('fTitulo').textContent=j?j.nombre:'Nuevo jugador';
   document.getElementById('fFoto').innerHTML= j
     ? '<button onclick="pedirFoto(\''+j.id+'\')">'+avatar(j,52)+'</button>'+
+      '<button class="btn xs" style="margin-left:8px" onclick="pedirFoto(\''+j.id+'\')">📷 '+(j.foto?'Cambiar foto':'Poner foto')+'</button>'+
       (j.foto?'<button class="btn xs danger" style="margin-left:6px" onclick="quitarFoto(\''+j.id+'\')">Quitar</button>':'')
     : '';
   document.getElementById('fStats').innerHTML=j?
-    (panelJugador(j)+panelEvolucion(j)):'';
+    (panelFisico(j)+panelJugador(j)+panelEvolucion(j)):'';
   go('ficha',false);
 }
 function panelJugador(j){
@@ -2570,8 +2613,9 @@ function guardarJugador(){
           hasta:document.getElementById('fBajaHasta').value},
     obs:document.getElementById('fObs').value
   };
-  if(fichaId) Object.assign(D.jugadores.find(x=>x.id===fichaId),d);
-  else D.jugadores.push(Object.assign({id:uid()},d));
+  Object.assign(d,leerFichaExtra(fichaId?D.jugadores.find(x=>x.id===fichaId):null));
+  if(fichaId) marcar(Object.assign(D.jugadores.find(x=>x.id===fichaId),d));
+  else D.jugadores.push(marcar(Object.assign({id:uid()},d)));
   salvar(); tab=d.tipo==='portero'?'portero':'campo'; aviso('Guardado'); go('plantilla');
 }
 function borrarJugador(){
@@ -3295,7 +3339,7 @@ function pdfActa(){
   const regs=D.registros.filter(r=>r.sesionId===s.id);
   let h=docCab('Acta de partido',fechaLarga(s.fecha)+' · Microciclo '+String(s.mc).padStart(2,'0'));
   h+='<table class="doc-meta"><tr>'+
-    '<td><b>Rival</b>'+esc(s.rival||'—')+'</td>'+
+    '<td><b>Rival</b>'+(escudoDe(s.rival)?'<img src="'+escudoDe(s.rival)+'" style="height:34px;vertical-align:middle;margin-right:6px">':'')+esc(s.rival||'—')+'</td>'+
     '<td><b>Condición</b>'+(s.local==='visitante'?'Visitante':'Local')+'</td>'+
     '<td><b>Resultado</b>'+esc(s.resultado||'—')+'</td></tr></table>';
 
@@ -3339,9 +3383,19 @@ function pdfJugador(){
   h+='<table class="doc-meta"><tr>'+
     '<td><b>Puesto</b>'+esc(j.puesto||'—')+'</td>'+
     '<td><b>Pierna</b>'+esc(j.pierna||'—')+'</td>'+
-    '<td><b>Categoría</b>'+esc(j.categoria||'—')+'</td></tr></table>';
+    '<td><b>Categoría</b>'+esc(j.categoria||'—')+'</td></tr>'+
+    ((j.nac||j.estatura!=null||j.peso!=null)?'<tr><td><b>Edad</b>'+(j.nac?edadDe(j.nac)+' años':'—')+'</td>'+
+      '<td><b>Estatura</b>'+(j.estatura!=null?j.estatura+' cm':'—')+'</td><td><b>Peso</b>'+(j.peso!=null?j.peso+' kg':'—')+'</td></tr>':'')+
+    '</table>';
+  if(j.foto) h=h.replace('<table class="doc-meta">','<img src="'+j.foto+'" style="width:70px;height:70px;border-radius:8px;float:right;margin:0 0 8px 10px"><table class="doc-meta">');
 
   if(palabra) h+='<div class="doc-destacado"><b>'+palabra+'</b> · '+esc(desc)+'</div>';
+  if(j.fuertes||j.mejorar||j.objetivo||(j.secundarias||[]).length){
+    h+='<h4 class="doc-h">Perfil técnico</h4><table class="doc-lista"><tbody>'+
+      ((j.secundarias||[]).length?fila('También juega de',esc(j.secundarias.join(', '))):'')+
+      (j.fuertes?fila('Fortalezas',esc(j.fuertes)):'')+(j.mejorar?fila('Aspectos a mejorar',esc(j.mejorar)):'')+
+      (j.objetivo?fila('Objetivo individual',esc(j.objetivo)):'')+'</tbody></table>';
+  }
 
   h+='<h4 class="doc-h">Datos de la temporada</h4>'+
     '<table class="doc-lista"><tbody>'+
@@ -3883,6 +3937,7 @@ function fusionar(mio,suyo){
   R.mc = mio.mc; R.perfil = mio.perfil; R.temporada = mio.temporada || suyo.temporada;
   R.nubeUrl=mio.nubeUrl; R.nubeClave=mio.nubeClave; R.autoNube=mio.autoNube;
   R.ultimaCopia=mio.ultimaCopia; R.archivo=mio.archivo||suyo.archivo||[];
+  R.rivales=fusionarRivales(mio.rivales,suyo.rivales);
   R.uso=fusionarUso(mio.uso,suyo.uso); R.ocultos=mio.ocultos||[]; R.liga=fusionarLiga(mio.liga,suyo.liga);
   R.dibujosV=mio.dibujosV; R.bibliotecaV=mio.bibliotecaV; R.tactica=mio.tactica||suyo.tactica;
   R.v=2;
@@ -4116,7 +4171,7 @@ function alternarOculta(k){
    EQUIPOS POR TAREA · petos y resultado de cada tarea
    s.equipos = { tareaId: { n, de: {jugadorId: 0..n-1}, ganan: [i…] } }
    ══════════════════════════════════════════════════════ */
-const PETOS=[['Azul','#2f6fd6'],['Rojo','#d64545'],['Amarillo','#e8b923'],['Verde','#2e9e5b']];
+const PETOS=[['Naranja','#f08a24'],['Rojo','#d64545'],['Amarillo','#f2c94c'],['Sin peto','#e9eef4']];
 let tareaEquipos=null;
 function presentesSesion(s){
   return D.registros.filter(r=>r.sesionId===s.id&&r.asistio&&!r.baja&&!r.pref)
@@ -4126,40 +4181,90 @@ function nivelEntreno(j,s){
   const p=puntuarJugador(j,s.id);
   return (p.nota==='—'?5:+p.nota)/10*0.7+(p.asist/100)*0.3;
 }
+/* lee el formato de la tarea: «7v5», «7c7+2» (2 comodines), «10+2p» o «+2 gk» (porteros, no comodines) */
+function formatoTarea(t){
+  const leer=txt=>{
+    const s=String(txt||''), m=s.match(/(\d+)\s*(?:v|c|x|vs|contra)\s*(\d+)/i);
+    let com=0; const re=/\+\s*(\d+)\s*([a-zñ]*)/gi; let x;
+    while((x=re.exec(s))){ if(!/^(p|gk|por|porteros?)$/i.test(x[2])) com+=+x[1]; }
+    return {tam:m?[+m[1],+m[2]]:null,com};
+  };
+  const a=leer(t&&t.jugadores), b=leer(t&&t.nombre);
+  return {tam:a.tam||b.tam, com:a.com||b.com};
+}
 function eqDe(s,tid){ s.equipos=s.equipos||{}; return s.equipos[tid]; }
 function eqAbrir(tid){ tareaEquipos= tareaEquipos===tid?null:tid; mostrarTareasSesion(); }
-function eqEquilibrar(tid,n){
+function eqAjustes(tid){
+  const s=D.sesiones.find(x=>x.id===sesionActiva), e=eqDe(s,tid)||{};
+  const f=formatoTarea(D.tareas.find(t=>t.id===tid));
+  /* el formato de la tarea solo se aplica si es para todo el grupo (un rondo 5v2 con 15 presentes se reparte igual) */
+  const pres=presentesSesion(s).length, total=f.tam?f.tam.reduce((x,y)=>x+y,0)+(f.com||0):0;
+  const deTarea= f.tam&&total>=pres-3 ? f.tam : null;
+  return {n:e.n||((deTarea&&deTarea.length)||2), tam:e.tam!==undefined?e.tam:deTarea,
+    com:e.com||{n:f.com||0,peto:3}};
+}
+/* reparte: porteros primero (uno por peto), comodines del centro del ranking y el resto al peto con hueco y menos nivel */
+function eqEquilibrar(tid,cambios){
   const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
   s.equipos=s.equipos||{};
-  n=n||((eqDe(s,tid)||{}).n)||2;
+  const a=Object.assign(eqAjustes(tid),cambios||{});
+  const n=a.n;
+  let tam= Array.isArray(a.tam) ? a.tam.slice(0,n) : null;
+  if(tam){ while(tam.length<n) tam.push(null); if(tam.every(x=>!x)) tam=null; }
+  const com={n:Math.max(0,+(a.com&&a.com.n)||0), peto:+(a.com&&a.com.peto)||0};
   const lista=presentesSesion(s).map(x=>({...x,v:nivelEntreno(x.j,s)}));
-  const por=lista.filter(x=>x.j.tipo==='portero').sort((a,b)=>b.v-a.v);
-  const cam=lista.filter(x=>x.j.tipo!=='portero').sort((a,b)=>b.v-a.v);
+  const por=lista.filter(x=>x.j.tipo==='portero').sort((p,q)=>q.v-p.v);
+  let cam=lista.filter(x=>x.j.tipo!=='portero').sort((p,q)=>q.v-p.v);
   const de={}, suma=Array(n).fill(0), cuenta=Array(n).fill(0);
-  /* porteros repartidos primero; luego cada jugador al equipo con menos gente y, a igualdad, menos nivel */
-  por.forEach((x,i)=>{ const k=i%n; de[x.j.id]=k; cuenta[k]++; });
+  const cap=k=> tam&&tam[k] ? tam[k] : Infinity;
+  por.forEach((x,i)=>{ if(i<n){ de[x.j.id]=i; cuenta[i]++; } else cam.push(x); });
+  cam.sort((p,q)=>q.v-p.v);
+  if(com.n&&cam.length){
+    const medio=Math.floor(cam.length/2)-Math.floor(com.n/2);
+    cam.splice(Math.max(0,medio),com.n).forEach(x=>{ de[x.j.id]='c'; });
+  }
   cam.forEach(x=>{
-    let k=0;
-    for(let i=1;i<n;i++) if(cuenta[i]<cuenta[k]||(cuenta[i]===cuenta[k]&&suma[i]<suma[k])) k=i;
+    let k=-1;
+    for(let i=0;i<n;i++){
+      if(cuenta[i]>=cap(i)) continue;
+      if(k<0) { k=i; continue; }
+      const ri=cuenta[i]/(cap(i)===Infinity?1:cap(i)), rk=cuenta[k]/(cap(k)===Infinity?1:cap(k));
+      if(ri<rk||(ri===rk&&suma[i]<suma[k])) k=i;
+    }
+    if(k<0) return;                               /* no cabe en ningún peto: descansa */
     de[x.j.id]=k; suma[k]+=x.v; cuenta[k]++;
   });
-  s.equipos[tid]={n,de,ganan:[]};
+  s.equipos[tid]={n,de,ganan:[],tam,com};
   marcar(s); salvar(); tareaEquipos=tid; mostrarTareasSesion();
-  aviso('Equipos igualados por nota y asistencia');
+  aviso('Equipos hechos por nota y asistencia');
+}
+function eqSetN(tid,n){ eqEquilibrar(tid,{n:+n,tam:null}); }
+function eqSetTam(tid,k,v){
+  const a=eqAjustes(tid), tam=(Array.isArray(a.tam)?a.tam.slice():[]);
+  while(tam.length<a.n) tam.push(null);
+  tam[k]= v===''?null:+v;
+  eqEquilibrar(tid,{tam});
+}
+function eqSetCom(tid,campo,v){
+  const a=eqAjustes(tid), com=Object.assign({},a.com); com[campo]=+v;
+  eqEquilibrar(tid,{com});
 }
 function eqComoAnterior(tid){
   const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
-  const i=(s.tareas||[]).indexOf(tid);
   s.equipos=s.equipos||{};
+  const i=(s.tareas||[]).indexOf(tid);
   const prev=(s.tareas||[]).slice(0,i).reverse().map(t=>eqDe(s,t)).find(Boolean);
   if(!prev){ aviso('Ninguna tarea anterior tiene equipos','warn'); return; }
-  s.equipos[tid]={n:prev.n,de:Object.assign({},prev.de),ganan:[]};
+  s.equipos[tid]={n:prev.n,de:Object.assign({},prev.de),ganan:[],tam:prev.tam||null,com:prev.com||{n:0,peto:3}};
   marcar(s); salvar(); mostrarTareasSesion(); aviso('Mismos equipos');
 }
+/* tocar a un jugador: siguiente peto → comodín → descansa → primer peto */
 function eqCambiar(tid,jid){
   const s=D.sesiones.find(x=>x.id===sesionActiva); const e=s&&eqDe(s,tid); if(!e) return;
-  const k=e.de[jid];
-  e.de[jid]= k==null?0:(k+1)%e.n;
+  const orden=[...Array(e.n).keys()]; if(e.com&&e.com.n) orden.push('c'); orden.push(null);
+  const actual= e.de[jid]===undefined?null:e.de[jid];
+  const sig=orden[(orden.indexOf(actual)+1)%orden.length];
+  if(sig===null) delete e.de[jid]; else e.de[jid]=sig;
   marcar(s); salvar(); mostrarTareasSesion();
 }
 function eqGanador(tid,k){
@@ -4172,37 +4277,53 @@ function eqQuitar(tid){
   const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s||!s.equipos) return;
   delete s.equipos[tid]; marcar(s); salvar(); mostrarTareasSesion();
 }
+const ptHTML=i=>'<i class="pt'+(i===3?' sin':'')+'" style="background:'+PETOS[i][1]+'"></i>';
 function eqResumen(s,tid){
   const e=eqDe(s,tid); if(!e) return '';
-  const cuenta=Array(e.n).fill(0); Object.values(e.de).forEach(k=>{ if(k<e.n) cuenta[k]++; });
+  const cuenta=Array(e.n).fill(0); let c=0;
+  Object.values(e.de).forEach(k=>{ if(k==='c') c++; else if(k<e.n) cuenta[k]++; });
   const res= !e.ganan.length?'sin resultado' : e.ganan.length===e.n?'empate'
     : 'gana '+PETOS[e.ganan[0]][0].toLowerCase();
-  return '<div class="eq-mini">'+cuenta.map((c,i)=>'<span><i class="pt" style="background:'+PETOS[i][1]+'"></i>'+c+'</span>').join('')+
-    '<span>· '+res+'</span></div>';
+  return '<div class="eq-mini">'+cuenta.map((x,i)=>'<span>'+ptHTML(i)+x+'</span>').join('<span>contra</span>')+
+    (c?'<span>+ '+c+' comodín'+(c>1?'es':'')+'</span>':'')+'<span>· '+res+'</span></div>';
 }
 function eqPanel(s,tid){
-  const e=eqDe(s,tid), pres=presentesSesion(s);
+  const e=eqDe(s,tid), pres=presentesSesion(s), a=eqAjustes(tid), f=formatoTarea(D.tareas.find(t=>t.id===tid));
+  const opts=(sel,desde,hasta,auto)=>(auto?'<option value="">'+auto+'</option>':'')+
+    Array.from({length:hasta-desde+1},(_,i)=>desde+i).map(v=>'<option value="'+v+'"'+(+sel===v?' selected':'')+'>'+v+'</option>').join('');
+  const ajustes='<div class="eq-aj">'+
+    '<label>Petos<select onchange="eqSetN(\''+tid+'\',this.value)">'+opts(a.n,2,4)+'</select></label>'+
+    [...Array(a.n).keys()].map(k=>'<label><span>'+ptHTML(k)+PETOS[k][0]+'</span><select onchange="eqSetTam(\''+tid+'\','+k+',this.value)">'+
+      opts(Array.isArray(a.tam)?a.tam[k]:'',1,16,'Igual')+'</select></label>').join('')+
+    '<label>Comodines<select onchange="eqSetCom(\''+tid+'\',\'n\',this.value)">'+opts(a.com.n,0,4)+'</select></label>'+
+    (a.com.n?'<label>Peto comodín<select onchange="eqSetCom(\''+tid+'\',\'peto\',this.value)">'+
+      PETOS.map((p,i)=>'<option value="'+i+'"'+(+a.com.peto===i?' selected':'')+'>'+p[0]+'</option>').join('')+'</select></label>':'')+
+    '</div>'+
+    ((f.tam||f.com)?'<p class="mini muted" style="margin:6px 0 0">Leído de la tarea: '+
+      [f.tam?f.tam.join(' contra '):'', f.com?'+'+f.com+' comodín'+(f.com>1?'es':''):''].filter(Boolean).join(' ')+'</p>':'');
   if(!e) return '<div class="eq-panel"><p class="mini muted" style="margin:0 0 9px">'+pres.length+
-    ' presentes. Elige cuántos equipos y se igualan por nota y asistencia de los últimos entrenos.</p>'+
-    '<div class="row" style="gap:6px;flex-wrap:wrap">'+[2,3,4].map(n=>
-      '<button class="btn xs primary" onclick="eqEquilibrar(\''+tid+'\','+n+')">'+n+' equipos</button>').join('')+
+    ' presentes. Elige petos, cuántos en cada uno y comodines; se igualan por nota y asistencia.</p>'+ajustes+
+    '<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px">'+
+    '<button class="btn xs primary" onclick="eqEquilibrar(\''+tid+'\')">Hacer equipos</button>'+
     '<button class="btn xs" onclick="eqComoAnterior(\''+tid+'\')">Como la tarea anterior</button></div></div>';
-  const grupos=[...Array(e.n)].map(()=>[]), sin=[];
-  pres.forEach(x=>{ const k=e.de[x.j.id]; (k!=null&&k<e.n?grupos[k]:sin).push(x); });
-  const chip=(x,col)=>'<button class="eq-chip" onclick="eqCambiar(\''+tid+'\',\''+x.j.id+'\')">'+
-    (col?'<i class="pt" style="background:'+col+'"></i>':'')+
+  const grupos=[...Array(e.n)].map(()=>[]), com=[], sin=[];
+  pres.forEach(x=>{ const k=e.de[x.j.id]; if(k==='c') com.push(x); else (k!=null&&k<e.n?grupos[k]:sin).push(x); });
+  const chip=x=>'<button class="eq-chip" onclick="eqCambiar(\''+tid+'\',\''+x.j.id+'\')">'+
     (x.j.dorsal!=null&&x.j.dorsal!==''?'<b>'+esc(x.j.dorsal)+'</b> ':'')+esc((x.j.nombre||'').split(' ')[0])+
     (x.j.tipo==='portero'?' 🧤':'')+'</button>';
-  return '<div class="eq-panel">'+
-    '<div class="row" style="gap:6px;flex-wrap:wrap">'+
-      [2,3,4].map(n=>'<button class="btn xs'+(n===e.n?' primary':'')+'" onclick="eqEquilibrar(\''+tid+'\','+n+')">'+n+'</button>').join('')+
+  const pc=(e.com&&e.com.peto)||0;
+  return '<div class="eq-panel">'+ajustes+
+    '<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px">'+
       '<button class="btn xs" onclick="eqEquilibrar(\''+tid+'\')">Igualar otra vez</button>'+
       '<button class="btn xs" onclick="eqComoAnterior(\''+tid+'\')">Como la anterior</button></div>'+
-    '<p class="mini muted" style="margin:8px 0 0">Toca un jugador para pasarlo al siguiente peto.</p>'+
-    '<div class="eq-cols">'+grupos.map((g,i)=>'<div class="eq-col"><h5><i class="pt" style="background:'+PETOS[i][1]+'"></i>'+
-      PETOS[i][0]+' · '+g.length+'</h5><div class="eq-chips">'+g.map(x=>chip(x)).join('')+'</div></div>').join('')+'</div>'+
-    (sin.length?'<p class="mini muted" style="margin:9px 0 5px">Sin peto (han llegado después)</p><div class="eq-chips">'+
-      sin.map(x=>chip(x)).join('')+'</div>':'')+
+    '<p class="mini muted" style="margin:8px 0 0">Toca un jugador para pasarlo al siguiente peto'+(com.length||(e.com&&e.com.n)?', a comodín':'')+' o a descansar.</p>'+
+    '<div class="eq-cols">'+grupos.map((g,i)=>'<div class="eq-col"><h5>'+ptHTML(i)+
+      PETOS[i][0]+' · '+g.length+(e.tam&&e.tam[i]?' de '+e.tam[i]:'')+'</h5><div class="eq-chips">'+g.map(chip).join('')+'</div></div>').join('')+
+      ((e.com&&e.com.n)||com.length?'<div class="eq-col eq-com"><h5>'+ptHTML(pc)+'Comodines · '+com.length+
+        '<span class="mini muted" style="text-transform:none;letter-spacing:0">('+PETOS[pc][0].toLowerCase()+')</span></h5>'+
+        '<div class="eq-chips">'+com.map(chip).join('')+'</div></div>':'')+'</div>'+
+    (sin.length?'<p class="mini muted" style="margin:9px 0 5px">Descansan o han llegado después</p><div class="eq-chips">'+
+      sin.map(chip).join('')+'</div>':'')+
     '<div class="eq-res"><span class="mini muted">Resultado:</span>'+
       [...Array(e.n).keys()].map(i=>'<button class="btn xs'+(e.ganan.length===1&&e.ganan[0]===i?' on':'')+
         '" onclick="eqGanador(\''+tid+'\','+i+')">Gana '+PETOS[i][0].toLowerCase()+'</button>').join('')+
@@ -4268,7 +4389,7 @@ function puntosLiga(desde,hasta){
         const empate=e.ganan.length===e.n;
         Object.entries(e.de||{}).forEach(([jid,k])=>{
           if(!regs.some(r=>r.jugadorId===jid&&r.asistio)) return;
-          if(empate) sumar(jid,'tarea_empata',1); else if(e.ganan.includes(k)) sumar(jid,'tarea_gana',1);
+          if(empate||k==='c') sumar(jid,'tarea_empata',1); else if(e.ganan.includes(k)) sumar(jid,'tarea_gana',1);
         });
       });
     } else {
@@ -4589,8 +4710,10 @@ function htmlMicro(m,compacto){
 function equiposFila(s,tid){
   const e=(s.equipos||{})[tid]; if(!e) return '';
   const g=[...Array(e.n)].map(()=>[]);
-  Object.entries(e.de||{}).forEach(([jid,k])=>{ const j=D.jugadores.find(x=>x.id===jid); if(j&&k<e.n) g[k].push((j.dorsal!=null&&j.dorsal!==''?j.dorsal+' ':'')+(j.nombre||'').split(' ')[0]); });
-  return '<tr><td colspan="3"><b>Equipos</b>'+g.map((l,i)=>'<b>'+PETOS[i][0]+':</b> '+esc(l.join(', '))).join(' · ')+'</td></tr>';
+  const cm=[], nom=j=>(j.dorsal!=null&&j.dorsal!==''?j.dorsal+' ':'')+(j.nombre||'').split(' ')[0];
+  Object.entries(e.de||{}).forEach(([jid,k])=>{ const j=D.jugadores.find(x=>x.id===jid); if(!j) return; if(k==='c') cm.push(nom(j)); else if(k<e.n) g[k].push(nom(j)); });
+  return '<tr><td colspan="3"><b>Equipos</b>'+g.map((l,i)=>'<b>'+PETOS[i][0]+':</b> '+esc(l.join(', '))).join(' · ')+
+    (cm.length?' · <b>Comodines ('+PETOS[(e.com&&e.com.peto)||0][0].toLowerCase()+'):</b> '+esc(cm.join(', ')):'')+'</td></tr>';
 }
 function textoDaniel(mc){
   const m=microDe(mc);
@@ -4627,6 +4750,155 @@ function pintarMicroSesion(s){
     htmlMicro(m,s.tipo!=='porteros')+'</details>' : '';
 }
 if(typeof D!=='undefined'&&D&&D.plan&&D.plan.length&&completarMicroconceptos()) salvar();
+
+</script>
+<script>
+/* ══════════════════════════════════════════════════════
+   FICHA AMPLIADA · nacimiento, medidas, perfil técnico y cumpleaños
+   ══════════════════════════════════════════════════════ */
+const POS_SEC=['Portero','Central','Medio','Extremo','Punta','Pivote','Mediapunta','Banda'];
+let secSel=[];
+function edadDe(nac,ref){
+  if(!nac) return null;
+  const a=new Date(nac+'T12:00'), b=new Date((ref||hoyISO())+'T12:00');
+  let e=b.getFullYear()-a.getFullYear();
+  if(b.getMonth()<a.getMonth()||(b.getMonth()===a.getMonth()&&b.getDate()<a.getDate())) e--;
+  return e;
+}
+/* días que faltan para el próximo cumpleaños (0 = hoy) */
+function diasCumple(nac,ref){
+  if(!nac) return null;
+  const h=new Date((ref||hoyISO())+'T12:00'), n=new Date(nac+'T12:00');
+  let c=new Date(h.getFullYear(),n.getMonth(),n.getDate(),12);
+  if(c<h&&c.toDateString()!==h.toDateString()) c=new Date(h.getFullYear()+1,n.getMonth(),n.getDate(),12);
+  return Math.round((c-h)/864e5);
+}
+function cumpleanos(dias,ref){
+  return D.jugadores.filter(j=>j.nac&&equipoDe(j)==='B').map(j=>({j,d:diasCumple(j.nac,ref)}))
+    .filter(x=>x.d!==null&&x.d<=dias).sort((a,b)=>a.d-b.d);
+}
+function pintarCumples(){
+  const el=document.getElementById('hoyCumple'); if(!el) return;
+  const L=cumpleanos(7);
+  if(!L.length){ el.innerHTML=''; return; }
+  const hoy=L.filter(x=>x.d===0), pronto=L.filter(x=>x.d>0);
+  const dia=d=>{ const f=new Date(); f.setDate(f.getDate()+d); return d===1?'mañana':DIAS[f.getDay()]+' '+f.getDate(); };
+  el.innerHTML='<div class="card cumple'+(hoy.length?' hoy':'')+'">'+
+    (hoy.length?'<b style="font-size:15px">🎂 Hoy cumple'+(hoy.length>1?'n':'')+' '+
+      hoy.map(x=>esc((x.j.nombre||'').split(' ')[0])+' ('+edadDe(x.j.nac)+')').join(' y ')+'</b>':'')+
+    (pronto.length?'<div class="mini muted" style="margin-top:'+(hoy.length?'6':'0')+'px">🎂 Esta semana: '+
+      pronto.map(x=>esc((x.j.nombre||'').split(' ')[0])+' '+dia(x.d)+' ('+(edadDe(x.j.nac)+1)+')').join(' · ')+'</div>':'')+
+  '</div>';
+  /* aviso una vez al día */
+  if(hoy.length){
+    const k='cumpleAvisado', h=hoyISO();
+    try{ if(localStorage.getItem(k)!==h){ localStorage.setItem(k,h);
+      setTimeout(()=>aviso('🎂 Hoy cumple '+hoy.map(x=>(x.j.nombre||'').split(' ')[0]).join(' y ')),700); } }catch(e){}
+  }
+}
+function pintarSecundarias(){
+  const el=document.getElementById('fSecund'); if(!el) return;
+  el.innerHTML=POS_SEC.map(p=>'<button type="button" class="btn xs'+(secSel.includes(p)?' primary':'')+
+    '" onclick="toggleSec(\''+p+'\')">'+p+'</button>').join('');
+}
+function toggleSec(p){ secSel=secSel.includes(p)?secSel.filter(x=>x!==p):secSel.concat(p); pintarSecundarias(); }
+function pintarEdad(){
+  const v=document.getElementById('fNac').value, e=edadDe(v);
+  document.getElementById('fEdad').textContent= e!=null ? e+' años' : '';
+}
+function rellenarFichaExtra(j){
+  const g=id=>document.getElementById(id);
+  g('fNac').value=j?.nac||''; g('fEstatura').value=j?.estatura??''; g('fPeso').value=j?.peso??'';
+  g('fFuertes').value=j?.fuertes||''; g('fMejorar').value=j?.mejorar||''; g('fObjetivo').value=j?.objetivo||'';
+  secSel=(j?.secundarias||[]).slice(); pintarSecundarias(); pintarEdad();
+}
+function leerFichaExtra(previo){
+  const g=id=>document.getElementById(id).value, num=v=>{ v=String(v).trim().replace(',','.'); return v===''||isNaN(+v)?null:+v; };
+  const d={nac:g('fNac'),estatura:num(g('fEstatura')),peso:num(g('fPeso')),secundarias:secSel.slice(),
+    fuertes:g('fFuertes').trim(),mejorar:g('fMejorar').trim(),objetivo:g('fObjetivo').trim()};
+  /* historial de medidas: cada vez que cambian se guarda con fecha, para ver el crecimiento */
+  const med=((previo&&previo.medidas)||[]).slice();
+  const ult=med[med.length-1]||{};
+  if((d.estatura!=null||d.peso!=null)&&(d.estatura!==ult.cm||d.peso!==ult.kg)){
+    if(ult.fecha===hoyISO()) med.pop();
+    med.push({fecha:hoyISO(),cm:d.estatura,kg:d.peso});
+  }
+  d.medidas=med;
+  return d;
+}
+function panelFisico(j){
+  const e=edadDe(j.nac), med=(j.medidas||[]).filter(m=>m.cm!=null);
+  const crec= med.length>=2 ? (med[med.length-1].cm-med[0].cm) : null;
+  if(e==null&&j.estatura==null&&!j.fuertes&&!j.mejorar&&!j.objetivo&&!(j.secundarias||[]).length) return '';
+  return '<p class="eyebrow gente mt">Perfil</p><div class="card">'+
+    '<div class="row">'+(e!=null?metrica(e,'años'):'')+(j.estatura!=null?metrica(j.estatura,'cm'):'')+
+      (j.peso!=null?metrica(j.peso,'kg'):'')+(crec!=null?metrica((crec>0?'+':'')+crec,'cm desde '+fechaCorta(med[0].fecha)):'')+'</div>'+
+    ((j.secundarias||[]).length?'<p class="mini" style="margin:10px 0 0"><b>También juega de:</b> '+esc(j.secundarias.join(', '))+'</p>':'')+
+    (j.fuertes?'<p class="mini" style="margin:8px 0 0"><b style="color:var(--cesped)">Fortalezas · </b>'+esc(j.fuertes)+'</p>':'')+
+    (j.mejorar?'<p class="mini" style="margin:6px 0 0"><b style="color:var(--ambar)">A mejorar · </b>'+esc(j.mejorar)+'</p>':'')+
+    (j.objetivo?'<p class="mini" style="margin:6px 0 0"><b>Objetivo individual · </b>'+esc(j.objetivo)+'</p>':'')+
+  '</div>';
+}
+
+/* ══════════════════════════════════════════════════════
+   ESCUDOS DE LOS RIVALES · se guardan por nombre y se reutilizan
+   ══════════════════════════════════════════════════════ */
+const claveRival=n=>String(n||'').normalize('NFD').replace(/[̀-ͯ]/g,'')
+  .replace(/[“”"'«»]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+function escudoDe(nombre){ const r=(D.rivales||{})[claveRival(nombre)]; return (r&&r.escudo)||''; }
+function escudoHTML(nombre,tam){
+  const e=escudoDe(nombre);
+  return e?'<img class="escudo" src="'+e+'" alt="" style="width:'+tam+'px;height:'+tam+'px">':'';
+}
+function pedirEscudo(){
+  const s=D.sesiones.find(x=>x.id===sesionActiva);
+  if(!s||!(s.rival||'').trim()){ aviso('Escribe primero el nombre del rival','warn'); return; }
+  let inp=document.getElementById('escudoInput');
+  if(!inp){ inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.id='escudoInput';
+    inp.className='hidden'; inp.onchange=procesarEscudo; document.body.appendChild(inp); }
+  inp.click();
+}
+function procesarEscudo(ev){
+  const f=ev.target.files[0]; ev.target.value=''; if(!f) return;
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  const lector=new FileReader();
+  lector.onload=()=>{ const img=new Image();
+    img.onload=()=>{
+      const L=128, c=document.createElement('canvas'); c.width=c.height=L;
+      const k=Math.min(L/img.width,L/img.height), w=img.width*k, h=img.height*k;
+      c.getContext('2d').drawImage(img,(L-w)/2,(L-h)/2,w,h);
+      D.rivales=D.rivales||{};
+      D.rivales[claveRival(s.rival)]={nombre:s.rival.trim(),escudo:c.toDataURL('image/png'),mod:Date.now()};
+      salvar(); pintarEscudoActa(); aviso('Escudo guardado para '+s.rival.trim());
+    };
+    img.onerror=()=>aviso('No se pudo leer la imagen','warn');
+    img.src=lector.result; };
+  lector.readAsDataURL(f);
+}
+function quitarEscudo(){
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  const k=claveRival(s.rival); if(D.rivales&&D.rivales[k]){ D.rivales[k]={nombre:D.rivales[k].nombre,escudo:'',mod:Date.now()}; salvar(); }
+  pintarEscudoActa();
+}
+function pintarEscudoActa(){
+  const el=document.getElementById('aEscudo'); if(!el) return;
+  const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
+  const e=escudoDe(s.rival);
+  el.innerHTML=(e?escudoHTML(s.rival,44):'<span class="escudo-vacio">🛡</span>')+
+    '<button class="btn xs" onclick="pedirEscudo()">'+(e?'Cambiar escudo':'Poner escudo del rival')+'</button>'+
+    (e?'<button class="btn xs" onclick="quitarEscudo()">Quitar</button>':'');
+  const dl=document.getElementById('rivalesLista');
+  if(dl){ const nombres=[...new Set(D.sesiones.map(x=>(x.rival||'').trim()).filter(Boolean))];
+    dl.innerHTML=nombres.map(n=>'<option value="'+esc(n)+'">').join(''); }
+}
+function fusionarRivales(a,b){
+  const R={};
+  Object.keys(Object.assign({},a||{},b||{})).forEach(k=>{
+    const x=(a||{})[k], y=(b||{})[k];
+    R[k]= !x?y : !y?x : ((x.mod||0)>=(y.mod||0)?x:y);
+  });
+  return R;
+}
 
 </script>
 <script>
@@ -5034,7 +5306,7 @@ let fotoDe=null;
 function pedirFoto(id){ fotoDe=id; document.getElementById('fotoInput').click(); }
 function quitarFoto(id){
   const j=D.jugadores.find(x=>x.id===id); if(!j) return;
-  delete j.foto; salvar(); aviso('Foto quitada');
+  delete j.foto; marcar(j); salvar(); aviso('Foto quitada');
   editarJugador(id);
 }
 function procesarFoto(ev){
@@ -5048,8 +5320,9 @@ function procesarFoto(ev){
       c.width=c.height=L;
       const lado=Math.min(img.width,img.height);
       const ctx=c.getContext('2d');
-      ctx.drawImage(img,(img.width-lado)/2,(img.height-lado)/2,lado,lado,0,0,L,L);
-      j.foto=c.toDataURL('image/jpeg',0.68);
+      const y0= img.height>img.width ? (img.height-lado)*0.18 : (img.height-lado)/2;
+      ctx.drawImage(img,(img.width-lado)/2,y0,lado,lado,0,0,L,L);
+      j.foto=c.toDataURL('image/jpeg',0.72); marcar(j);
       salvar(); aviso('Foto guardada');
       if(vista==='ficha') editarJugador(j.id);
       else mostrarPlantilla();
@@ -5264,7 +5537,7 @@ function mostrarPreparar(){
   const okAlineacion = titC===c.campo && titP===1;
 
   document.getElementById('ppCab').innerHTML=
-    '<div class="spread"><div class="grow"><h3>'+esc(s.rival||'Sin rival')+'</h3>'+
+    '<div class="spread"><div class="grow"><h3>'+escudoHTML(s.rival,30)+' '+esc(s.rival||'Sin rival')+'</h3>'+
     '<p class="mini muted" style="margin:3px 0 0">'+fechaLarga(s.fecha)+' · '+
     c.partes+' partes de '+c.min+"' · "+(s.local==='visitante'?'Visitante':'Local')+'</p></div>'+
     '<span class="chip '+(okAlineacion?'green':'amber')+'">'+titC+'+'+titP+'</span></div>';

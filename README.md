@@ -15,6 +15,9 @@ Aplicación web para gestionar un equipo de fútbol base: asistencia, sesiones d
 - Equipos (petos) para cada tarea de la sesión, igualados por nota y asistencia, y quién gana
 - Liga interna con reglamento editable: suma por competir y por acciones del partido, y resta por conductas
 - Uso de la app: mide qué funciones se usan y permite quitar del menú las que no
+- Ficha de jugador con foto, fecha de nacimiento, estatura, peso, posiciones secundarias y perfil técnico; aviso de cumpleaños
+- Escudos de los rivales, guardados por nombre
+- Equipos con tamaños distintos (7 contra 5) y comodines, leídos del formato de la tarea («7c7+2»)
 - Notas de gastos con cálculo de kilometraje
 - Exportación a PDF de fichas, actas e informes
 

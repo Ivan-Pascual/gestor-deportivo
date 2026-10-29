@@ -209,6 +209,59 @@ const ok = (nombre, cond, extra = '') => {
   await p2.evaluate(() => go('liga', false));
   await p2.close();
 
+  // 9) Petos, tamaños y comodines
+  const pet = await page.evaluate(() => {
+    const f = s => formatoTarea({ jugadores: s, nombre: '' });
+    const parse = [f('7c7+2'), f('10+2p'), f('15(7v6) + 2 gk '), f('12(7v5)')];
+    nueva('entreno');
+    const s = D.sesiones.find(x => x.id === sesionActiva);
+    s.fecha = sumaDias(hoyISO(), -2);
+    const t = D.tareas[0]; s.tareas = [t.id];
+    eqEquilibrar(t.id, { n: 2, tam: [7, 5], com: { n: 2, peto: 3 } });
+    const e = s.equipos[t.id], cuenta = k => Object.values(e.de).filter(v => v === k).length;
+    eqGanador(t.id, 0);
+    const comodin = Object.keys(e.de).find(id => e.de[id] === 'c');
+    const P = puntosLiga(s.fecha, s.fecha);
+    tareaEquipos = t.id; mostrarTareasSesion();
+    return { parse, a: cuenta(0), b: cuenta(1), c: cuenta('c'), petos: PETOS.map(p => p[0]).join(','),
+      comodinPts: P[comodin].por.tarea_empata ? P[comodin].por.tarea_empata[0] : 0,
+      panel: !!document.querySelector('.eq-com') && document.querySelectorAll('.eq-aj select').length >= 4 };
+  });
+  ok('Lee el formato de la tarea (comodines y tamaños, sin confundir porteros)',
+    JSON.stringify(pet.parse) === JSON.stringify([{ tam: [7, 7], com: 2 }, { tam: null, com: 0 }, { tam: [7, 6], com: 0 }, { tam: [7, 5], com: 0 }]),
+    JSON.stringify(pet.parse));
+  ok('7 contra 5 con 2 comodines', pet.a === 7 && pet.b === 5 && pet.c === 2, pet.a + '/' + pet.b + '/' + pet.c);
+  ok('Petos naranja, rojo, amarillo y sin peto', pet.petos === 'Naranja,Rojo,Amarillo,Sin peto');
+  ok('Comodín puntúa como empate y el panel tiene ajustes', pet.comodinPts === 1 && pet.panel);
+  await page.evaluate(() => document.querySelector('.eq-panel').scrollIntoView());
+  await foto('11-petos-comodines');
+
+  // 10) Ficha ampliada, cumpleaños y escudos
+  const fic = await page.evaluate(() => {
+    const j = D.jugadores[0], h = new Date();
+    editarJugador(j.id);
+    document.getElementById('fNac').value = (h.getFullYear() - 11) + '-' + String(h.getMonth() + 1).padStart(2, '0') + '-' + String(h.getDate()).padStart(2, '0');
+    document.getElementById('fEstatura').value = '146'; document.getElementById('fPeso').value = '37,5';
+    toggleSec('Pivote'); document.getElementById('fFuertes').value = 'Control orientado';
+    guardarJugador();
+    const g = D.jugadores.find(x => x.id === j.id);
+    go('hoy');
+    const cumple = (document.getElementById('hoyCumple').textContent || '');
+    D.rivales = { [claveRival('UD BARBASTRO “A”')]: { nombre: 'UD BARBASTRO “A”', escudo: 'data:image/png;base64,iVBORw0KGgo=', mod: 1 } };
+    const s = D.sesiones.find(x => x.tipo === 'partido'); s.rival = 'Ud Barbastro "A"';
+    const fila = filaSesion(s);
+    const m = fusionarRivales(D.rivales, { otro: { nombre: 'Otro', escudo: 'x', mod: 2 } });
+    editarJugador(j.id);
+    return { edad: edadDe(g.nac), cm: g.estatura, kg: g.peso, med: g.medidas.length, sec: g.secundarias, cumple,
+      escudoLista: fila.includes('<img class="escudo"'), rivales: Object.keys(m).length, perfil: document.getElementById('fStats').textContent.includes('Fortalezas') };
+  });
+  ok('Ficha con nacimiento, estatura, peso y perfil', fic.edad === 11 && fic.cm === 146 && fic.kg === 37.5 && fic.med === 1 &&
+    fic.sec.includes('Pivote') && fic.perfil, JSON.stringify(fic));
+  ok('Aviso de cumpleaños en Hoy', /Hoy cumple/.test(fic.cumple), fic.cumple);
+  ok('Escudo del rival por nombre (sin mayúsculas ni comillas) y se sincroniza', fic.escudoLista && fic.rivales === 2);
+  await page.evaluate(() => window.scrollTo(0, document.getElementById('fNac').getBoundingClientRect().top + scrollY - 120));
+  await foto('12-ficha');
+
   ok('Sin errores de página', errores.length === 0, errores.join(' | '));
   await navegador.close();
   console.log(fallos ? '\n' + fallos + ' prueba(s) fallada(s)' : '\nTodas las pruebas pasan');
