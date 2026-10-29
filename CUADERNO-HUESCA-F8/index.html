@@ -2579,9 +2579,7 @@ function editarJugador(id){
   rellenarFichaExtra(j);
   document.getElementById('fTitulo').textContent=j?j.nombre:'Nuevo jugador';
   document.getElementById('fFoto').innerHTML= j
-    ? '<button onclick="pedirFoto(\''+j.id+'\')">'+avatar(j,52)+'</button>'+
-      '<button class="btn xs" style="margin-left:8px" onclick="pedirFoto(\''+j.id+'\')">📷 '+(j.foto?'Cambiar foto':'Poner foto')+'</button>'+
-      (j.foto?'<button class="btn xs danger" style="margin-left:6px" onclick="quitarFoto(\''+j.id+'\')">Quitar</button>':'')
+    ? avatar(j,52)
     : '';
   document.getElementById('fStats').innerHTML=j?
     (panelFisico(j)+panelJugador(j)+panelEvolucion(j)):'';
