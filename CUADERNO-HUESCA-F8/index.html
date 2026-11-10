@@ -3250,7 +3250,7 @@ function imprimir(html,titulo){
   const c=document.getElementById('impresion');
   c.innerHTML='<div class="doc">'+html+'</div>';
   document.title=titulo;
-  const w=window.open('','_blank'); if(w){ w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+titulo+'</title><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>'+html+'</body></html>'); w.document.close(); } else { alert('Permite las ventanas emergentes para ver el documento.'); }
+  const barra='<div style="position:sticky;top:0;background:#1e293b;padding:10px;display:flex;gap:8px;z-index:9" class="no-imprimir"><button onclick="window.print()" style="flex:1;padding:12px;font-size:16px">Imprimir / PDF</button><button onclick="compartirDoc()" style="flex:1;padding:12px;font-size:16px">Compartir</button></div>'; const w=window.open('','_blank'); if(w){ w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+titulo+'</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>@media print{.no-imprimir{display:none}}</style></head><body>'+barra+html+'<script>function compartirDoc(){ if(navigator.share){ navigator.share({title:document.title}).catch(()=>{}); } else { window.print(); } }<\/script></body></html>'); w.document.close(); } else { alert('Permite las ventanas emergentes para ver el documento.'); }
 }
 
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
