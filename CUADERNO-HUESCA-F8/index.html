@@ -7,8 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Cuaderno · SD Huesca Alevín F8</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icono.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3249,20 +3248,36 @@ async function bajarNube(){
    ══════════════════════════════════════════════════════ */
 function imprimir(html,titulo){
   const t=titulo||'Documento';
-  if(!html||!String(html).trim()){ aviso('La ficha está vacía','warn'); return; }
-  const nombre=t.replace(/[\\/:*?"<>|]/g,'-')+'.html';
-  const estilos=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
-  const pagina='<!doctype html><html lang="es"><head><meta charset="utf-8">'+
-    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
-    '<title>'+esc(t)+'</title>'+estilos+
-    '</head><body style="background:#fff;color:#111;padding:14px"><div class="doc">'+html+'</div></body></html>';
-  const blob=new Blob([pagina],{type:'text/html'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=nombre;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
-  aviso('Ficha guardada: '+nombre);
+  const nombre=t.replace(/[\\/:*?"<>|]/g,'-')+'.pdf';
+  const c=document.createElement('div');
+  c.innerHTML='<div class="doc">'+html+'</div>';
+  c.style.cssText='position:fixed;left:0;top:0;width:186mm;background:#fff;z-index:9999';
+  document.body.appendChild(c);
+  aviso('Preparando el PDF…');
+  try{
+    if(!window.jspdf) throw new Error('No se ha cargado la librería del PDF. Revisa la conexión.');
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({unit:'mm',format:'a4'});
+    pdf.html(c.firstChild,{
+      x:12,y:12,width:186,windowWidth:720,
+      autoPaging:'text',
+      html2canvas:{scale:1.5,useCORS:true,backgroundColor:'#ffffff'},
+      callback:function(doc){
+        const n=doc.internal.getNumberOfPages();
+        doc.setFontSize(7); doc.setTextColor(140,140,140);
+        for(let i=1;i<=n;i++){
+          doc.setPage(i);
+          doc.text('Página '+i+' de '+n,198,293,{align:'right'});
+        }
+        doc.save(nombre);
+        aviso('PDF guardado: '+nombre);
+        c.remove();
+      }
+    });
+  }catch(err){
+    c.remove();
+    aviso(err.message||'No se pudo crear el PDF','warn');
+  }
 }
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
 
