@@ -7,6 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Cuaderno · SD Huesca Alevín F8</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icono.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -3245,13 +3247,56 @@ async function bajarNube(){
 /* ══════════════════════════════════════════════════════
    DOCUMENTOS PDF
    ══════════════════════════════════════════════════════ */
-
-function imprimir(html,titulo){
+async function imprimir(html,titulo){
+  const nombre=(titulo||'documento').replace(/[\\/:*?"<>|]/g,'-')+'.pdf';
   const c=document.getElementById('impresion');
   c.innerHTML='<div class="doc">'+html+'</div>';
-  document.title=titulo;
-  setTimeout(()=>{ window.print(); document.title='Cuaderno · SD Huesca Alevín F8'; },120);
+  c.style.display='block';
+  c.style.position='absolute';
+  c.style.left='-10000px';
+  c.style.top='0';
+  c.style.width='186mm';
+  aviso('Preparando el PDF…');
+  try{
+    if(typeof html2pdf==='undefined') throw new Error('No se ha cargado la librería del PDF. Revisa la conexión.');
+    const pdf=await html2pdf().set({
+      margin:[13,12,16,12],
+      image:{type:'jpeg',quality:0.95},
+      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
+      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
+      pagebreak:{mode:['css','legacy']}
+    }).from(c.firstChild).toPdf().get('pdf');
+    const n=pdf.internal.getNumberOfPages();
+    const url=location.href.split('#')[0];
+    const cuando=new Date().toLocaleString('es-ES',{day:'numeric',month:'numeric',year:'2-digit',hour:'2-digit',minute:'2-digit'});
+    pdf.setFontSize(7); pdf.setTextColor(140,140,140);
+    for(let i=1;i<=n;i++){
+      pdf.setPage(i);
+      pdf.text(url,12,289);
+      pdf.text(cuando,198,289,{align:'right'});
+      pdf.text('Página '+i+' de '+n,198,293,{align:'right'});
+    }
+    mostrarPDF(pdf.output('blob'),nombre,titulo);
+  }catch(err){
+    aviso(err.message||'No se pudo crear el PDF','warn');
+  }finally{
+    c.innerHTML=''; c.style.display=''; c.style.position=''; c.style.left=''; c.style.top=''; c.style.width='';
+  }
 }
+
+function mostrarPDF(blob,nombre,titulo){
+  if(!confirm('¿Quieres descargar el PDF?\n\n'+nombre)) return;
+  const f=new File([blob],nombre,{type:'application/pdf'});
+  const url=URL.createObjectURL(blob);
+  const abrirPestana=()=>window.open(url,'_blank');
+  if(navigator.canShare&&navigator.canShare({files:[f]})){
+    navigator.share({files:[f],title:titulo}).catch(abrirPestana);
+  } else {
+    abrirPestana();
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
+
 
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
 
