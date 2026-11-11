@@ -3247,58 +3247,21 @@ async function bajarNube(){
 /* ══════════════════════════════════════════════════════
    DOCUMENTOS PDF
    ══════════════════════════════════════════════════════ */
-async function imprimir(html,titulo){
-  const nombre=(titulo||'documento').replace(/[\\/:*?"<>|]/g,'-')+'.pdf';
-  const c=document.getElementById('impresion');
-  c.innerHTML='<div class="doc">'+html+'</div>';
-  c.style.display='block';
-  c.style.position='fixed';
-  c.style.left='0';
-  c.style.top='0';
-  c.style.width='186mm';
-  c.style.zIndex='9999';
-  c.style.background='#ffffff';
-  aviso('Preparando el PDF…');
-  try{
-    if(typeof html2pdf==='undefined') throw new Error('No se ha cargado la librería del PDF. Revisa la conexión.');
-    const pdf=await html2pdf().set({
-      margin:[13,12,16,12],
-      image:{type:'jpeg',quality:0.95},
-      html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff'},
-      jsPDF:{unit:'mm',format:'a4',orientation:'portrait'},
-      pagebreak:{mode:['css','legacy']}
-    }).from(c.firstChild).toPdf().get('pdf');
-    const n=pdf.internal.getNumberOfPages();
-    const url=location.href.split('#')[0];
-    const cuando=new Date().toLocaleString('es-ES',{day:'numeric',month:'numeric',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-    pdf.setFontSize(7); pdf.setTextColor(140,140,140);
-    for(let i=1;i<=n;i++){
-      pdf.setPage(i);
-      pdf.text(url,12,289);
-      pdf.text(cuando,198,289,{align:'right'});
-      pdf.text('Página '+i+' de '+n,198,293,{align:'right'});
-    }
-    mostrarPDF(pdf.output('blob'),nombre,titulo);
-  }catch(err){
-    aviso(err.message||'No se pudo crear el PDF','warn');
-  }finally{
-    c.innerHTML=''; c.style.display=''; c.style.position=''; c.style.left=''; c.style.top=''; c.style.width=''; c.style.zIndex=''; c.style.background='';
-  }
+function imprimir(html,titulo){
+  const estilos=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
+  const w=window.open('','_blank');
+  if(!w){ aviso('Permite las ventanas emergentes para ver el documento','warn'); return; }
+  w.document.open();
+  w.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8">'+
+    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>'+esc(titulo||'Documento')+'</title>'+estilos+
+    '<style>@media print{.no-imprimir{display:none!important}}</style></head>'+
+    '<body style="background:#fff;color:#111;padding:14px">'+
+    '<div class="no-imprimir" style="position:sticky;top:0;background:#1e293b;padding:10px;margin:-14px -14px 14px;text-align:center;z-index:9">'+
+    '<button onclick="window.print()" style="padding:12px 20px;font-size:16px;border-radius:8px">Imprimir o guardar PDF</button></div>'+
+    '<div class="doc">'+html+'</div></body></html>');
+  w.document.close();
 }
-
-function mostrarPDF(blob,nombre,titulo){
-  if(!confirm('¿Quieres descargar el PDF?\n\n'+nombre)) return;
-  const f=new File([blob],nombre,{type:'application/pdf'});
-  const url=URL.createObjectURL(blob);
-  const abrirPestana=()=>window.open(url,'_blank');
-  if(navigator.canShare&&navigator.canShare({files:[f]})){
-    navigator.share({files:[f],title:titulo}).catch(abrirPestana);
-  } else {
-    abrirPestana();
-  }
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
-}
-
 
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
 
