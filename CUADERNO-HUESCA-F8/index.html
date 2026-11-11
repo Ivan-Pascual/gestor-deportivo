@@ -3249,11 +3249,22 @@ async function bajarNube(){
 function imprimir(html,titulo){
   const t=titulo||'Documento';
   const nombre=t.replace(/[\\/:*?"<>|]/g,'-')+'.pdf';
+  const v=document.createElement('div');
+  v.style.cssText='position:fixed;inset:0;z-index:500;background:#0A0E14;overflow:auto;-webkit-overflow-scrolling:touch';
+  v.innerHTML=
+    '<div style="position:sticky;top:0;z-index:2;background:#0A0E14;padding:12px;display:flex;gap:10px;align-items:center;font-family:system-ui,sans-serif">'+
+    '<button id="pdfVolver" style="padding:10px 14px;border-radius:8px;border:1px solid #33404F;background:#1A222D;color:#EBF0F6;font-weight:700;font-size:14px">‹ Volver</button>'+
+    '<span id="pdfEstado" style="color:#9DAEC4;font-size:13px">Preparando el PDF…</span></div>';
+  document.body.appendChild(v);
   const c=document.createElement('div');
   c.innerHTML='<div class="doc">'+html+'</div>';
-  c.style.cssText='position:fixed;left:0;top:0;width:186mm;background:#fff;z-index:9999';
+  c.style.cssText='position:fixed;left:0;top:0;width:186mm;background:#fff;z-index:-1;pointer-events:none';
   document.body.appendChild(c);
-  aviso('Preparando el PDF…');
+  let cerrado=false;
+  const cerrar=()=>{ if(cerrado) return; cerrado=true; c.remove(); v.remove(); };
+  document.getElementById('pdfVolver').onclick=cerrar;
+  const estado=(txt)=>{ const e=document.getElementById('pdfEstado'); if(e) e.textContent=txt; };
+  const limite=setTimeout(()=>{ cerrar(); aviso('El PDF tardó demasiado. Inténtalo otra vez','warn'); },25000);
   try{
     if(!window.jspdf) throw new Error('No se ha cargado la librería del PDF. Revisa la conexión.');
     const {jsPDF}=window.jspdf;
@@ -3263,6 +3274,7 @@ function imprimir(html,titulo){
       autoPaging:'text',
       html2canvas:{scale:1.5,useCORS:true,backgroundColor:'#ffffff'},
       callback:function(doc){
+        clearTimeout(limite);
         const n=doc.internal.getNumberOfPages();
         doc.setFontSize(7); doc.setTextColor(140,140,140);
         for(let i=1;i<=n;i++){
@@ -3270,12 +3282,13 @@ function imprimir(html,titulo){
           doc.text('Página '+i+' de '+n,198,293,{align:'right'});
         }
         doc.save(nombre);
+        cerrar();
         aviso('PDF guardado: '+nombre);
-        c.remove();
       }
     });
   }catch(err){
-    c.remove();
+    clearTimeout(limite);
+    estado('No se pudo crear el PDF');
     aviso(err.message||'No se pudo crear el PDF','warn');
   }
 }
