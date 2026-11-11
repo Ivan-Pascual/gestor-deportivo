@@ -3249,18 +3249,19 @@ async function bajarNube(){
 function imprimir(html,titulo){
   const t=titulo||'Documento';
   if(!html||!String(html).trim()){ aviso('La ficha está vacía','warn'); return; }
-  const nombre=t.replace(/[\\/:*?"<>|]/g,'-')+'.html';
-  const estilos=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
-  const ajuste='<style>.doc{max-width:100%!important;width:100%}.doc *{max-width:100%;box-sizing:border-box}.doc table{table-layout:fixed;width:100%}.doc td,.doc th{overflow-wrap:anywhere;word-break:break-word}.doc img{max-width:100%;height:auto}.doc-tarea-cab{flex-wrap:wrap}@media (max-width:600px){.doc-t td{display:block;width:100%}}@media print{.no-imprimir{display:none!important}}</style>';
-  const barra='<div class="no-imprimir" style="position:sticky;top:0;z-index:9;background:#0A0E14;padding:10px 12px;display:flex;gap:8px;align-items:center;margin:-14px -14px 12px;font-family:system-ui,sans-serif"><button onclick="if(history.length>1){history.back()}else{window.close()}" style="padding:10px 12px;border-radius:8px;border:1px solid #33404F;background:#1A222D;color:#EBF0F6;font-weight:700;font-size:14px;flex:none">‹ Volver</button><span style="flex:1;min-width:0;color:#EBF0F6;font-size:13px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(t)+'</span><button onclick="window.print()" style="padding:10px 12px;border-radius:8px;border:none;background:#2B5FD9;color:#fff;font-weight:700;font-size:14px;flex:none">PDF / Imprimir</button></div>';
-  const pagina='<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(t)+'</title>'+estilos+ajuste+'</head><body style="background:#fff;color:#111;padding:14px">'+barra+'<div class="doc">'+html+'</div></body></html>';
-  const blob=new Blob([pagina],{type:'text/html'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url; a.download=nombre;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url),60000);
-  aviso('Ficha guardada: '+nombre);
+  const previa=document.getElementById('docView'); if(previa) previa.remove();
+  const v=document.createElement('div');
+  v.id='docView';
+  v.style.cssText='position:fixed;inset:0;z-index:500;background:#ffffff;overflow:auto;-webkit-overflow-scrolling:touch;color:#111';
+  v.innerHTML='<style>.doc{max-width:100%!important;width:100%}.doc *{max-width:100%;box-sizing:border-box}.doc table{table-layout:fixed;width:100%}.doc td,.doc th{overflow-wrap:anywhere;word-break:break-word}.doc img{max-width:100%;height:auto}.doc-tarea-cab{flex-wrap:wrap}@media (max-width:600px){.doc-t td{display:block;width:100%}}@media print{body>*:not(#docView){display:none!important}#docView{position:static!important;overflow:visible!important}.no-imprimir{display:none!important}}</style>'+
+    '<div class="no-imprimir" style="position:sticky;top:0;z-index:2;background:#0A0E14;padding:10px 12px;display:flex;gap:8px;align-items:center;font-family:system-ui,sans-serif">'+
+    '<button id="docVolver" style="padding:10px 12px;border-radius:8px;border:1px solid #33404F;background:#1A222D;color:#EBF0F6;font-weight:700;font-size:14px;flex:none">‹ Volver</button>'+
+    '<span style="flex:1;min-width:0;color:#EBF0F6;font-size:13px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(t)+'</span>'+
+    '<button id="docImprimir" style="padding:10px 12px;border-radius:8px;border:none;background:#2B5FD9;color:#fff;font-weight:700;font-size:14px;flex:none">PDF / Imprimir</button></div>'+
+    '<div style="padding:14px"><div class="doc">'+html+'</div></div>';
+  document.body.appendChild(v);
+  document.getElementById('docVolver').addEventListener('click',()=>v.remove());
+  document.getElementById('docImprimir').addEventListener('click',()=>window.print());
 }
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
 
