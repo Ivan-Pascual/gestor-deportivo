@@ -3248,19 +3248,35 @@ async function bajarNube(){
    DOCUMENTOS PDF
    ══════════════════════════════════════════════════════ */
 function imprimir(html,titulo){
-  const estilos=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
-  const w=window.open('','_blank');
-  if(!w){ aviso('Permite las ventanas emergentes para ver el documento','warn'); return; }
-  w.document.open();
-  w.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8">'+
-    '<meta name="viewport" content="width=device-width,initial-scale=1">'+
-    '<title>'+esc(titulo||'Documento')+'</title>'+estilos+
-    '<style>@media print{.no-imprimir{display:none!important}}</style></head>'+
-    '<body style="background:#fff;color:#111;padding:14px">'+
-    '<div class="no-imprimir" style="position:sticky;top:0;background:#1e293b;padding:10px;margin:-14px -14px 14px;text-align:center;z-index:9">'+
-    '<button onclick="window.print()" style="padding:12px 20px;font-size:16px;border-radius:8px">Imprimir o guardar PDF</button></div>'+
-    '<div class="doc">'+html+'</div></body></html>');
-  w.document.close();
+  const t=titulo||'Documento';
+  const f=document.createElement('div');
+  f.style.cssText='position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px';
+  f.innerHTML='<div style="background:#121821;border:1px solid #26313F;border-radius:14px;padding:22px 20px;max-width:340px;width:100%;text-align:center;color:#EBF0F6;font-family:system-ui,sans-serif">'+
+    '<div style="font-size:34px;margin-bottom:6px">📄</div>'+
+    '<b style="font-size:17px">¿Quieres descargar la ficha?</b>'+
+    '<p style="font-size:13px;color:#9DAEC4;margin:8px 0 18px">'+esc(t)+'</p>'+
+    '<button id="pdfSi" class="btn primary" style="width:100%;min-height:48px">Sí, abrir la ficha</button>'+
+    '<button id="pdfNo" class="btn ghost" style="width:100%;margin-top:8px">Cancelar</button></div>';
+  document.body.appendChild(f);
+  const cerrar=()=>f.remove();
+  document.getElementById('pdfNo').onclick=cerrar;
+  document.getElementById('pdfSi').onclick=()=>{
+    cerrar();
+    const w=window.open('','_blank');
+    if(!w){ aviso('Permite las ventanas emergentes en Ajustes → Safari','warn'); return; }
+    const estilos=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
+    w.document.open();
+    w.document.write('<!doctype html><html lang="es"><head><meta charset="utf-8">'+
+      '<meta name="viewport" content="width=device-width,initial-scale=1">'+
+      '<title>'+esc(t)+'</title>'+estilos+
+      '<style>body{background:#fff;color:#111;padding:0 14px 20px;margin:0}@media print{.no-imprimir{display:none!important}}</style></head>'+
+      '<body>'+
+      '<div class="no-imprimir" style="position:sticky;top:0;z-index:9;background:#0A0E14;color:#EBF0F6;padding:12px 14px;margin:0 -14px 16px;display:flex;gap:10px;align-items:center;justify-content:space-between;font-family:system-ui,sans-serif">'+
+      '<span style="font-size:14px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(t)+'</span>'+
+      '<button onclick="window.print()" style="padding:10px 14px;border-radius:8px;border:none;background:#2B5FD9;color:#fff;font-weight:700;font-size:14px;flex:none">Imprimir o guardar PDF</button></div>'+
+      '<div class="doc">'+html+'</div></body></html>');
+    w.document.close();
+  };
 }
 
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
