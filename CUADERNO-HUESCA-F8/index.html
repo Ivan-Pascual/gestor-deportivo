@@ -3305,7 +3305,7 @@ function imprimir(html,titulo){
   boton.addEventListener('click',async()=>{
     if(!archivo) return;
     if(navigator.canShare&&navigator.canShare({files:[archivo]})){
-      try{ await navigator.share({files:[archivo],title:t}); }catch(e){}
+      try{ await navigator.share({files:[archivo]}); }catch(e){}
       return;
     }
     aviso('Tu navegador no permite compartir desde aquí. Abre la ficha en Safari','warn');
