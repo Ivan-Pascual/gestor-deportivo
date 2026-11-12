@@ -3301,20 +3301,37 @@ async function pdfDesdePantalla(el){
   const {c,bloques,cortes,pagina}=info;
   const bordes=[...new Set([0,...bloques.map(b=>b.top).filter(v=>v>0&&v<c.height),c.height])].sort((a,b)=>a-b);
   const cortesOK=cortes.filter(v=>v>0&&v<c.height).sort((a,b)=>a-b);
-  const pdf=new JS({unit:'mm',format:'a4'});
-  const paginas=[];
-  for(let k=0;k<bordes.length-1;k++){
-    let y0=bordes[k];
-    const fin0=bordes[k+1];
-    while(fin0-y0>pagina){
+  const partir=(a,b)=>{
+    const out=[]; let y0=a;
+    while(b-y0>pagina){
       let fin=y0+pagina;
       const ok=cortesOK.filter(v=>v>y0+pagina*0.5&&v<=fin);
       if(ok.length) fin=ok[ok.length-1];
-      paginas.push([y0,fin]);
-      y0=fin;
+      out.push([y0,fin]); y0=fin;
     }
-    if(fin0>y0) paginas.push([y0,fin0]);
+    if(b>y0) out.push([y0,b]);
+    return out;
+  };
+  const unidades=[];
+  for(let k=0;k<bordes.length-1;k++){
+    const a=bordes[k], b=bordes[k+1];
+    if(b-a<=pagina) unidades.push({a,b,troceada:false});
+    else partir(a,b).forEach(([x,y])=>unidades.push({a:x,b:y,troceada:true}));
   }
+  const paginas=[];
+  let cur=null;
+  unidades.forEach(u=>{
+    if(u.troceada){
+      if(cur) paginas.push(cur);
+      paginas.push([u.a,u.b]);
+      cur=null;
+      return;
+    }
+    if(cur && u.b-cur[0]<=pagina){ cur[1]=u.b; }
+    else { if(cur) paginas.push(cur); cur=[u.a,u.b]; }
+  });
+  if(cur) paginas.push(cur);
+  const pdf=new JS({unit:'mm',format:'a4'});
   paginas.forEach(([a,b],i)=>{
     const h=b-a;
     const parte=document.createElement('canvas');
