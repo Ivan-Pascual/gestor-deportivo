@@ -3246,28 +3246,118 @@ async function bajarNube(){
 /* ══════════════════════════════════════════════════════
    DOCUMENTOS PDF
    ══════════════════════════════════════════════════════ */
+async function htmlAPdf(html,titulo){
+  const JS=window.jspdf&&window.jspdf.jsPDF;
+  if(!JS) throw new Error('No se ha cargado la librería del PDF. Revisa la conexión.');
+  const raiz=new DOMParser().parseFromString('<div>'+html+'</div>','text/html').body.firstChild;
+  const pdf=new JS({unit:'mm',format:'a4'});
+  const W=210, M=14, ANCHO=W-2*M, FIN=282;
+  let y=M;
+  const limpiar=s=>String(s||'').replace(/\s+/g,' ').trim();
+  const escribir=(txt,size,estilo,color,x,w,yy)=>{
+    pdf.setFont('helvetica',estilo||'normal');
+    pdf.setFontSize(size);
+    pdf.setTextColor.apply(pdf,color||[17,17,17]);
+    const L=pdf.splitTextToSize(txt,w), lh=size*0.45;
+    L.forEach(l=>{ if(yy+lh>FIN){ pdf.addPage(); yy=M; } pdf.text(l,x,yy+lh*0.8); yy+=lh; });
+    return yy+1.2;
+  };
+  const texto=(txt,size,estilo,color,sang)=>{ y=escribir(txt,size,estilo,color,M+(sang||0),ANCHO-(sang||0),y); };
+  const filaCol=(tr,x,w,yy)=>{
+    const celdas=[...tr.children];
+    const total=celdas.reduce((s,td)=>s+(+td.colSpan||1),0)||1;
+    const cw=w/total;
+    let cx=x, ymax=yy;
+    celdas.forEach(td=>{
+      const ancho=((+td.colSpan||1)*cw)-3;
+      const b=td.querySelector('b');
+      const etq=b?limpiar(b.textContent):'';
+      const val=limpiar(td.textContent).replace(etq,'').trim();
+      let yy2=yy;
+      if(etq) yy2=escribir(etq.toUpperCase(),6.5,'bold',[120,120,120],cx,ancho,yy2);
+      if(val) yy2=escribir(val,9,'normal',[17,17,17],cx,ancho,yy2);
+      ymax=Math.max(ymax,yy2);
+      cx+=(+td.colSpan||1)*cw;
+    });
+    return ymax;
+  };
+  const tarea=async el=>{
+    const cab=el.querySelector('.doc-tarea-cab');
+    if(cab){ y+=2; texto([...cab.children].map(c=>limpiar(c.textContent)).join('  ·  '),10,'bold'); }
+    const tabla=el.querySelector('table');
+    const img=el.querySelector('img');
+    if(img&&img.getAttribute('src')){
+      const src=img.getAttribute('src');
+      const im=new Image(); im.src=src;
+      try{ await im.decode(); }catch(e){}
+      const iw=62, ih=im.naturalWidth?iw*im.naturalHeight/im.naturalWidth:50;
+      if(y+ih>FIN){ pdf.addPage(); y=M; }
+      pdf.addImage(src,'PNG',M,y,iw,ih);
+      let yr=y;
+      if(tabla) tabla.querySelectorAll('tr').forEach(tr=>{ yr=filaCol(tr,M+66,ANCHO-66,yr)+1; });
+      y=Math.max(y+ih,yr)+2;
+    } else if(tabla){
+      tabla.querySelectorAll('tr').forEach(tr=>{ y=filaCol(tr,M,ANCHO,y)+1; });
+      y+=1.5;
+    }
+  };
+  const sel='.doc-tit,.doc-club,.doc-sub,.doc-rubrica-n,.doc-rubrica-c,.doc-espacio,.doc-pie,h4,p,li,table,.doc-tarea';
+  for(const el of raiz.querySelectorAll(sel)){
+    if(el.closest('.doc-tarea')&&!el.classList.contains('doc-tarea')) continue;
+    if(el.tagName!=='TABLE'&&el.closest('table')) continue;
+    if(el.classList.contains('doc-tarea')){ await tarea(el); continue; }
+    if(el.classList.contains('doc-tit')){ texto(limpiar(el.textContent),16,'bold'); continue; }
+    if(el.classList.contains('doc-club')){ texto(limpiar(el.textContent),8,'normal',[110,110,110]); continue; }
+    if(el.classList.contains('doc-sub')){ texto(limpiar(el.textContent),9,'normal',[85,85,85]); continue; }
+    if(el.classList.contains('doc-rubrica-n')||el.classList.contains('doc-rubrica-c')){ texto(limpiar(el.textContent),9); continue; }
+    if(el.classList.contains('doc-espacio')){ y+=2; texto(limpiar(el.textContent),8,'normal',[140,140,140]); continue; }
+    if(el.classList.contains('doc-pie')){ texto(limpiar(el.textContent),7,'normal',[140,140,140]); continue; }
+    if(el.tagName==='H4'){ y+=2; texto(limpiar(el.textContent).toUpperCase(),9.5,'bold',[40,40,40]); continue; }
+    if(el.tagName==='P'){ texto(limpiar(el.textContent),10); continue; }
+    if(el.tagName==='LI'){ texto('• '+limpiar(el.textContent),9.5,'normal',[17,17,17],3); continue; }
+    if(el.tagName==='TABLE'){ el.querySelectorAll('tr').forEach(tr=>{ y=filaCol(tr,M,ANCHO,y)+1; }); y+=1.5; }
+  }
+  const n=pdf.internal.getNumberOfPages();
+  pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(140,140,140);
+  for(let i=1;i<=n;i++){ pdf.setPage(i); pdf.text('Página '+i+' de '+n,W-M,292,{align:'right'}); }
+  return pdf;
+}
 function imprimir(html,titulo){
   const t=titulo||'Documento';
   if(!html||!String(html).trim()){ aviso('La ficha está vacía','warn'); return; }
+  const nombre=t.replace(/[\\/:*?"<>|]/g,'-')+'.pdf';
+  const ajuste='<style>.doc{max-width:100%!important;width:100%}.doc *{max-width:100%;box-sizing:border-box}.doc table{table-layout:fixed;width:100%}.doc td,.doc th{overflow-wrap:anywhere;word-break:break-word}.doc img{max-width:100%;height:auto}.doc-tarea-cab{flex-wrap:wrap}@media (max-width:600px){.doc-t td{display:block;width:100%}}</style>';
   const previa=document.getElementById('docView'); if(previa) previa.remove();
-  const estilos=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
   const v=document.createElement('div');
   v.id='docView';
   v.style.cssText='position:fixed;inset:0;z-index:500;background:#0A0E14;overflow:auto;-webkit-overflow-scrolling:touch';
-  v.innerHTML=estilos+'<style>@media print{#docView{position:static!important;overflow:visible!important;background:#fff!important;inset:auto!important}#docBarra{display:none!important}header,nav,main,.savebar,.toast,#picker{display:none!important}body{background:#fff!important}}</style>'+
-    '<div id="docBarra" style="position:sticky;top:0;z-index:2;background:#0A0E14;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:center;font-family:system-ui,sans-serif">'+
+  v.innerHTML='<div style="position:sticky;top:0;z-index:2;background:#0A0E14;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:center;font-family:system-ui,sans-serif">'+
     '<button id="docVolver" style="padding:10px 12px;border-radius:8px;border:1px solid #33404F;background:#1A222D;color:#EBF0F6;font-weight:700;font-size:14px;flex:none">‹ Volver</button>'+
     '<span style="flex:1;min-width:0;color:#EBF0F6;font-size:13px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(t)+'</span>'+
-    '<button id="docImprimir" style="padding:10px 12px;border-radius:8px;border:none;background:#2B5FD9;color:#fff;font-weight:700;font-size:14px;flex:none">PDF / Imprimir</button></div>'+
-    '<div style="background:#fff;color:#111;padding:14px 14px 40px"><div class="doc">'+html+'</div></div>';
+    '<button id="docCompartir" aria-label="Compartir" style="width:44px;height:44px;border-radius:8px;border:none;background:#2B5FD9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button></div>'+
+    '<div style="background:#fff;color:#111;padding:14px 14px 40px">'+ajuste+'<div class="doc">'+html+'</div></div>';
   document.body.appendChild(v);
+  let enCurso=false;
   document.getElementById('docVolver').addEventListener('click',()=>v.remove());
-  document.getElementById('docImprimir').addEventListener('click',()=>{
-    if(window.navigator.standalone){
-      aviso('Desde el icono no se puede imprimir. Abre el cuaderno en Safari.','warn');
-      return;
-    }
-    window.print();
+  document.getElementById('docCompartir').addEventListener('click',async()=>{
+    if(enCurso) return;
+    enCurso=true;
+    try{
+      const blob=(await htmlAPdf(html,t)).output('blob');
+      const f=new File([blob],nombre,{type:'application/pdf'});
+      if(navigator.canShare&&navigator.canShare({files:[f]})){
+        await navigator.share({files:[f],title:t});
+      } else {
+        const url=URL.createObjectURL(blob);
+        const a=document.createElement('a');
+        a.href=url; a.download=nombre;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),60000);
+        aviso('PDF guardado: '+nombre);
+      }
+    }catch(e){
+      if(!(e&&e.name==='AbortError')) aviso(e.message||'No se pudo crear el PDF','warn');
+    }finally{ enCurso=false; }
   });
 }
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
