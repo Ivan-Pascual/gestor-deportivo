@@ -3251,39 +3251,77 @@ async function pdfDesdePantalla(el){
   if(typeof html2canvas==='undefined') throw new Error('No se ha cargado la librería de captura. Revisa la conexión.');
   const JS=window.jspdf&&window.jspdf.jsPDF;
   if(!JS) throw new Error('No se ha cargado la librería del PDF. Revisa la conexión.');
+  const W=210, H=297;
   const anchoOrig=el.style.width;
+  const reducidos=[];
+  const imgs=[];
   el.style.width='794px';
-  let canvas, cortes=[];
-  try{
-    canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:794,width:794,scrollX:0,scrollY:0});
+  const capturar=async()=>{
+    const c=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:794,width:794,scrollX:0,scrollY:0});
     const base=el.getBoundingClientRect().top;
+    const bloques=[...el.querySelectorAll('.doc-tarea')].map(n=>{
+      const r=n.getBoundingClientRect();
+      const im=n.querySelector('img');
+      return {top:Math.round((r.top-base)*2), bottom:Math.round((r.bottom-base)*2), img:im, imgCss:im?im.getBoundingClientRect().height:0};
+    });
+    const cortes=[];
     el.querySelectorAll('.doc-tarea,h4,.doc-meta,.doc-rubrica,.doc-espacio,tr').forEach(n=>{
       const r=n.getBoundingClientRect();
       cortes.push(Math.round((r.top-base)*2), Math.round((r.bottom-base)*2));
     });
-  } finally { el.style.width=anchoOrig; }
-  cortes=cortes.filter(c=>c>0&&c<canvas.height).sort((a,b)=>a-b);
-  const pdf=new JS({unit:'mm',format:'a4'});
-  const W=210, H=297;
-  const pxPorPagina=Math.floor(canvas.width*H/W*0.95);
-  const paginas=[];
-  let y0=0;
-  while(y0<canvas.height){
-    let fin=Math.min(y0+pxPorPagina,canvas.height);
-    if(fin<canvas.height){
-      const ok=cortes.filter(c=>c>y0+pxPorPagina*0.5&&c<=fin);
-      if(ok.length) fin=ok[ok.length-1];
+    return {c,bloques,cortes,pagina:Math.floor(c.width*H/W*0.95)};
+  };
+  let info;
+  try{
+    info=await capturar();
+    if(info.bloques.some(b=>b.bottom-b.top>info.pagina)){
+      el.querySelectorAll('*').forEach(n=>{
+        const f=parseFloat(getComputedStyle(n).fontSize);
+        if(f>0){ reducidos.push([n,n.style.fontSize]); n.style.fontSize=(f-0.667)+'px'; }
+      });
+      info=await capturar();
     }
-    paginas.push([y0,fin]);
-    y0=fin;
+    let recorte=false;
+    info.bloques.forEach(b=>{
+      const exceso=(b.bottom-b.top)-info.pagina;
+      if(exceso>0&&b.img){
+        imgs.push([b.img,b.img.style.height,b.img.style.objectFit,b.img.style.objectPosition]);
+        b.img.style.height=Math.max(60,b.imgCss-exceso/2-12)+'px';
+        b.img.style.objectFit='cover';
+        b.img.style.objectPosition='top center';
+        recorte=true;
+      }
+    });
+    if(recorte) info=await capturar();
+  } finally {
+    el.style.width=anchoOrig;
+    reducidos.forEach(([n,v])=>{ n.style.fontSize=v; });
+    imgs.forEach(([im,h,f,p])=>{ im.style.height=h; im.style.objectFit=f; im.style.objectPosition=p; });
+  }
+  const {c,bloques,cortes,pagina}=info;
+  const bordes=[...new Set([0,...bloques.map(b=>b.top).filter(v=>v>0&&v<c.height),c.height])].sort((a,b)=>a-b);
+  const cortesOK=cortes.filter(v=>v>0&&v<c.height).sort((a,b)=>a-b);
+  const pdf=new JS({unit:'mm',format:'a4'});
+  const paginas=[];
+  for(let k=0;k<bordes.length-1;k++){
+    let y0=bordes[k];
+    const fin0=bordes[k+1];
+    while(fin0-y0>pagina){
+      let fin=y0+pagina;
+      const ok=cortesOK.filter(v=>v>y0+pagina*0.5&&v<=fin);
+      if(ok.length) fin=ok[ok.length-1];
+      paginas.push([y0,fin]);
+      y0=fin;
+    }
+    if(fin0>y0) paginas.push([y0,fin0]);
   }
   paginas.forEach(([a,b],i)=>{
-    const alto=b-a;
+    const h=b-a;
     const parte=document.createElement('canvas');
-    parte.width=canvas.width; parte.height=alto;
-    parte.getContext('2d').drawImage(canvas,0,a,canvas.width,alto,0,0,canvas.width,alto);
+    parte.width=c.width; parte.height=h;
+    parte.getContext('2d').drawImage(c,0,a,c.width,h,0,0,c.width,h);
     if(i>0) pdf.addPage();
-    pdf.addImage(parte.toDataURL('image/jpeg',0.92),'JPEG',0,0,W,alto*W/canvas.width);
+    pdf.addImage(parte.toDataURL('image/jpeg',0.92),'JPEG',0,0,W,h*W/c.width);
   });
   return pdf;
 }
