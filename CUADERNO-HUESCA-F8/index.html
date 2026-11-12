@@ -3264,14 +3264,21 @@ function imprimir(html,titulo){
     '<button id="docCompartir" aria-label="Compartir" style="width:44px;height:44px;border-radius:8px;border:none;background:#2B5FD9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button></div>'+
     '<div style="padding:calc(78px + env(safe-area-inset-top)) 14px 24px"><div class="doc">'+html+'</div></div>';
   document.body.appendChild(v);
+  let enCurso=false;
   document.getElementById('docVolver').addEventListener('click',()=>v.remove());
-  document.getElementById('docCompartir').addEventListener('click',async()=>{
-    const f=new File([pagina],nombre,{type:'text/html'});
-    if(navigator.canShare&&navigator.canShare({files:[f]})){
-      try{ await navigator.share({files:[f],title:t}); }catch(e){}
-      return;
-    }
-    aviso('Tu navegador no permite compartir desde aquí. Abre la ficha en Safari','warn');
+  document.getElementById('docCompartir').addEventListener('click',async(ev)=>{
+    ev.preventDefault();
+    if(enCurso) return;
+    enCurso=true;
+    try{
+      const f=new File([pagina],nombre,{type:'text/html'});
+      if(navigator.canShare&&navigator.canShare({files:[f]})){
+        await navigator.share({files:[f],title:t});
+      } else {
+        aviso('Tu navegador no permite compartir desde aquí. Abre la ficha en Safari','warn');
+      }
+    }catch(e){}
+    finally{ enCurso=false; }
   });
 }
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
