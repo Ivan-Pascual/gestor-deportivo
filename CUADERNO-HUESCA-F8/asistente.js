@@ -211,16 +211,15 @@ function dictar(){
 function pintarAsistente(){
   const el=document.getElementById('asistente'); if(!el) return;
   const prev=(document.getElementById('asisTexto')||{}).value||'';
+  const ICONO_MIC='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><path d="M12 18v4"/></svg>';
   el.innerHTML='<div class="card" style="padding:10px">'+
     '<div style="display:flex;gap:8px;align-items:stretch">'+
-    '<button id="asisMicI" class="btn" style="width:auto;min-width:48px;font-size:20px" aria-label="Dictar">🎤</button>'+
-    '<textarea id="asisTexto" placeholder="Di o escribe: crea tarea rueda de pases para 16 jugadores" style="min-height:48px;flex:1;font-size:15px"></textarea>'+
-    '<button id="asisMicD" class="btn" style="width:auto;min-width:48px;font-size:20px" aria-label="Dictar">🎤</button></div>'+
+    '<textarea id="asisTexto" placeholder="Escribe o dicta una orden" style="min-height:68px;flex:1;font-size:15px;line-height:1.35"></textarea>'+
+    '<button id="asisMicI" aria-label="Dictar" style="width:52px;flex:none;border-radius:8px;border:1px solid #33404F;background:#1A222D;color:#EBF0F6;display:flex;align-items:center;justify-content:center">'+ICONO_MIC+'</button></div>'+
     '<div style="display:flex;gap:8px;margin-top:8px"><button id="asisEnviar" class="btn primary">Ejecutar</button><button id="asisBorrar" class="btn ghost" style="width:auto">Borrar</button></div>'+
     '<div id="asisLog" style="margin-top:10px;font-size:13px;color:var(--tinta-2)">'+ASIS.log.map(x=>'<p style="margin:4px 0">'+esc(x)+'</p>').join('')+'</div></div>';
   document.getElementById('asisTexto').value=prev;
   document.getElementById('asisMicI').onclick=dictar;
-  document.getElementById('asisMicD').onclick=dictar;
   document.getElementById('asisEnviar').onclick=()=>{
     const cajaT=document.getElementById('asisTexto');
     const v=cajaT.value; cajaT.value='';
