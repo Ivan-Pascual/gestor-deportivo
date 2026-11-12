@@ -3253,23 +3253,38 @@ async function pdfDesdePantalla(el){
   if(!JS) throw new Error('No se ha cargado la librería del PDF. Revisa la conexión.');
   const anchoOrig=el.style.width;
   el.style.width='794px';
-  let canvas;
+  let canvas, cortes=[];
   try{
     canvas=await html2canvas(el,{scale:2,useCORS:true,backgroundColor:'#ffffff',windowWidth:794,width:794,scrollX:0,scrollY:0});
+    const base=el.getBoundingClientRect().top;
+    el.querySelectorAll('.doc-tarea,h4,.doc-meta,.doc-rubrica,.doc-espacio,tr').forEach(n=>{
+      const r=n.getBoundingClientRect();
+      cortes.push(Math.round((r.top-base)*2), Math.round((r.bottom-base)*2));
+    });
   } finally { el.style.width=anchoOrig; }
+  cortes=cortes.filter(c=>c>0&&c<canvas.height).sort((a,b)=>a-b);
   const pdf=new JS({unit:'mm',format:'a4'});
   const W=210, H=297;
   const pxPorPagina=Math.floor(canvas.width*H/W);
-  const paginas=Math.max(1,Math.ceil(canvas.height/pxPorPagina));
-  for(let i=0;i<paginas;i++){
-    const y0=i*pxPorPagina;
-    const alto=Math.min(pxPorPagina,canvas.height-y0);
+  const paginas=[];
+  let y0=0;
+  while(y0<canvas.height){
+    let fin=Math.min(y0+pxPorPagina,canvas.height);
+    if(fin<canvas.height){
+      const ok=cortes.filter(c=>c>y0+pxPorPagina*0.5&&c<=fin);
+      if(ok.length) fin=ok[ok.length-1];
+    }
+    paginas.push([y0,fin]);
+    y0=fin;
+  }
+  paginas.forEach(([a,b],i)=>{
+    const alto=b-a;
     const parte=document.createElement('canvas');
     parte.width=canvas.width; parte.height=alto;
-    parte.getContext('2d').drawImage(canvas,0,y0,canvas.width,alto,0,0,canvas.width,alto);
+    parte.getContext('2d').drawImage(canvas,0,a,canvas.width,alto,0,0,canvas.width,alto);
     if(i>0) pdf.addPage();
     pdf.addImage(parte.toDataURL('image/jpeg',0.92),'JPEG',0,0,W,alto*W/canvas.width);
-  }
+  });
   return pdf;
 }
 function imprimir(html,titulo){
