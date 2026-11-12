@@ -3265,7 +3265,7 @@ async function pdfDesdePantalla(el){
   cortes=cortes.filter(c=>c>0&&c<canvas.height).sort((a,b)=>a-b);
   const pdf=new JS({unit:'mm',format:'a4'});
   const W=210, H=297;
-  const pxPorPagina=Math.floor(canvas.width*H/W);
+  const pxPorPagina=Math.floor(canvas.width*H/W*0.95);
   const paginas=[];
   let y0=0;
   while(y0<canvas.height){
