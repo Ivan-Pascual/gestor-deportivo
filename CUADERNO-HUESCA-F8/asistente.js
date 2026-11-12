@@ -322,3 +322,29 @@ function pintarAsistente(){
   if(undo) undo.onclick=asisDeshacer;
   pintarMic();
 }
+function formatoJugadores(x){
+  let s=String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  s=s.replace(/\bcontra\b/g,' v ').replace(/\+/g,' + ').replace(/\s+/g,' ').trim();
+  return s.split(' ').map(w=>NUMPAL[w]!==undefined?String(NUMPAL[w]):w).join('');
+}
+function asisCambiarTarea(t){
+  const m=t.match(/^(cambia|cambiar|pon|poner|pasa|pasar|modifica|modificar|ajusta|ajustar)\s+(?:la\s+|el\s+)?tarea\s+([a-z0-9]+)/);
+  if(!m) return false;
+  const n=numDe(m[2]);
+  if(!n) return false;
+  const v=t.match(/\sa\s+(.+)$/);
+  if(!v) return false;
+  const fecha=/viernes/.test(t)?'2026-11-13':hoyISO();
+  const s=D.sesiones.find(x=>x.fecha===fecha&&!esPartido(x.tipo));
+  if(!s){ asisLog('No hay sesión de entreno el '+(fecha==='2026-11-13'?'viernes 13 de noviembre':'de hoy')+'.'); return true; }
+  const tarea=D.tareas.find(x=>x.id===(s.tareas||[])[n-1]);
+  if(!tarea){ asisLog('La sesión no tiene la tarea '+n+'.'); return true; }
+  const previo=JSON.parse(JSON.stringify(tarea));
+  tarea.jugadores=formatoJugadores(v[1]);
+  if(tarea.dibujo&&tarea.dibujo.auto) tarea.dibujo=dibujoBase(tarea);
+  marcar(tarea); salvar();
+  ASIS.deshacer={id:tarea.id,previo};
+  asisLog('Tarea '+n+' ("'+tarea.nombre+'") cambiada a '+tarea.jugadores+'.');
+  refrescarSesionAbierta();
+  return true;
+}
