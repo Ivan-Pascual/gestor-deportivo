@@ -3249,19 +3249,30 @@ async function bajarNube(){
 function imprimir(html,titulo){
   const t=titulo||'Documento';
   if(!html||!String(html).trim()){ aviso('La ficha está vacía','warn'); return; }
+  const nombre=t.replace(/[\\/:*?"<>|]/g,'-')+'.html';
+  const estilos=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
+  const ajuste='<style>.doc{max-width:100%!important;width:100%}.doc *{max-width:100%;box-sizing:border-box}.doc table{table-layout:fixed;width:100%}.doc td,.doc th{overflow-wrap:anywhere;word-break:break-word}.doc img{max-width:100%;height:auto}.doc-tarea-cab{flex-wrap:wrap}@media (max-width:600px){.doc-t td{display:block;width:100%}}</style>';
+  const pagina='<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(t)+'</title>'+estilos+ajuste+'</head><body style="background:#fff;color:#111;padding:14px"><div class="doc">'+html+'</div></body></html>';
   const previa=document.getElementById('docView'); if(previa) previa.remove();
   const v=document.createElement('div');
   v.id='docView';
   v.style.cssText='position:fixed;inset:0;z-index:500;background:#ffffff;overflow:auto;-webkit-overflow-scrolling:touch;color:#111';
   v.innerHTML='<style>.doc{max-width:100%!important;width:100%}.doc *{max-width:100%;box-sizing:border-box}.doc table{table-layout:fixed;width:100%}.doc td,.doc th{overflow-wrap:anywhere;word-break:break-word}.doc img{max-width:100%;height:auto}.doc-tarea-cab{flex-wrap:wrap}@media (max-width:600px){.doc-t td{display:block;width:100%}}@media print{#docBarra{display:none!important}#docView{position:static!important;overflow:visible!important}body>*:not(#docView){display:none!important}}</style>'+
-    '<div id="docBarra" style="position:fixed;top:0;left:0;right:0;z-index:600;background:#0A0E14;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:8px;align-items:center;font-family:system-ui,sans-serif">'+
+    '<div id="docBarra" style="position:fixed;top:0;left:0;right:0;z-index:600;background:#0A0E14;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:center;font-family:system-ui,sans-serif">'+
     '<button id="docVolver" style="padding:10px 12px;border-radius:8px;border:1px solid #33404F;background:#1A222D;color:#EBF0F6;font-weight:700;font-size:14px;flex:none">‹ Volver</button>'+
     '<span style="flex:1;min-width:0;color:#EBF0F6;font-size:13px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(t)+'</span>'+
-    '<button id="docImprimir" style="padding:10px 12px;border-radius:8px;border:none;background:#2B5FD9;color:#fff;font-weight:700;font-size:14px;flex:none">PDF / Imprimir</button></div>'+
+    '<button id="docCompartir" aria-label="Compartir" style="width:44px;height:44px;border-radius:8px;border:none;background:#2B5FD9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button></div>'+
     '<div style="padding:calc(78px + env(safe-area-inset-top)) 14px 24px"><div class="doc">'+html+'</div></div>';
   document.body.appendChild(v);
   document.getElementById('docVolver').addEventListener('click',()=>v.remove());
-  document.getElementById('docImprimir').addEventListener('click',()=>window.print());
+  document.getElementById('docCompartir').addEventListener('click',async()=>{
+    const f=new File([pagina],nombre,{type:'text/html'});
+    if(navigator.canShare&&navigator.canShare({files:[f]})){
+      try{ await navigator.share({files:[f],title:t}); }catch(e){}
+      return;
+    }
+    aviso('Tu navegador no permite compartir desde aquí. Abre la ficha en Safari','warn');
+  });
 }
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
 
