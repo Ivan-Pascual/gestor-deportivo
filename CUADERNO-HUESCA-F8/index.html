@@ -3246,7 +3246,7 @@ async function bajarNube(){
 /* ══════════════════════════════════════════════════════
    DOCUMENTOS PDF
    ══════════════════════════════════════════════════════ */
-function htmlAPdf(html,titulo){
+async function htmlAPdf(html,titulo){
   const JS=window.jspdf&&window.jspdf.jsPDF;
   if(!JS) throw new Error('No se ha cargado la librería del PDF. Revisa la conexión.');
   const raiz=new DOMParser().parseFromString('<div>'+html+'</div>','text/html').body.firstChild;
@@ -3254,39 +3254,57 @@ function htmlAPdf(html,titulo){
   const W=210, M=14, ANCHO=W-2*M, FIN=282;
   let y=M;
   const limpiar=s=>String(s||'').replace(/\s+/g,' ').trim();
-  const salto=h=>{ if(y+h>FIN){ pdf.addPage(); y=M; } };
-  const texto=(txt,size,estilo,color,sangria)=>{
-    const x=M+(sangria||0);
+  const escribir=(txt,size,estilo,color,x,w,yy)=>{
     pdf.setFont('helvetica',estilo||'normal');
     pdf.setFontSize(size);
     pdf.setTextColor.apply(pdf,color||[17,17,17]);
-    const lineas=pdf.splitTextToSize(txt,ANCHO-(sangria||0));
-    lineas.forEach(l=>{ salto(size*0.45); pdf.text(l,x,y); y+=size*0.45; });
-    y+=1.5;
+    const L=pdf.splitTextToSize(txt,w), lh=size*0.45;
+    L.forEach(l=>{ if(yy+lh>FIN){ pdf.addPage(); yy=M; } pdf.text(l,x,yy+lh*0.8); yy+=lh; });
+    return yy+1.2;
   };
+  const texto=(txt,size,estilo,color,sang)=>{ y=escribir(txt,size,estilo,color,M+(sang||0),ANCHO-(sang||0),y); };
   const fila=tr=>[...tr.children].map(td=>{
     const b=td.querySelector('b');
     const etq=b?limpiar(b.textContent):'';
     const val=limpiar(td.textContent).replace(etq,'').trim();
     return etq?(etq+': '+val):val;
   }).filter(Boolean).join('   ·   ');
-  raiz.querySelectorAll('.doc-tit,.doc-club,.doc-sub,.doc-tarea-cab,.doc-rubrica-n,.doc-rubrica-c,.doc-espacio,.doc-pie,h4,p,li,table').forEach(el=>{
-    if(el.tagName!=='TABLE' && el.closest('table')) return;
-    if(el.classList.contains('doc-tit')) return texto(limpiar(el.textContent),16,'bold');
-    if(el.classList.contains('doc-club')) return texto(limpiar(el.textContent),8,'normal',[110,110,110]);
-    if(el.classList.contains('doc-sub')) return texto(limpiar(el.textContent),9,'normal',[85,85,85]);
-    if(el.classList.contains('doc-tarea-cab')){ y+=1; return texto([...el.children].map(c=>limpiar(c.textContent)).join('  ·  '),10,'bold'); }
-    if(el.classList.contains('doc-rubrica-n')||el.classList.contains('doc-rubrica-c')) return texto(limpiar(el.textContent),9,'normal');
-    if(el.classList.contains('doc-espacio')){ y+=2; return texto(limpiar(el.textContent),8,'normal',[140,140,140]); }
-    if(el.classList.contains('doc-pie')) return texto(limpiar(el.textContent),7,'normal',[140,140,140]);
-    if(el.tagName==='H4'){ y+=2; return texto(limpiar(el.textContent).toUpperCase(),9.5,'bold',[40,40,40]); }
-    if(el.tagName==='P') return texto(limpiar(el.textContent),10,'normal');
-    if(el.tagName==='LI') return texto('• '+limpiar(el.textContent),9.5,'normal',[17,17,17],3);
-    if(el.tagName==='TABLE'){
-      el.querySelectorAll('tr').forEach(tr=>{ const t=fila(tr); if(t) texto(t,9,'normal',[17,17,17],2); });
+  const tarea=async el=>{
+    const cab=el.querySelector('.doc-tarea-cab');
+    if(cab){ y+=2; texto([...cab.children].map(c=>limpiar(c.textContent)).join('  ·  '),10,'bold'); }
+    const tabla=el.querySelector('table');
+    const img=el.querySelector('img');
+    if(img&&img.getAttribute('src')){
+      const src=img.getAttribute('src');
+      const im=new Image(); im.src=src;
+      try{ await im.decode(); }catch(e){}
+      const iw=62, ih=im.naturalWidth?iw*im.naturalHeight/im.naturalWidth:50;
+      if(y+ih>FIN){ pdf.addPage(); y=M; }
+      pdf.addImage(src,'PNG',M,y,iw,ih);
+      let yr=y;
+      if(tabla) tabla.querySelectorAll('tr').forEach(tr=>{ const t=fila(tr); if(t) yr=escribir(t,9,'normal',[17,17,17],M+66,ANCHO-66,yr); });
+      y=Math.max(y+ih,yr)+2;
+    } else if(tabla){
+      tabla.querySelectorAll('tr').forEach(tr=>{ const t=fila(tr); if(t) texto(t,9,'normal',[17,17,17],2); });
       y+=1.5;
     }
-  });
+  };
+  const sel='.doc-tit,.doc-club,.doc-sub,.doc-rubrica-n,.doc-rubrica-c,.doc-espacio,.doc-pie,h4,p,li,table,.doc-tarea';
+  for(const el of raiz.querySelectorAll(sel)){
+    if(el.closest('.doc-tarea')&&!el.classList.contains('doc-tarea')) continue;
+    if(el.tagName!=='TABLE'&&el.closest('table')) continue;
+    if(el.classList.contains('doc-tarea')){ await tarea(el); continue; }
+    if(el.classList.contains('doc-tit')){ texto(limpiar(el.textContent),16,'bold'); continue; }
+    if(el.classList.contains('doc-club')){ texto(limpiar(el.textContent),8,'normal',[110,110,110]); continue; }
+    if(el.classList.contains('doc-sub')){ texto(limpiar(el.textContent),9,'normal',[85,85,85]); continue; }
+    if(el.classList.contains('doc-rubrica-n')||el.classList.contains('doc-rubrica-c')){ texto(limpiar(el.textContent),9); continue; }
+    if(el.classList.contains('doc-espacio')){ y+=2; texto(limpiar(el.textContent),8,'normal',[140,140,140]); continue; }
+    if(el.classList.contains('doc-pie')){ texto(limpiar(el.textContent),7,'normal',[140,140,140]); continue; }
+    if(el.tagName==='H4'){ y+=2; texto(limpiar(el.textContent).toUpperCase(),9.5,'bold',[40,40,40]); continue; }
+    if(el.tagName==='P'){ texto(limpiar(el.textContent),10); continue; }
+    if(el.tagName==='LI'){ texto('• '+limpiar(el.textContent),9.5,'normal',[17,17,17],3); continue; }
+    if(el.tagName==='TABLE'){ el.querySelectorAll('tr').forEach(tr=>{ const t=fila(tr); if(t) texto(t,9,'normal',[17,17,17],2); }); y+=1.5; }
+  }
   const n=pdf.internal.getNumberOfPages();
   pdf.setFont('helvetica','normal'); pdf.setFontSize(7); pdf.setTextColor(140,140,140);
   for(let i=1;i<=n;i++){ pdf.setPage(i); pdf.text('Página '+i+' de '+n,W-M,292,{align:'right'}); }
@@ -3313,7 +3331,7 @@ function imprimir(html,titulo){
     if(enCurso) return;
     enCurso=true;
     try{
-      const blob=htmlAPdf(html,t).output('blob');
+      const blob=(await htmlAPdf(html,t)).output('blob');
       const f=new File([blob],nombre,{type:'application/pdf'});
       if(navigator.canShare&&navigator.canShare({files:[f]})){
         await navigator.share({files:[f],title:t});
