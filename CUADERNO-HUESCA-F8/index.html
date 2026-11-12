@@ -3333,31 +3333,34 @@ function imprimir(html,titulo){
   v.style.cssText='position:fixed;inset:0;z-index:500;background:#0A0E14;overflow:auto;-webkit-overflow-scrolling:touch';
   v.innerHTML='<div style="position:sticky;top:0;z-index:2;background:#0A0E14;padding:calc(10px + env(safe-area-inset-top)) 12px 10px;display:flex;gap:10px;align-items:center;font-family:system-ui,sans-serif">'+
     '<button id="docVolver" style="padding:10px 12px;border-radius:8px;border:1px solid #33404F;background:#1A222D;color:#EBF0F6;font-weight:700;font-size:14px;flex:none">‹ Volver</button>'+
-    '<span style="flex:1;min-width:0;color:#EBF0F6;font-size:13px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(t)+'</span>'+
-    '<button id="docCompartir" aria-label="Compartir" style="width:44px;height:44px;border-radius:8px;border:none;background:#2B5FD9;display:flex;align-items:center;justify-content:center;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button></div>'+
+    '<span id="docEstado" style="flex:1;min-width:0;color:#9DAEC4;font-size:12px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">Preparando el PDF…</span>'+
+    '<button id="docCompartir" disabled aria-label="Compartir" style="width:44px;height:44px;border-radius:8px;border:none;background:#2B5FD9;opacity:.4;display:flex;align-items:center;justify-content:center;flex:none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg></button></div>'+
     '<div style="background:#fff;color:#111;padding:14px 14px 40px">'+ajuste+'<div class="doc">'+html+'</div></div>';
   document.body.appendChild(v);
-  let enCurso=false;
   document.getElementById('docVolver').addEventListener('click',()=>v.remove());
-  document.getElementById('docCompartir').addEventListener('click',async()=>{
-    if(enCurso) return;
-    enCurso=true;
-    try{
-      const blob=(await htmlAPdf(html,t)).output('blob');
-      const f=new File([blob],nombre,{type:'application/pdf'});
-      if(navigator.canShare&&navigator.canShare({files:[f]})){
-        await navigator.share({files:[f],title:t});
-      } else {
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        a.href=url; a.download=nombre;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(()=>URL.revokeObjectURL(url),60000);
-        aviso('PDF guardado: '+nombre);
-      }
-    }catch(e){
-      if(!(e&&e.name==='AbortError')) aviso(e.message||'No se pudo crear el PDF','warn');
-    }finally{ enCurso=false; }
+  const boton=document.getElementById('docCompartir');
+  const estado=document.getElementById('docEstado');
+  let archivo=null;
+  htmlAPdf(html,t).then(pdf=>{
+    const blob=pdf.output('blob');
+    archivo=new File([blob],nombre,{type:'application/pdf'});
+    boton.disabled=false; boton.style.opacity='1';
+    estado.textContent='PDF listo: pulsa compartir';
+  }).catch(e=>{
+    estado.textContent=e.message||'No se pudo crear el PDF';
+    aviso(e.message||'No se pudo crear el PDF','warn');
+  });
+  boton.addEventListener('click',async()=>{
+    if(!archivo) return;
+    if(navigator.canShare&&navigator.canShare({files:[archivo]})){
+      try{ await navigator.share({files:[archivo],title:t}); }catch(e){}
+      return;
+    }
+    const url=URL.createObjectURL(archivo);
+    const a=document.createElement('a');
+    a.href=url; a.download=nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
   });
 }
 const ESCUDO='<img class="doc-escudo" src="'+ESCUDO_SRC+'" alt="SD Huesca">';
