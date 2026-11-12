@@ -231,3 +231,4 @@ function pintarAsistente(){
 }
 const _mostrarHoyOriginal=mostrarHoy;
 mostrarHoy=function(){ _mostrarHoyOriginal(); pintarAsistente(); };
+pintarAsistente();
