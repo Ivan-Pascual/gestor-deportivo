@@ -231,3 +231,94 @@ function pintarAsistente(){
 const _mostrarHoyOriginal=mostrarHoy;
 mostrarHoy=function(){ _mostrarHoyOriginal(); pintarAsistente(); };
 pintarAsistente();
+
+function asisLog(txt){ ASIS.log=[txt]; pintarAsistente(); }
+function asisCambiarTarea(t){
+  const m=t.match(/tarea (\d+)/);
+  if(!m||!/^(cambia|pon|pasa|modifica|ajusta)\b/.test(t)) return false;
+  const v=t.match(/\ba ([^\s].*)$/);
+  if(!v) return false;
+  const fecha=/viernes/.test(t)?'2026-11-13':hoyISO();
+  const s=D.sesiones.find(x=>x.fecha===fecha&&!esPartido(x.tipo));
+  if(!s){ asisLog('No hay sesión de entreno el '+(fecha==='2026-11-13'?'viernes 13 de noviembre':'de hoy')+'.'); return true; }
+  const n=+m[1];
+  const tarea=D.tareas.find(x=>x.id===(s.tareas||[])[n-1]);
+  if(!tarea){ asisLog('La sesión no tiene la tarea '+n+'.'); return true; }
+  tarea.jugadores=v[1].trim();
+  if(tarea.dibujo&&tarea.dibujo.auto) tarea.dibujo=dibujoBase(tarea);
+  marcar(tarea); salvar();
+  asisLog('Tarea '+n+' ("'+tarea.nombre+'") cambiada a '+tarea.jugadores+'.');
+  refrescarSesionAbierta();
+  return true;
+}
+function asisEjecutar(t){
+  if(!t) return;
+  if(ASIS.pend&&asisRespuesta(t)) return;
+  if(asisCambiarTarea(t)) return;
+  if(asisDuplicar(t)) return;
+  if(asisCrear(t)) return;
+  if(asisEditar(t)) return;
+  if(asisMeter(t)) return;
+  if(asisQuitar(t)) return;
+  if(asisListar(t)) return;
+  asisLog('No he entendido: "'+t+'". Di "ayuda" para ver ejemplos.');
+}
+function asisProcesar(texto){
+  const t=asisNorm(texto);
+  if(!t) return;
+  if(/^(ayuda|ejemplos|que puedo decir|como funciona)/.test(t)){ asisLog(AYUDA); return; }
+  if(/^(cancela|olvidalo|basta|dejalo|nada)$/.test(t)){ ASIS.pend=null; asisLog('Cancelado.'); return; }
+  t.split(/\s+(?:y luego|luego|despues|y despues|y tambien|tambien)\s+/).filter(Boolean).forEach(p=>asisEjecutar(p.trim()));
+}
+function asisCambiarTarea(t){
+  const m=t.match(/tarea (\d+)/);
+  if(!m||!/^(cambia|pon|pasa|modifica|ajusta)\b/.test(t)) return false;
+  const v=t.match(/\ba ([^\s].*)$/);
+  if(!v) return false;
+  const fecha=/viernes/.test(t)?'2026-11-13':hoyISO();
+  const s=D.sesiones.find(x=>x.fecha===fecha&&!esPartido(x.tipo));
+  if(!s){ asisLog('No hay sesión de entreno el '+(fecha==='2026-11-13'?'viernes 13 de noviembre':'de hoy')+'.'); return true; }
+  const n=+m[1];
+  const tarea=D.tareas.find(x=>x.id===(s.tareas||[])[n-1]);
+  if(!tarea){ asisLog('La sesión no tiene la tarea '+n+'.'); return true; }
+  const previo=JSON.parse(JSON.stringify(tarea));
+  tarea.jugadores=v[1].trim();
+  if(tarea.dibujo&&tarea.dibujo.auto) tarea.dibujo=dibujoBase(tarea);
+  marcar(tarea); salvar();
+  ASIS.deshacer={id:tarea.id,previo};
+  asisLog('Tarea '+n+' ("'+tarea.nombre+'") cambiada a '+tarea.jugadores+'.');
+  refrescarSesionAbierta();
+  return true;
+}
+function asisDeshacer(){
+  const d=ASIS.deshacer;
+  if(!d){ asisLog('No hay nada que deshacer.'); return; }
+  const tarea=D.tareas.find(x=>x.id===d.id);
+  if(tarea){ Object.assign(tarea,d.previo); marcar(tarea); salvar(); refrescarSesionAbierta(); }
+  ASIS.deshacer=null;
+  asisLog('Deshecho: la tarea vuelve a estar como antes.');
+}
+function pintarAsistente(){
+  const el=document.getElementById('asistente'); if(!el) return;
+  const prev=(document.getElementById('asisTexto')||{}).value||'';
+  const ICONO_MIC='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1"/><path d="M12 18v4"/></svg>';
+  el.innerHTML='<div class="card" style="padding:10px">'+
+    '<div style="display:flex;gap:8px;align-items:stretch">'+
+    '<textarea id="asisTexto" placeholder="Escribe o dicta una orden" style="min-height:68px;flex:1;font-size:15px;line-height:1.35"></textarea>'+
+    '<button id="asisMicI" aria-label="Dictar" style="width:52px;flex:none;border-radius:8px;border:1px solid #33404F;background:#1A222D;color:#EBF0F6;display:flex;align-items:center;justify-content:center">'+ICONO_MIC+'</button></div>'+
+    '<div style="display:flex;gap:8px;margin-top:8px"><button id="asisEnviar" class="btn primary">Ejecutar</button><button id="asisBorrar" class="btn ghost" style="width:auto">Borrar</button></div>'+
+    '<div id="asisLog" style="margin-top:10px;font-size:13px;color:var(--tinta-2)">'+ASIS.log.map(x=>'<p style="margin:4px 0">'+esc(x)+'</p>').join('')+'</div>'+
+    (ASIS.deshacer?'<button id="asisDeshacerBtn" class="btn ghost" style="width:auto;margin-top:8px">↶ Deshacer</button>':'')+
+    '</div>';
+  document.getElementById('asisTexto').value=prev;
+  document.getElementById('asisMicI').onclick=dictar;
+  document.getElementById('asisEnviar').onclick=()=>{
+    const cajaT=document.getElementById('asisTexto');
+    const v=cajaT.value; cajaT.value='';
+    asisProcesar(v);
+  };
+  document.getElementById('asisBorrar').onclick=()=>{ document.getElementById('asisTexto').value=''; };
+  const undo=document.getElementById('asisDeshacerBtn');
+  if(undo) undo.onclick=asisDeshacer;
+  pintarMic();
+}
