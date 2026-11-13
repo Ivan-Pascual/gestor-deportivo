@@ -5495,8 +5495,10 @@ function procesarFoto(ev){
       c.width=c.height=L;
       const lado=Math.min(img.width,img.height);
       const ctx=c.getContext('2d');
-      const y0= img.height>img.width ? (img.height-lado)*0.18 : (img.height-lado)/2;
-      ctx.drawImage(img,(img.width-lado)/2,y0,lado,lado,0,0,L,L);
+      const S=img.height*0.575/0.86, izq=img.width*0.48-S/2, arr=img.height*0.575-S;
+      const T=document.createElement("canvas"); T.width=S; T.height=S;
+      const tc=T.getContext("2d"); tc.fillStyle="#ffffff"; tc.fillRect(0,0,S,S); tc.drawImage(img,-izq,-arr);
+      ctx.drawImage(T,0,0,L,L);
       j.foto=c.toDataURL('image/jpeg',0.72); marcar(j);
       salvar(); aviso('Foto guardada');
       if(vista==='ficha') editarJugador(j.id);
