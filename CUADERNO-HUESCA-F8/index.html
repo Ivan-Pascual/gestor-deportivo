@@ -3511,62 +3511,124 @@ function pdfActa(){
 }
 
 /* ─── 3. Informe individual de jugador ─── */
+function textoAutomatico(j){
+  const CUAL=[['fisico','Físico'],['velocidad','Velocidad punta'],['pies','Manejo de pies'],['pase','Pase corto y medio'],['golpeo','Golpeo y balón parado'],['aereo','Juego aéreo'],['lectura','Lectura del juego'],['duelos','Duelos y anticipación'],['actitud','Actitud en el entreno'],['comunicacion','Comunicación']];
+  const F={
+    fisico:['Físico destacado para su categoría','Buen físico para su categoría'],
+    velocidad:['Gran velocidad punta','Buena velocidad punta'],
+    pies:['Manejo de pies excelente','Buen manejo de pies'],
+    pase:['Pase corto y medio muy fiable','Pase corto y medio fiable'],
+    golpeo:['Golpeo sobresaliente a balón parado','Buen golpeo a balón parado'],
+    aereo:['Dominio del juego aéreo','Buen juego aéreo'],
+    lectura:['Lectura del juego muy madura','Buena lectura del juego'],
+    duelos:['Muy fuerte en duelos y anticipación','Buenos duelos y anticipación'],
+    actitud:['Actitud ejemplar en el entreno','Buena actitud en el entreno'],
+    comunicacion:['Gran comunicación con los compañeros','Buena comunicación con los compañeros']
+  };
+  const M={
+    fisico:'Trabajar la fuerza y la resistencia',
+    velocidad:'Trabajar la velocidad punta',
+    pies:'Ganar control orientado al juego',
+    pase:'Ganar precisión en el pase',
+    golpeo:'Pulir el golpeo',
+    aereo:'Mejorar el juego aéreo',
+    lectura:'Ganar lectura del juego y toma de decisiones',
+    duelos:'Mejorar la anticipación en los duelos',
+    actitud:'Mantener la intensidad en el entreno',
+    comunicacion:'Hablar más con los compañeros'
+  };
+  const cv=j.cualidades||{};
+  const valorados=CUAL.filter(c=>typeof cv[c[0]]==='number');
+  if(valorados.length<CUAL.length){
+    return {perfil:(j.puesto?j.puesto:'Jugador')+(j.pierna?', pierna '+j.pierna.toLowerCase():'')+'. Pendiente de valorar las cualidades.',fortalezas:[],mejorar:[],estrellas:null,media:null};
+  }
+  const media=valorados.reduce((s,c)=>s+cv[c[0]],0)/valorados.length;
+  const fuertes=valorados.filter(c=>cv[c[0]]>=4).sort((a,b)=>cv[b[0]]-cv[a[0]]);
+  const debiles=valorados.filter(c=>cv[c[0]]<=2.5).sort((a,b)=>cv[a[0]]-cv[b[0]]);
+  const frase=(c,lista)=>{ const v=cv[c[0]]; return v>=5?lista[0]:lista[1]; };
+  const fortalezas=fuertes.slice(0,3).map(c=>frase(c,F[c[0]]));
+  const mejorar=debiles.slice(0,3).map(c=>M[c[0]]);
+  const minus=s=>s.charAt(0).toLowerCase()+s.slice(1);
+  let perfil=(j.puesto||'Jugador')+(j.pierna?', pierna '+j.pierna.toLowerCase():'')+'.';
+  if(fortalezas.length===1) perfil+=' Destaca '+minus(fortalezas[0])+'.';
+  if(fortalezas.length>=2) perfil+=' Destaca '+minus(fortalezas[0])+' y '+minus(fortalezas[1])+'.';
+  if(mejorar.length) perfil+=' Debe '+minus(mejorar[0])+'.';
+  return {perfil:perfil,fortalezas:fortalezas,mejorar:mejorar,media:Math.round(media*100)/100,estrellas:media*2};
+}
 function pdfJugador(){
   if(!fichaId){ aviso('Guarda el jugador primero','warn'); return; }
   const j=D.jugadores.find(x=>x.id===fichaId); if(!j) return;
-  const st=statsJugador(j.id);
-  const palabra=(M().palabras.find(p=>p[0]===j.puesto)||[])[1]||'';
-  const desc=(M().palabras.find(p=>p[0]===j.puesto)||[])[2]||'';
-
-  let h=docCab('Informe individual',j.nombre+' · Dorsal '+(j.dorsal??'—'));
-  h+='<table class="doc-meta"><tr>'+
-    '<td><b>Puesto</b>'+esc(j.puesto||'—')+'</td>'+
-    '<td><b>Pierna</b>'+esc(j.pierna||'—')+'</td>'+
-    '<td><b>Categoría</b>'+esc(j.categoria||'—')+'</td></tr>'+
-    ((j.nac||j.estatura!=null||j.peso!=null)?'<tr><td><b>Edad</b>'+(j.nac?edadDe(j.nac)+' años':'—')+'</td>'+
-      '<td><b>Estatura</b>'+(j.estatura!=null?j.estatura+' cm':'—')+'</td><td><b>Peso</b>'+(j.peso!=null?j.peso+' kg':'—')+'</td></tr>':'')+
-    '</table>';
-  if(j.foto) h=h.replace('<table class="doc-meta">','<img src="'+j.foto+'" style="width:70px;height:70px;border-radius:8px;float:right;margin:0 0 8px 10px"><table class="doc-meta">');
-
-  if(palabra) h+='<div class="doc-destacado"><b>'+palabra+'</b> · '+esc(desc)+'</div>';
-  if(j.fuertes||j.mejorar||j.objetivo||(j.secundarias||[]).length){
-    h+='<h4 class="doc-h">Perfil técnico</h4><table class="doc-lista"><tbody>'+
-      ((j.secundarias||[]).length?fila('También juega de',esc(j.secundarias.join(', '))):'')+
-      (j.fuertes?fila('Fortalezas',esc(j.fuertes)):'')+(j.mejorar?fila('Aspectos a mejorar',esc(j.mejorar)):'')+
-      (j.objetivo?fila('Objetivo individual',esc(j.objetivo)):'')+'</tbody></table>';
-  }
-
-  h+='<h4 class="doc-h">Datos de la temporada</h4>'+
-    '<table class="doc-lista"><tbody>'+
-    fila('Asistencia a entrenamientos',st.pres+' de '+st.conv+' ('+st.pctAsist+'%)')+
-    fila('Nota media en entrenamiento',st.medE)+
-    fila('Nota media en partido',st.medP)+
-    fila('Partidos disputados',st.partidos)+
-    fila('Minutos jugados',st.minutos)+
-    fila('Goles',st.goles)+
-    fila('Asistencias',st.asistencias)+
-    fila('Índice de participación',st.ip+' sobre 100')+
-    '</tbody></table>';
-
-  h+='<p class="doc-nota">El índice de participación combina un 50 garantizado con un 50 repartido '+
-     'entre asistencia (40%) y rendimiento en sesión y partido (60%).</p>';
-
-  const hist=D.registros.filter(r=>r.jugadorId===j.id).map(r=>{
-    const s=D.sesiones.find(x=>x.id===r.sesionId); return s?{r,s}:null;
-  }).filter(Boolean).sort((a,b)=>b.s.fecha.localeCompare(a.s.fecha)).slice(0,14);
-  if(hist.length){
-    h+='<h4 class="doc-h">Últimas sesiones</h4><table class="doc-lista"><thead><tr>'+
-      '<th style="width:80px">Fecha</th><th style="width:80px">Tipo</th><th>Objetivo</th>'+
-      '<th style="width:70px">Asiste</th><th style="width:55px">Nota</th></tr></thead><tbody>';
-    hist.forEach(x=>{
-      h+='<tr><td>'+fechaCorta(x.s.fecha)+'</td><td>'+etiqueta(x.s.tipo)+'</td>'+
-        '<td>'+esc(x.s.objetivo||'—')+'</td><td class="c">'+(x.r.asistio?'Sí':'No')+'</td>'+
-        '<td class="c">'+(x.r.nota??'')+'</td></tr>';
-    });
-    h+='</tbody></table>';
-  }
-  if(j.obs) h+='<h4 class="doc-h">Observaciones del entrenador</h4><p class="doc-p">'+esc(j.obs)+'</p>';
-  h+='<div class="doc-espacio"><b>Objetivos para el próximo periodo</b></div>'+docFirma()+docPie();
+  const p=D.perfil||PERFIL;
+  const st=statsJugador(j.id)||{};
+  const regs=D.registros.filter(r=>r.jugadorId===j.id).map(r=>({r:r,s:D.sesiones.find(x=>x.id===r.sesionId)})).filter(x=>x.s).sort((a,b)=>a.s.fecha.localeCompare(b.s.fecha));
+  const ent=regs.filter(x=>!esPartido(x.s.tipo));
+  const par=regs.filter(x=>esPartido(x.s.tipo));
+  const pal=(M().palabras.find(q=>q[0]===j.puesto)||[]);
+  const auto=textoAutomatico(j); const perfil=j.perfilManual||auto.perfil;
+  const CUAL=[['Físico','fisico'],['Velocidad punta','velocidad'],['Manejo de pies','pies'],['Pase corto y medio','pase'],['Golpeo y balón parado','golpeo'],['Juego aéreo','aereo'],['Lectura del juego','lectura'],['Duelos y anticipación','duelos'],['Actitud en el entreno','actitud'],['Comunicación','comunicacion']];
+  const cv=j.cualidades||{};
+  const vals=CUAL.map(c=>cv[c[1]]).filter(v=>typeof v==='number');
+  const score=vals.length===CUAL.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*2*10)/10:null;
+  const estrellas=s=>{ if(s===null) return 0; if(s<2) return 0; if(s<4) return 0.5; if(s<5.1) return 1; if(s<6.1) return 1.5; if(s<7.1) return 2; if(s<8.1) return 2.5; return 3; };
+  const svgEstrellas=n=>{
+    let o='<svg width="112" height="22" viewBox="0 0 112 22">';
+    for(let i=0;i<3;i++){
+      const f=Math.min(Math.max(n-i,0),1);
+      const pts=[]; for(let k=0;k<10;k++){ const a=-Math.PI/2+k*Math.PI/5, r=k%2?4.2:9; pts.push((i*36+11+r*Math.cos(a)).toFixed(2)+','+(11+r*Math.sin(a)).toFixed(2)); }
+      o+='<polygon points="'+pts.join(' ')+'" fill="#3C4E76"/>';
+      if(f>0) o+='<clipPath id="ce'+i+'"><rect x="'+(i*36+2)+'" y="0" width="'+(18*f)+'" height="22"/></clipPath><polygon points="'+pts.join(' ')+'" fill="#E0A528" clip-path="url(#ce'+i+')"/>';
+    }
+    return o+'</svg>';
+  };
+  const POS={'Portero':[0.5,0.93],'Central':[0.5,0.80],'Lateral derecho':[0.85,0.74],'Lateral izquierdo':[0.15,0.74],'Pivote':[0.5,0.62],'Medio':[0.5,0.52],'Medio punta':[0.5,0.40],'Extremo':[0.85,0.45],'Extremo izquierdo':[0.15,0.45],'Punta':[0.5,0.22],'Delantero':[0.5,0.18]};
+  const xy=n=>POS[n]||[0.5,0.5];
+  let campo='<svg width="250" height="352" viewBox="0 0 250 352"><rect width="250" height="352" fill="#2C7840"/>';
+  for(let i=0;i<352;i+=44) campo+='<rect x="0" y="'+i+'" width="250" height="22" fill="#328647"/>';
+  campo+='<g fill="none" stroke="#fff" stroke-width="2"><rect x="8" y="8" width="234" height="336"/><line x1="8" y1="176" x2="242" y2="176"/><circle cx="125" cy="176" r="32"/><rect x="47" y="8" width="156" height="72"/><rect x="88" y="8" width="74" height="24"/><rect x="47" y="272" width="156" height="72"/><rect x="88" y="320" width="74" height="24"/></g>';
+  const marca=(n,col,tc,txt)=>{ const q=xy(n); const x=q[0]*250, y=q[1]*352; return '<circle cx="'+x+'" cy="'+y+'" r="6" fill="#14161C"/><rect x="'+(x-44)+'" y="'+(y+8)+'" width="88" height="16" rx="5" fill="'+col+'"/><text x="'+x+'" y="'+(y+19)+'" text-anchor="middle" font-size="9" font-weight="700" fill="'+tc+'" font-family="system-ui,sans-serif">'+esc(txt)+'</text>'; };
+  if(j.puesto) campo+=marca(j.puesto,'#8C1C30','#fff',j.puesto.toUpperCase());
+  (j.secundarias||[]).slice(0,2).forEach(s=>{ campo+=marca(s,'#E0A528','#16181E',s.toUpperCase()); });
+  campo+='</svg>';
+  const celda=(x,y,w,h,label,val)=>'<div style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px;height:'+h+'px;border:1px solid #D0D4DC;background:#F5F6F8;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font:700 9px system-ui;letter-spacing:.06em;color:#686F7C">'+label.toUpperCase()+'</div><div style="font:500 15px system-ui;color:#16181E;margin-top:4px">'+esc(String(val))+'</div></div>';
+  const fichaCeldas=[['Dorsal',j.dorsal??'—'],['Puesto',j.puesto||'—'],['Pierna hábil',j.pierna||'—'],['Categoría',j.categoria||'—'],['Equipo',j.equipo||p.equipo||'—'],['Edad',j.nac?edadDe(j.nac)+' años':'—'],['Estatura',j.estatura!=null?j.estatura+' cm':'—'],['Peso',j.peso!=null?j.peso+' kg':'—'],['Asistencia',(st.pctAsist!=null?st.pctAsist+'%':'—')]].map((c,i)=>celda(34+(i%3)*172,113+Math.floor(i/3)*63,172,63,c[0],c[1])).join('');
+  const foto=j.foto?'<img src="'+j.foto+'" style="width:189px;height:189px;object-fit:cover;position:absolute;left:571px;top:113px;border:1px solid #D0D4DC">':'<div style="position:absolute;left:571px;top:113px;width:187px;height:187px;border:1px solid #D0D4DC;background:#F5F6F8;display:flex;align-items:center;justify-content:center;font:12px system-ui;color:#686F7C">Sin foto</div>';
+  const filas=[[j.puesto||'—',pal[1]||'']].concat((j.secundarias||[]).slice(0,2).map((s,i)=>['Secundaria '+(i+1),s]));
+  const posTabla=filas.map((f,i)=>'<div style="position:absolute;left:304px;top:'+(402+i*26)+'px;width:456px;height:26px;border:1px solid #D0D4DC;background:'+(i%2?'#F5F6F8':'#fff')+';display:flex"><div style="width:96px;background:'+(i===0?'#8C1C30':'#E0A528')+';color:'+(i===0?'#fff':'#16181E')+';font:700 10px system-ui;display:flex;align-items:center;padding-left:8px">'+(i===0?'PRINCIPAL':'SECUNDARIA '+i)+'</div><div style="font:13px system-ui;color:#16181E;display:flex;align-items:center;padding-left:12px">'+esc(f[1]||f[0])+'</div></div>').join('');
+  const cualBars=CUAL.map((c,i)=>{ const v=cv[c[1]]; const y=492+i*17; if(typeof v!=='number') return '<div style="position:absolute;left:304px;top:'+y+'px;font:10px system-ui;color:#686F7C">'+c[0]+'</div><div style="position:absolute;left:454px;top:'+y+'px;font:10px system-ui;color:#686F7C">pendiente</div>';
+    const col=v>=4?'#16A06A':(v>=3?'#E0A528':'#D64545');
+    return '<div style="position:absolute;left:304px;top:'+y+'px;font:10px system-ui;color:#16181E">'+c[0]+'</div><div style="position:absolute;left:454px;top:'+(y+3)+'px;width:276px;height:8px;background:#D0D4DC"></div><div style="position:absolute;left:454px;top:'+(y+3)+'px;width:'+(276*v/5)+'px;height:8px;background:'+col+'"></div><div style="position:absolute;left:738px;top:'+y+'px;font:700 10px system-ui;color:#16181E">'+v+'</div>'; }).join('');
+  const sec=(j.secundarias||[]).join(', ')||'—';
+  const pres=st.pres??ent.filter(x=>x.r.asistio).length, conv=st.conv??ent.length;
+  const asistSvg=ent.length?'<svg width="222" height="110" viewBox="0 0 222 110">'+ent.map((x,i)=>{const bw=222/ent.length; const h=x.r.asistio?60:6; return '<rect x="'+(i*bw+1)+'" y="'+(110-h)+'" width="'+(bw-3)+'" height="'+h+'" fill="'+(x.r.asistio?'#16A06A':'#D64545')+'"/>';}).join('')+'</svg>':'<div style="font:11px system-ui;color:#686F7C">Sin entrenos registrados</div>';
+  const notasSvg=ent.filter(x=>typeof x.r.nota==='number').length?(()=>{const nn=ent.filter(x=>typeof x.r.nota==='number'); const dx=nn.length>1?228/(nn.length-1):0; const pts=nn.map((x,i)=>(i*dx).toFixed(1)+','+(110-(x.r.nota-5)/5*100).toFixed(1)).join(' '); return '<svg width="228" height="110" viewBox="0 0 228 110">'+[6,8,10].map(v=>'<line x1="0" x2="228" y1="'+(110-(v-5)/5*100)+'" y2="'+(110-(v-5)/5*100)+'" stroke="#D0D4DC"/>').join('')+'<polyline points="'+pts+'" fill="none" stroke="#8C1C30" stroke-width="2"/></svg>';})():'<div style="font:11px system-ui;color:#686F7C">Sin notas de entreno</div>';
+  const partSvg=par.length?'<svg width="228" height="124" viewBox="0 0 228 124">'+par.map((x,i)=>{const bw=228/par.length; const mm=Math.min(x.r.minutos||0,50); const h=mm/50*100; return '<rect x="'+(i*bw+3)+'" y="'+(110-h)+'" width="'+(bw-8)+'" height="'+h+'" fill="#1F3A6B"/><text x="'+(i*bw+bw/2)+'" y="122" text-anchor="middle" font-size="9" fill="#686F7C" font-family="system-ui">P'+(i+1)+'</text>';}).join('')+'</svg>':'<div style="font:11px system-ui;color:#686F7C">Sin partidos registrados</div>';
+  const bloque=(x,y,w,t,sub)=>'<div style="position:absolute;left:'+x+'px;top:'+y+'px;width:'+w+'px"><div style="font:700 11px system-ui;color:#1F3A6B;border-bottom:2px solid #1F3A6B;padding-bottom:3px">'+t+'</div>'+(sub?'<div style="font:11px system-ui;color:#686F7C;margin-top:4px">'+sub+'</div>':'')+'</div>';
+  const stat=(x,k,v)=>'<div style="position:absolute;left:'+x+'px;top:940px;width:166px;height:60px;border:1px solid #D0D4DC;background:#F5F6F8"><div style="position:absolute;left:10px;top:8px;font:700 9px system-ui;color:#686F7C">'+k+'</div><div style="position:absolute;left:10px;top:26px;font:700 13px system-ui;color:#16181E">'+v+'</div></div>';
+  const h='<div style="position:relative;width:794px;height:1123px;background:#fff;font-family:system-ui,sans-serif;color:#16181E">'+
+    '<div style="position:absolute;left:0;top:0;width:794px;height:96px;background:#1F3A6B"></div><div style="position:absolute;left:0;top:96px;width:794px;height:5px;background:#8C1C30"></div>'+
+    '<img src="'+ESCUDO_SRC+'" style="position:absolute;left:34px;top:11px;height:74px">'+
+    '<div style="position:absolute;left:108px;top:18px;font:700 11px system-ui;letter-spacing:.06em;color:#AAB6CC">'+esc(p.club||'SD HUESCA')+' · '+esc(p.equipo||'')+'</div>'+
+    '<div style="position:absolute;left:108px;top:36px;font:700 22px system-ui;color:#fff">Informe individual de jugador</div>'+
+    '<div style="position:absolute;left:108px;top:64px;font:700 14px system-ui;color:#fff">'+esc(j.nombre)+' · Dorsal '+esc(String(j.dorsal??'—'))+' · Temporada 2026/27</div>'+
+    '<div style="position:absolute;left:540px;top:20px;font:700 10px system-ui;letter-spacing:.06em;color:#AAB6CC">VALORACIÓN</div>'+
+    '<div style="position:absolute;left:540px;top:36px">'+(score===null?'<div style="font:11px system-ui;color:#AAB6CC">Pendiente de valorar</div>':svgEstrellas(estrellas(score))+'<div style="font:700 12px system-ui;color:#fff;margin-top:2px">'+score+' / 10</div>')+'</div>'+
+    fichaCeldas+foto+
+    '<div style="position:absolute;left:34px;top:314px;width:726px;height:52px;background:#FDF6E6"></div><div style="position:absolute;left:34px;top:314px;width:6px;height:52px;background:#E0A528"></div>'+
+    '<div style="position:absolute;left:52px;top:321px;font:700 12px system-ui;color:#16181E">PERFIL</div>'+
+    '<div style="position:absolute;left:52px;top:336px;width:690px;font:11px system-ui;line-height:14px;color:#16181E;overflow:hidden;max-height:28px">'+esc(perfil)+'</div>'+
+    '<div style="position:absolute;left:34px;top:378px;width:250px;height:352px">'+campo+'</div>'+
+    '<div style="position:absolute;left:304px;top:378px;font:700 11px system-ui;color:#1F3A6B">POSICIONES</div><div style="position:absolute;left:304px;top:394px;width:456px;height:2px;background:#1F3A6B"></div>'+posTabla+
+    '<div style="position:absolute;left:304px;top:466px;font:700 11px system-ui;color:#1F3A6B">CUALIDADES (1 a 5)</div><div style="position:absolute;left:304px;top:482px;width:456px;height:2px;background:#1F3A6B"></div>'+cualBars+
+    '<div style="position:absolute;left:304px;top:668px;font:700 9px system-ui;color:#686F7C">A MEJORAR</div><div style="position:absolute;left:384px;top:668px;font:10px system-ui;color:#16181E">'+esc(j.mejorarManual||(auto.mejorar.length?auto.mejorar.join(' · '):'Pendiente de valorar.'))+'</div>'+
+    '<div style="position:absolute;left:304px;top:684px;font:700 9px system-ui;color:#686F7C">TAMBIÉN JUEGA DE</div><div style="position:absolute;left:414px;top:684px;font:10px system-ui;color:#16181E">'+esc(sec)+'</div>'+
+    bloque(34,742,222,'ASISTENCIA','<span style="color:#16181E;font-weight:700">'+pres+' de '+conv+' ('+(st.pctAsist??'—')+'%)</span>')+asistSvg.replace('<svg','<svg style="position:absolute;left:34px;top:790px"')+
+    bloque(282,742,228,'NOTA ENTRENO','Nota por sesión')+notasSvg.replace('<svg','<svg style="position:absolute;left:282px;top:790px"')+
+    bloque(530,742,230,'PARTIDOS','Minutos por partido')+partSvg.replace('<svg','<svg style="position:absolute;left:530px;top:790px"')+
+    stat(34,'Asistencia',pres+' de '+conv+' ('+(st.pctAsist??'—')+'%)')+stat(234,'Nota media',st.medE??'—')+stat(434,'Participación',st.ip??'—')+stat(634,'Faltas',Math.max(conv-pres,0))+
+    '<div style="position:absolute;left:34px;top:996px;width:726px;height:50px;background:#E8EEF7"></div><div style="position:absolute;left:34px;top:996px;width:6px;height:50px;background:#1F3A6B"></div>'+
+    '<div style="position:absolute;left:52px;top:1004px;font:700 10px system-ui;color:#1F3A6B">OBJETIVO INDIVIDUAL</div><div style="position:absolute;left:52px;top:1022px;font:13px system-ui;color:#16181E">'+esc(j.objetivo||'Sin objetivo escrito.')+'</div>'+
+    '<div style="position:absolute;left:0;top:1089px;width:794px;height:34px;background:#1F3A6B"></div><div style="position:absolute;left:34px;top:1100px;font:10px system-ui;color:#fff">Cuaderno del entrenador · '+esc(p.club||'')+' · Documento de uso interno · '+fechaLarga(hoyISO())+'</div>'+
+    '</div>';
   imprimir(h,'Informe '+j.nombre);
 }
 const fila=(a,b)=>'<tr><td style="width:55%">'+a+'</td><td class="c"><b>'+b+'</b></td></tr>';
