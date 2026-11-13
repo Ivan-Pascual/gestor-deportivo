@@ -947,7 +947,7 @@ img.doc-escudo{width:31px;height:36px;object-fit:contain;flex:none}
   <p class="eyebrow gris mt">Sistema</p>
   <div class="list">
     <button class="li"><span class="li-main" onclick="go('ajustes',false)">
-      <span class="chip">⚙</span>
+      <span class="chip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg></span>
       <span class="grow"><b>Ajustes</b><span class="mini muted">Tus datos, microciclo y kilometraje</span></span>
       <span class="arrow">›</span></span></button>
     <button class="li" id="masUso"><span class="li-main" onclick="go('uso',false)">
@@ -2609,7 +2609,7 @@ function panelJugador(j){
      '<span class="grow"><b class="trunc">'+esc(h.s.objetivo||etiqueta(h.s.tipo))+'</b>'+
      '<span class="mini muted">'+fechaCorta(h.s.fecha)+'</span></span>'+
      '<span class="chip '+(h.r.asistio?(h.r.nota?'amber':'green'):'garnet')+'">'+
-     (h.r.asistio?(h.r.nota?h.r.nota:'✓'):'falta')+'</span></div>').join('')+'</div>':'');
+     (h.r.asistio?(h.r.nota?h.r.nota:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-10"/></svg>'):'falta')+'</span></div>').join('')+'</div>':'');
 }
 function guardarJugador(){
   const nombre=document.getElementById('fNombre').value.trim();
@@ -4450,7 +4450,7 @@ function eqPanel(s,tid){
   pres.forEach(x=>{ const k=e.de[x.j.id]; if(k==='c') com.push(x); else (k!=null&&k<e.n?grupos[k]:sin).push(x); });
   const chip=x=>'<button class="eq-chip" onclick="eqCambiar(\''+tid+'\',\''+x.j.id+'\')">'+
     (x.j.dorsal!=null&&x.j.dorsal!==''?'<b>'+esc(x.j.dorsal)+'</b> ':'')+esc((x.j.nombre||'').split(' ')[0])+
-    (x.j.tipo==='portero'?' 🧤':'')+'</button>';
+    (x.j.tipo==='portero'?' <span class="chip" style="font-size:10px;padding:0 5px">P</span>':'')+'</button>';
   const pc=(e.com&&e.com.peto)||0;
   return '<div class="eq-panel">'+ajustes+
     '<div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px">'+
@@ -4729,7 +4729,7 @@ function mostrarCampoActa(){
   const banco=regs.filter(r=>r.estado==='suplente'&&jug(r)), fuera=regs.filter(r=>r.estado==='no'&&jug(r));
   const ficha=(r,acc,extra)=>{ const j=jug(r);
     return '<button class="eq-chip" onclick="'+acc+'">'+(j.dorsal!=null&&j.dorsal!==''?'<b>'+esc(j.dorsal)+'</b> ':'')+
-      esc((j.nombre||'').split(' ')[0])+(j.tipo==='portero'?' 🧤':'')+(extra||'')+'</button>'; };
+      esc((j.nombre||'').split(' ')[0])+(j.tipo==='portero'?' <span class="chip" style="font-size:10px;padding:0 5px">P</span>':'')+(extra||'')+'</button>'; };
   const dibujo=campoSVG(planActual), nHuecos=slotsDe(formacionDe(s)).length;
   const gks=tit.filter(r=>(jug(r)||{}).tipo==='portero');
   const usados=new Set(), sobran=[];
@@ -4947,23 +4947,23 @@ function pintarCumples(){
   const hoy=L.filter(x=>x.d===0), pronto=L.filter(x=>x.d>0);
   const dia=d=>{ const f=new Date(); f.setDate(f.getDate()+d); return d===1?'mañana':DIAS[f.getDay()]+' '+f.getDate(); };
   el.innerHTML='<div class="card cumple'+(hoy.length?' hoy':'')+'">'+
-    (hoy.length?'<b style="font-size:15px">🎂 Hoy cumple'+(hoy.length>1?'n':'')+' '+
+    (hoy.length?'<b style="font-size:15px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="4"/><path d="M12 8v13M5 12v9h14v-9M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg> Hoy cumple'+(hoy.length>1?'n':'')+' '+
       hoy.map(x=>esc((x.j.nombre||'').split(' ')[0])+' ('+edadDe(x.j.nac)+')').join(' y ')+'</b>':'')+
-    (pronto.length?'<div class="mini muted" style="margin-top:'+(hoy.length?'6':'0')+'px">🎂 Esta semana: '+
+    (pronto.length?'<div class="mini muted" style="margin-top:'+(hoy.length?'6':'0')+'px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="4"/><path d="M12 8v13M5 12v9h14v-9M7.5 8a2.5 2.5 0 0 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 0 1 0 5"/></svg> Esta semana: '+
       pronto.map(x=>esc((x.j.nombre||'').split(' ')[0])+' '+dia(x.d)+' ('+(edadDe(x.j.nac)+1)+')').join(' · ')+'</div>':'')+
   '</div>';
   /* aviso una vez al día */
   if(hoy.length){
     const k='cumpleAvisado', h=hoyISO();
     try{ if(localStorage.getItem(k)!==h){ localStorage.setItem(k,h);
-      setTimeout(()=>aviso('🎂 Hoy cumple '+hoy.map(x=>(x.j.nombre||'').split(' ')[0]).join(' y ')),700); } }catch(e){}
+      setTimeout(()=>aviso('Hoy cumple '+hoy.map(x=>(x.j.nombre||'').split(' ')[0]).join(' y ')),700); } }catch(e){}
   }
 }
 function pintarFotoGrande(j){
   const el=document.getElementById('fFotoGrande'); if(!el) return;
   el.innerHTML= j
     ? '<button class="foto-grande" onclick="pedirFoto(\''+j.id+'\')" aria-label="Foto">'+
-        (j.foto?'<img src="'+j.foto+'" alt="">':'<span>📷</span>')+'</button>'+
+        (j.foto?'<img src="'+j.foto+'" alt="">':'<span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h3l2-3h6l2 3h3v12H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>')+'</button>'+
       '<div class="grow"><b style="font-size:14px">Foto de la cara</b>'+
       '<span class="mini muted" style="display:block;margin:3px 0 8px">Cámara o galería. Se recorta cuadrada y se centra en la cara.</span>'+
       '<div class="row" style="gap:6px"><button class="btn xs primary" onclick="pedirFoto(\''+j.id+'\')">'+(j.foto?'Cambiar foto':'Poner foto')+'</button>'+
@@ -5059,7 +5059,7 @@ function pintarEscudoActa(){
   const el=document.getElementById('aEscudo'); if(!el) return;
   const s=D.sesiones.find(x=>x.id===sesionActiva); if(!s) return;
   const e=escudoDe(s.rival);
-  el.innerHTML=(e?escudoHTML(s.rival,44):'<span class="escudo-vacio">🛡</span>')+
+  el.innerHTML=(e?escudoHTML(s.rival,44):'<span class="escudo-vacio"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 3v6c0 4.5-3.5 8-8 9-4.5-1-8-4.5-8-9V6z"/></svg></span>')+
     '<button class="btn xs" onclick="pedirEscudo()">'+(e?'Cambiar escudo':'Poner escudo del rival')+'</button>'+
     (e?'<button class="btn xs" onclick="quitarEscudo()">Quitar</button>':'');
   const dl=document.getElementById('rivalesLista');
@@ -6546,7 +6546,7 @@ function tacRenderPlantilla(){
     return '<button onclick="tacPickJugador(\''+j.id+'\')" style="flex:none;width:68px;border:2px solid '+(sel?'#ffd60a':'#2a3344')+
       ';background:'+(sel?'#1d2430':'transparent')+';border-radius:12px;padding:6px 2px;color:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;opacity:'+(ya?'.45':'1')+'">'+
       camisetaMini(j.dorsal)+
-      '<span style="font-size:10px;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((j.nombre||'').split(' ')[0])+(ya?' ✓':'')+'</span></button>';
+      '<span style="font-size:10px;max-width:62px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc((j.nombre||'').split(' ')[0])+(ya?' <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5 9-10"/></svg>':'')+'</span></button>';
   }).join('');
 }
 function tacPonerPlantilla(){
