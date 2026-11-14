@@ -114,28 +114,6 @@
           '<p class="doc-p" style="margin:0;color:#555">Alineación inicial sobre el campo. Los suplentes y no convocados aparecen en las tablas siguientes.</p>'+
         '</div></div>';
     }
-    let dibujo='';
-    try{ dibujo=campoSVG(repartoMinutos(s.id)); }catch(e){ dibujo=''; }
-    if(dibujo){
-      h+='<div class="doc-tarea" style="border:none;margin:0 0 12px;display:flex;gap:16px;align-items:flex-start">'+
-        '<div style="width:230px;flex:none">'+dibujo+'</div>'+
-        '<div style="flex:1;min-width:0;padding-top:6px">'+
-          '<b style="font-size:7.5pt;letter-spacing:.11em;text-transform:uppercase;color:#555">Sistema</b>'+
-          '<p style="margin:2px 0 10px;font-size:13pt;font-weight:700">'+esc(nombreSistema(formacionDe(s)))+'</p>'+
-          '<p class="doc-p" style="margin:0;color:#555">Alineación inicial sobre el campo. Los suplentes y no convocados aparecen en las tablas siguientes.</p>'+
-        '</div></div>';
-    }
-    let dibujo='';
-    try{ dibujo=campoSVG(repartoMinutos(s.id)); }catch(e){ dibujo=''; }
-    if(dibujo){
-      h+='<div class="doc-tarea" style="border:none;margin:0 0 12px;display:flex;gap:16px;align-items:flex-start">'+
-        '<div style="width:230px;flex:none">'+dibujo+'</div>'+
-        '<div style="flex:1;min-width:0;padding-top:6px">'+
-          '<b style="font-size:7.5pt;letter-spacing:.11em;text-transform:uppercase;color:#555">Sistema</b>'+
-          '<p style="margin:2px 0 10px;font-size:13pt;font-weight:700">'+esc(nombreSistema(formacionDe(s)))+'</p>'+
-          '<p class="doc-p" style="margin:0;color:#555">Alineación inicial sobre el campo. Los suplentes y no convocados aparecen en las tablas siguientes.</p>'+
-        '</div></div>';
-    }
     h+=seccion('Resumen del partido',
       '<table class="doc-meta"><tr>'+
       '<td><b>Goles</b>'+goles+'</td>'+
